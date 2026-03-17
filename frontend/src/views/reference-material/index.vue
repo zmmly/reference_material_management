@@ -1,0 +1,220 @@
+<template>
+  <div class="page-container">
+    <el-card>
+      <el-form :inline="true" :model="queryParams" class="search-form">
+        <el-form-item label="名称">
+          <el-input v-model="queryParams.name" placeholder="请输入" clearable />
+        </el-form-item>
+        <el-form-item label="分类">
+          <el-select v-model="queryParams.categoryId" placeholder="全部" clearable>
+            <el-option v-for="item in categoryList" :key="item.id" :label="item.label" :value="item.id" />
+          </el-select>
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" @click="fetchData">查询</el-button>
+          <el-button @click="handleAdd">新增</el-button>
+        </el-form-item>
+      </el-form>
+
+      <el-table :data="tableData" v-loading="loading" border>
+        <el-table-column prop="code" label="编号" width="120" />
+        <el-table-column prop="name" label="名称" />
+        <el-table-column prop="specification" label="规格" width="120" />
+        <el-table-column prop="unit" label="单位" width="80" />
+        <el-table-column prop="categoryName" label="分类" width="120" />
+        <el-table-column prop="manufacturer" label="生产厂商" />
+        <el-table-column label="操作" width="150">
+          <template #default="{ row }">
+            <el-button link type="primary" @click="handleEdit(row)">编辑</el-button>
+            <el-button link type="danger" @click="handleDelete(row)">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <el-pagination
+        v-model:current-page="queryParams.current"
+        v-model:page-size="queryParams.size"
+        :total="total"
+        layout="total, sizes, prev, pager, next"
+        @change="fetchData"
+      />
+    </el-card>
+
+    <el-dialog v-model="dialogVisible" :title="editId ? '编辑标准物质' : '新增标准物质'" width="700">
+      <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="编号" prop="code">
+              <el-input v-model="form.code" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="名称" prop="name">
+              <el-input v-model="form.name" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="英文名">
+              <el-input v-model="form.englishName" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="分类" prop="categoryId">
+              <el-select v-model="form.categoryId" placeholder="请选择" style="width: 100%">
+                <el-option v-for="item in categoryList" :key="item.id" :label="item.label" :value="item.id" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="标准值">
+              <el-input v-model="form.standardValue" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="不确定度">
+              <el-input v-model="form.uncertainty" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="规格">
+              <el-input v-model="form.specification" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="单位">
+              <el-input v-model="form.unit" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="储存条件">
+              <el-select v-model="form.storageCondition" placeholder="请选择" style="width: 100%">
+                <el-option label="-20℃" value="-20℃" />
+                <el-option label="2-8℃" value="2-8℃" />
+                <el-option label="常温" value="常温" />
+                <el-option label="阴凉干燥" value="阴凉干燥" />
+                <el-option label="10-30℃" value="10-30℃" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="生产厂商">
+              <el-input v-model="form.manufacturer" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-form-item label="备注">
+          <el-input v-model="form.remarks" type="textarea" :rows="2" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="dialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="handleSubmit">确定</el-button>
+      </template>
+    </el-dialog>
+  </div>
+</template>
+
+<script setup>
+import { ref, reactive, onMounted } from 'vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { getMaterialList, createMaterial, updateMaterial, deleteMaterial } from '@/api/material'
+import { getCategoryTree } from '@/api/category'
+
+const loading = ref(false)
+const tableData = ref([])
+const total = ref(0)
+const categoryList = ref([])
+const dialogVisible = ref(false)
+const editId = ref(null)
+const formRef = ref()
+
+const queryParams = reactive({ current: 1, size: 10, name: '', categoryId: null })
+const form = reactive({
+  code: '', name: '', englishName: '', categoryId: null,
+  standardValue: '', uncertainty: '', specification: '', unit: '',
+  storageCondition: '', manufacturer: '', remarks: ''
+})
+const rules = {
+  code: [{ required: true, message: '请输入编号', trigger: 'blur' }],
+  name: [{ required: true, message: '请输入名称', trigger: 'blur' }]
+}
+
+const fetchData = async () => {
+  loading.value = true
+  try {
+    const res = await getMaterialList(queryParams)
+    tableData.value = res.data?.records || []
+    total.value = res.data?.total || 0
+  } finally {
+    loading.value = false
+  }
+}
+
+const fetchCategories = async () => {
+  try {
+    const res = await getCategoryTree()
+    categoryList.value = flattenTree(res.data || [])
+  } catch (e) {}
+}
+
+const flattenTree = (tree, result = []) => {
+  tree.forEach(node => {
+    result.push({ id: node.id, label: node.label })
+    if (node.children?.length) flattenTree(node.children, result)
+  })
+  return result
+}
+
+const handleAdd = () => {
+  editId.value = null
+  Object.assign(form, {
+    code: '', name: '', englishName: '', categoryId: null,
+    standardValue: '', uncertainty: '', specification: '', unit: '',
+    storageCondition: '', manufacturer: '', remarks: ''
+  })
+  dialogVisible.value = true
+}
+
+const handleEdit = (row) => {
+  editId.value = row.id
+  Object.assign(form, row)
+  dialogVisible.value = true
+}
+
+const handleSubmit = async () => {
+  await formRef.value.validate()
+  if (editId.value) {
+    await updateMaterial(editId.value, form)
+  } else {
+    await createMaterial(form)
+  }
+  ElMessage.success('操作成功')
+  dialogVisible.value = false
+  fetchData()
+}
+
+const handleDelete = async (row) => {
+  await ElMessageBox.confirm('确定删除该标准物质？')
+  await deleteMaterial(row.id)
+  ElMessage.success('删除成功')
+  fetchData()
+}
+
+onMounted(() => {
+  fetchData()
+  fetchCategories()
+})
+</script>
+
+<style scoped>
+.page-container { padding: 20px; }
+.search-form { margin-bottom: 20px; }
+</style>

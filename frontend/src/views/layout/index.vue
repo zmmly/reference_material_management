@@ -20,9 +20,20 @@
             <el-icon><Setting /></el-icon>
             <span>基础数据</span>
           </template>
+          <el-menu-item index="/basic/material">标准物质</el-menu-item>
           <el-menu-item index="/basic/category">分类管理</el-menu-item>
           <el-menu-item index="/basic/location">位置管理</el-menu-item>
           <el-menu-item index="/basic/metadata">元数据配置</el-menu-item>
+        </el-sub-menu>
+
+        <el-sub-menu index="stock">
+          <template #title>
+            <el-icon><Box /></el-icon>
+            <span>库存管理</span>
+          </template>
+          <el-menu-item index="/stock">库存查询</el-menu-item>
+          <el-menu-item index="/stock-in">入库登记</el-menu-item>
+          <el-menu-item index="/stock-out">出库管理</el-menu-item>
         </el-sub-menu>
 
         <el-sub-menu index="system">
@@ -44,7 +55,7 @@
         <el-dropdown @command="handleCommand">
           <span class="user-info">
             <el-icon><User /></el-icon>
-            {{ userStore.userInfo?.realName || userStore.userInfo?.username }}
+            {{ userStore.userInfo?.realName || userStore.userInfo?.username || '用户' }}
           </span>
           <template #dropdown>
             <el-dropdown-menu>
