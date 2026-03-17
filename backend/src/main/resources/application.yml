@@ -1,0 +1,29 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: reference-material-management
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/reference_material_management?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+    username: root
+    password: root
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: Asia/Shanghai
+
+mybatis-plus:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.rmm.entity
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+jwt:
+  secret: YourSecretKeyForJwtTokenGenerationMustBeLongEnough123456
+  expiration: 86400000
+
+logging:
+  level:
+    com.rmm: DEBUG
