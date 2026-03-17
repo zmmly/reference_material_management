@@ -24,6 +24,10 @@ const routes = [
       { path: 'stock', name: 'Stock', component: () => import('@/views/stock/index.vue') },
       { path: 'stock-in', name: 'StockIn', component: () => import('@/views/stock-in/index.vue') },
       { path: 'stock-out', name: 'StockOut', component: () => import('@/views/stock-out/index.vue') },
+      // 采购管理
+      { path: 'purchase', name: 'Purchase', component: () => import('@/views/purchase/index.vue') },
+      // 盘点管理
+      { path: 'stock-check', name: 'StockCheck', component: () => import('@/views/stock-check/index.vue') },
       // 系统管理
       { path: 'system/user', name: 'User', component: () => import('@/views/system/user/index.vue') },
       { path: 'system/role', name: 'Role', component: () => import('@/views/system/role/index.vue') }
