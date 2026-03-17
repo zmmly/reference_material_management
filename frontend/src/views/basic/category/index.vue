@@ -6,7 +6,7 @@
       </template>
 
       <el-table :data="tableData" v-loading="loading" row-key="id" border default-expand-all>
-        <el-table-column prop="label" label="分类名称" />
+        <el-table-column prop="name" label="分类名称" />
         <el-table-column label="操作" width="200">
           <template #default="{ row }">
             <el-button link type="primary" @click="handleAdd(row)">添加子级</el-button>
@@ -66,7 +66,7 @@ const handleAdd = (row) => {
 const handleEdit = (row) => {
   editId.value = row.id
   parentId.value = null
-  form.name = row.label
+  form.name = row.name
   dialogVisible.value = true
 }
 
