@@ -1,17 +1,17 @@
 import request from '@/utils/request'
 
 export function getRoleList(params) {
-  return request.get('/roles', { params })
+  return request.get('/system/role', { params })
 }
 
 export function getAllRoles() {
-  return request.get('/roles/all')
+  return request.get('/system/role/all')
 }
 
 export function createRole(data) {
-  return request.post('/roles', data)
+  return request.post('/system/role', data)
 }
 
 export function updateRole(id, data) {
-  return request.put(`/roles/${id}`, data)
+  return request.put(`/system/role/${id}`, data)
 }

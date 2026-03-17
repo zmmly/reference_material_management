@@ -15,6 +15,11 @@ public class CategoryController {
 
     private final CategoryService categoryService;
 
+    @GetMapping("/tree")
+    public Result<List<Category>> tree() {
+        return Result.success(categoryService.list());
+    }
+
     @GetMapping
     public Result<List<Category>> list() {
         return Result.success(categoryService.list());
