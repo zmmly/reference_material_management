@@ -11,7 +11,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 @Service
@@ -56,7 +55,6 @@ public class StockInService {
         stockIn.setOperatorId(operatorId);
         stockInMapper.insert(stockIn);
 
-        // 查找或创建库存记录
         Stock stock = stockMapper.selectOne(new LambdaQueryWrapper<Stock>()
             .eq(Stock::getMaterialId, stockIn.getMaterialId())
             .eq(Stock::getBatchNo, stockIn.getBatchNo())

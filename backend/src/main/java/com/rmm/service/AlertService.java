@@ -58,24 +58,24 @@ public class AlertService {
 
     public AlertStats getStats() {
         AlertStats stats = new AlertStats();
-        stats.setTotal((int) alertRecordMapper.selectCount(
+        stats.setTotal(alertRecordMapper.selectCount(
             new LambdaQueryWrapper<AlertRecord>().eq(AlertRecord::getStatus, 0)
-        ));
-        stats.setExpiry((int) alertRecordMapper.selectCount(
+        ).intValue());
+        stats.setExpiry(alertRecordMapper.selectCount(
             new LambdaQueryWrapper<AlertRecord>()
                 .eq(AlertRecord::getStatus, 0)
                 .likeRight(AlertRecord::getType, "EXPIRY")
-        ));
-        stats.setStockLow((int) alertRecordMapper.selectCount(
+        ).intValue());
+        stats.setStockLow(alertRecordMapper.selectCount(
             new LambdaQueryWrapper<AlertRecord>()
                 .eq(AlertRecord::getStatus, 0)
                 .eq(AlertRecord::getType, "STOCK_LOW")
-        ));
-        stats.setUnused((int) alertRecordMapper.selectCount(
+        ).intValue());
+        stats.setUnused(alertRecordMapper.selectCount(
             new LambdaQueryWrapper<AlertRecord>()
                 .eq(AlertRecord::getStatus, 0)
                 .eq(AlertRecord::getType, "UNUSED")
-        ));
+        ).intValue());
         return stats;
     }
 
@@ -159,8 +159,10 @@ public class AlertService {
 
         List<Stock> stocks = stockMapper.selectList(
             new LambdaQueryWrapper<Stock>()
-                .lt(Stock::getLastOutTime, cutoffTime)
-                .isNull(Stock::getLastOutTime).or()
+                .gt(Stock::getQuantity, BigDecimal.ZERO)
+                .and(w -> w.lt(Stock::getLastOutTime, cutoffTime)
+                           .or()
+                           .isNull(Stock::getLastOutTime))
         );
 
         for (Stock stock : stocks) {

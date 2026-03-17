@@ -8,7 +8,7 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://localhost:3306/reference_material_management?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
     username: root
-    password: root
+    password: 123456
   jackson:
     date-format: yyyy-MM-dd HH:mm:ss
     time-zone: Asia/Shanghai

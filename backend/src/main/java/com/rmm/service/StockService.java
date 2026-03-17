@@ -2,18 +2,15 @@ package com.rmm.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.rmm.common.BusinessException;
 import com.rmm.common.PageResult;
-import com.rmm.entity.Location;
-import com.rmm.entity.ReferenceMaterial;
-import com.rmm.entity.Stock;
-import com.rmm.mapper.LocationMapper;
-import com.rmm.mapper.ReferenceMaterialMapper;
-import com.rmm.mapper.StockMapper;
+import com.rmm.entity.*;
+import com.rmm.mapper.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
-import java.time.LocalDate;
+import java.math.BigDecimal;
 import java.util.List;
 
 @Service
@@ -34,10 +31,8 @@ public class StockService {
 
         Page<Stock> result = stockMapper.selectPage(page, wrapper);
 
-        // 填充关联信息
         result.getRecords().forEach(this::fillRelations);
 
-        // 关键字过滤
         if (StringUtils.hasText(keyword)) {
             String kw = keyword.toLowerCase();
             List<Stock> filtered = result.getRecords().stream()
@@ -71,29 +66,6 @@ public class StockService {
             fillRelations(stock);
         }
         return stock;
-    }
-
-    public void updateStatus() {
-        LocalDate today = LocalDate.now();
-        LocalDate warningDate = today.plusMonths(1);
-
-        // 更新即将过期状态
-        stockMapper.selectList(new LambdaQueryWrapper<Stock>()
-                .between(Stock::getExpiryDate, today, warningDate)
-                .ne(Stock::getStatus, 3))
-            .forEach(stock -> {
-                stock.setStatus(2);
-                stockMapper.updateById(stock);
-            });
-
-        // 更新已过期状态
-        stockMapper.selectList(new LambdaQueryWrapper<Stock>()
-                .lt(Stock::getExpiryDate, today)
-                .ne(Stock::getStatus, 3))
-            .forEach(stock -> {
-                stock.setStatus(3);
-                stockMapper.updateById(stock);
-            });
     }
 
     private void fillRelations(Stock stock) {

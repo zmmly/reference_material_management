@@ -68,11 +68,9 @@ public class PurchaseController {
         return Result.success();
     }
 
-    @PutMapping("/{id}/receive")
-    public Result<Void> receive(@PathVariable Long id, HttpServletRequest request) {
-        String token = request.getHeader("Authorization").substring(7);
-        Long userId = jwtUtil.getUserId(token);
-        purchaseService.receive(id, userId);
+    @PutMapping("/{id}/arrive")
+    public Result<Void> markArrived(@PathVariable Long id) {
+        purchaseService.markArrived(id);
         return Result.success();
     }
 }

@@ -53,7 +53,7 @@ public class StockCheckController {
                                   HttpServletRequest request) {
         String token = request.getHeader("Authorization").substring(7);
         Long userId = jwtUtil.getUserId(token);
-        stockCheckService.checkItem(checkId, itemId, actualQuantity, remarks, userId);
+        stockCheckService.checkItem(itemId, actualQuantity, remarks, userId);
         return Result.success();
     }
 
