@@ -28,6 +28,8 @@ const routes = [
       { path: 'purchase', name: 'Purchase', component: () => import('@/views/purchase/index.vue') },
       // 盘点管理
       { path: 'stock-check', name: 'StockCheck', component: () => import('@/views/stock-check/index.vue') },
+      // 预警中心
+      { path: 'alert', name: 'Alert', component: () => import('@/views/alert/index.vue') },
       // 系统管理
       { path: 'system/user', name: 'User', component: () => import('@/views/system/user/index.vue') },
       { path: 'system/role', name: 'Role', component: () => import('@/views/system/role/index.vue') }

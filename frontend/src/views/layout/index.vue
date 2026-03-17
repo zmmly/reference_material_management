@@ -36,6 +36,30 @@
           <el-menu-item index="/stock-out">出库管理</el-menu-item>
         </el-sub-menu>
 
+        <el-sub-menu index="purchase">
+          <template #title>
+            <el-icon><ShoppingCart /></el-icon>
+            <span>采购管理</span>
+          </template>
+          <el-menu-item index="/purchase">采购申请</el-menu-item>
+        </el-sub-menu>
+
+        <el-sub-menu index="check">
+          <template #title>
+            <el-icon><DocumentChecked /></el-icon>
+            <span>盘点管理</span>
+          </template>
+          <el-menu-item index="/stock-check">盘点任务</el-menu-item>
+        </el-sub-menu>
+
+        <el-sub-menu index="alert">
+          <template #title>
+            <el-icon><Bell /></el-icon>
+            <span>预警中心</span>
+          </template>
+          <el-menu-item index="/alert">预警管理</el-menu-item>
+        </el-sub-menu>
+
         <el-sub-menu index="system">
           <template #title>
             <el-icon><Tools /></el-icon>
