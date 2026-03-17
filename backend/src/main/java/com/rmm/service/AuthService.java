@@ -61,4 +61,27 @@ public class AuthService {
 
         return vo;
     }
+
+    public UserVO getCurrentUser(Long userId) {
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException("用户不存在");
+        }
+
+        Role role = roleMapper.selectById(user.getRoleId());
+
+        UserVO userVO = new UserVO();
+        userVO.setId(user.getId());
+        userVO.setUsername(user.getUsername());
+        userVO.setRealName(user.getRealName());
+        userVO.setPhone(user.getPhone());
+        userVO.setEmail(user.getEmail());
+        userVO.setRoleId(user.getRoleId());
+        if (role != null) {
+            userVO.setRoleName(role.getName());
+            userVO.setRoleCode(role.getCode());
+        }
+
+        return userVO;
+    }
 }

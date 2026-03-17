@@ -4,10 +4,12 @@ import com.rmm.common.Result;
 import com.rmm.dto.LoginDTO;
 import com.rmm.service.AuthService;
 import com.rmm.vo.LoginVO;
+import com.rmm.vo.UserVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "认证管理", description = "用户登录、登出等认证相关接口")
@@ -22,5 +24,12 @@ public class AuthController {
     @PostMapping("/login")
     public Result<LoginVO> login(@Valid @RequestBody LoginDTO dto) {
         return Result.success(authService.login(dto));
+    }
+
+    @Operation(summary = "获取当前用户信息", description = "获取当前登录用户的详细信息")
+    @GetMapping("/user-info")
+    public Result<UserVO> getUserInfo() {
+        Long userId = (Long) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        return Result.success(authService.getCurrentUser(userId));
     }
 }

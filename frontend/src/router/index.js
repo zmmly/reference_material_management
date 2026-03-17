@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { getToken } from '@/utils/auth'
+import { useUserStore } from '@/store/modules/user'
 
 const routes = [
   {
@@ -24,6 +25,7 @@ const routes = [
       { path: 'stock', name: 'Stock', component: () => import('@/views/stock/index.vue') },
       { path: 'stock-in', name: 'StockIn', component: () => import('@/views/stock-in/index.vue') },
       { path: 'stock-out', name: 'StockOut', component: () => import('@/views/stock-out/index.vue') },
+      { path: 'stock-out/apply', name: 'StockOutApply', component: () => import('@/views/stock-out/apply.vue') },
       // 采购管理
       { path: 'purchase', name: 'Purchase', component: () => import('@/views/purchase/index.vue') },
       // 盘点管理
@@ -42,13 +44,26 @@ const router = createRouter({
   routes
 })
 
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   const token = getToken()
   if (to.meta.requiresAuth !== false && !token) {
     next('/login')
   } else if (to.path === '/login' && token) {
     next('/dashboard')
   } else {
+    // 如果有token但没有userInfo，尝试获取用户信息
+    if (token) {
+      const userStore = useUserStore()
+      if (!userStore.userInfo) {
+        try {
+          await userStore.fetchUserInfo()
+        } catch (e) {
+          // 获取用户信息失败，跳转到登录页
+          next('/login')
+          return
+        }
+      }
+    }
     next()
   }
 })

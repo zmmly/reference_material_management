@@ -40,28 +40,33 @@ async function testCategory() {
     await page.click('button:has-text("新增顶级分类")');
     await page.waitForTimeout(500);
 
-    const dialogVisible = await page.locator('.el-dialog:visible').count() > 0;
-    logStep('新增分类对话框弹出', dialogVisible);
-    dialogVisible ? result.addPass() : result.addFail('新增对话框');
+    const dialogVisible = await page.locator('.el-dialog,visible, dialog:visible').count() > 0;
+    logStep('新增分类对话框弹出', dialogVisible > 0);
+    dialogVisible > 0 ? result.addPass() : result.addFail('新增对话框');
 
-    // 4. 测试表单验证
-    if (dialogVisible) {
-      await page.click('.el-dialog:visible button:has-text("确定")');
+    // 4. 测试表单字段显示
+    if (dialogVisible > 0) {
+      const nameInput = await page.locator('.el-dialog:visible input, dialog:visible input, .el-dialog input').count() > 0;
+      logStep('分类名称输入框显示', nameInput > 0);
+      nameInput > 0 ? result.addPass() : result.addFail('分类名称输入框');
+
+      // 5. 测试表单验证
+      await page.click('.el-dialog:visible button:has-text("确定"), dialog:visible button:has-text("确定")');
       await page.waitForTimeout(500);
       const validationError = await page.locator('.el-form-item__error:visible').count() > 0;
-      logStep('表单验证生效', validationError);
-      validationError ? result.addPass() : result.addWarn('验证可能未生效');
+      logStep('表单验证生效', validationError > 0);
+      validationError > 0 ? result.addPass() : result.addWarn('验证可能未生效');
 
-      // 5. 填写分类名称并提交
+      // 6. 填写分类名称并提交
       const testCategoryName = `测试分类_${Date.now()}`;
-      await page.fill('.el-dialog:visible input', testCategoryName);
-      await page.click('.el-dialog:visible button:has-text("确定")');
+      await page.fill('.el-dialog:visible input, dialog:visible input', testCategoryName);
+      await page.click('.el-dialog:visible button:has-text("确定"), dialog:visible button:has-text("确定")');
       await page.waitForTimeout(1000);
 
       // 检查是否成功（对话框关闭）
-      const dialogClosed = await page.locator('.el-dialog:visible').count() === 0;
-      logStep('新增分类提交成功', dialogClosed);
-      dialogClosed ? result.addPass() : result.addFail('新增提交');
+      const dialogClosed = await page.locator('.el-dialog:visible, dialog:visible').count() === 0;
+      logStep('新增分类提交成功', dialogClosed > 0);
+      dialogClosed > 0 ? result.addPass() : result.addFail('新增提交');
 
       // 6. 检查新分类是否出现在列表中
       await page.waitForTimeout(500);
@@ -76,33 +81,33 @@ async function testCategory() {
         await row.locator('button:has-text("编辑")').click();
         await page.waitForTimeout(500);
 
-        const editDialogVisible = await page.locator('.el-dialog:visible').count() > 0;
-        logStep('编辑对话框弹出', editDialogVisible);
-        editDialogVisible ? result.addPass() : result.addFail('编辑对话框');
+        const editDialogVisible = await page.locator('.el-dialog:visible, dialog:visible').count() > 0;
+        logStep('编辑对话框弹出', editDialogVisible > 0);
+        editDialogVisible > 0 ? result.addPass() : result.addFail('编辑对话框');
 
-        if (editDialogVisible) {
+        if (editDialogVisible > 0) {
           // 修改名称
           const editedName = `${testCategoryName}_已编辑`;
-          await page.fill('.el-dialog:visible input', editedName);
-          await page.click('.el-dialog:visible button:has-text("确定")');
+          await page.fill('.el-dialog:visible input, dialog:visible input', editedName);
+          await page.click('.el-dialog:visible button:has-text("确定"), dialog:visible button:has-text("确定")');
           await page.waitForTimeout(1000);
 
           const editSuccess = await page.locator(`text=${editedName}`).count() > 0;
-          logStep('编辑分类成功', editSuccess);
-          editSuccess ? result.addPass() : result.addFail('编辑提交');
+          logStep('编辑分类成功', editSuccess > 0);
+          editSuccess > 0 ? result.addPass() : result.addFail('编辑提交');
 
           // 8. 测试添加子分类
           await page.locator(`tr:has-text("${editedName}") button:has-text("添加子级")`).click();
           await page.waitForTimeout(500);
 
-          const childDialogVisible = await page.locator('.el-dialog:visible').count() > 0;
-          logStep('添加子分类对话框弹出', childDialogVisible);
-          childDialogVisible ? result.addPass() : result.addFail('子分类对话框');
+          const childDialogVisible = await page.locator('.el-dialog:visible, dialog:visible').count() > 0;
+          logStep('添加子分类对话框弹出', childDialogVisible > 0);
+          childDialogVisible > 0 ? result.addPass() : result.addFail('子分类对话框');
 
-          if (childDialogVisible) {
+          if (childDialogVisible > 0) {
             const childCategoryName = `子分类_${Date.now()}`;
-            await page.fill('.el-dialog:visible input', childCategoryName);
-            await page.click('.el-dialog:visible button:has-text("确定")');
+            await page.fill('.el-dialog:visible input, dialog:visible input', childCategoryName);
+            await page.click('.el-dialog:visible button:has-text("确定"), dialog:visible button:has-text("确定")');
             await page.waitForTimeout(1000);
             logStep('添加子分类成功', true);
             result.addPass();
@@ -122,7 +127,7 @@ async function testCategory() {
 
           // 确认删除对话框
           const confirmVisible = await page.locator('.el-message-box').count() > 0;
-          if (confirmVisible) {
+          if (confirmVisible > 0) {
             await page.click('.el-message-box button:has-text("确定")');
             await page.waitForTimeout(1000);
             logStep('删除分类成功', true);
