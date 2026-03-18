@@ -132,39 +132,64 @@ const handleCommand = (command) => {
 }
 
 .aside {
-  background: linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
-  border-right: 1px solid var(--border-color);
+  background: var(--sidebar-bg);
+  box-shadow:
+    2px 0 8px rgba(0, 0, 0, 0.15),
+    inset -1px 0 0 rgba(255, 255, 255, 0.03);
   transition: width 0.3s ease;
+  position: relative;
+  z-index: 100;
+
+  // 顶部装饰光效
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 120px;
+    background: linear-gradient(180deg, rgba(139, 92, 246, 0.08) 0%, transparent 100%);
+    pointer-events: none;
+    z-index: 0;
+  }
 
   .logo {
-    height: 60px;
+    height: 64px;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 10px;
     padding: 0 16px;
-    border-bottom: 1px solid var(--border-color);
     position: relative;
+    z-index: 1;
 
+    // Logo区域底部渐变分隔线
     &::after {
       content: '';
       position: absolute;
       bottom: 0;
-      left: 20px;
-      right: 20px;
+      left: 16px;
+      right: 16px;
       height: 1px;
-      background: linear-gradient(90deg, transparent, var(--accent-purple), transparent);
-      opacity: 0.5;
+      background: linear-gradient(90deg,
+        transparent 0%,
+        rgba(139, 92, 246, 0.3) 20%,
+        rgba(139, 92, 246, 0.5) 50%,
+        rgba(139, 92, 246, 0.3) 80%,
+        transparent 100%
+      );
     }
 
     .logo-icon {
-      font-size: 24px;
+      font-size: 26px;
+      filter: drop-shadow(0 2px 4px rgba(139, 92, 246, 0.3));
     }
 
     .logo-text {
       color: var(--text-primary);
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 600;
+      letter-spacing: 0.5px;
       background: var(--gradient-purple);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
@@ -173,47 +198,161 @@ const handleCommand = (command) => {
   }
 }
 
-// 深色菜单样式
+// 深色菜单样式 - 增强层次感
 .dark-menu {
   background: transparent !important;
   border-right: none !important;
-  padding: 8px;
+  padding: 12px 8px;
+  position: relative;
+  z-index: 1;
 
-  :deep(.el-menu-item),
-  :deep(.el-sub-menu__title) {
+  // 一级菜单项
+  :deep(.el-menu-item) {
     color: var(--text-secondary) !important;
-    border-radius: var(--radius-sm);
-    margin: 2px 0;
-    transition: var(--transition-normal);
+    border-radius: 8px;
+    margin: 3px 4px;
+    height: 44px;
+    transition: all 0.25s ease;
+    position: relative;
+
+    .el-icon {
+      font-size: 18px;
+      transition: transform 0.25s ease;
+    }
 
     &:hover {
-      background: rgba(139, 92, 246, 0.1) !important;
+      background: rgba(139, 92, 246, 0.12) !important;
       color: var(--text-primary) !important;
+      transform: translateX(2px);
+
+      .el-icon {
+        transform: scale(1.1);
+      }
+    }
+
+    &.is-active {
+      background: linear-gradient(90deg, rgba(139, 92, 246, 0.25), rgba(139, 92, 246, 0.08)) !important;
+      color: var(--accent-purple) !important;
+      font-weight: 500;
+      box-shadow:
+        inset 3px 0 0 var(--accent-purple),
+        0 2px 8px rgba(139, 92, 246, 0.15);
+
+      &::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 8px;
+        bottom: 8px;
+        width: 3px;
+        background: var(--accent-purple);
+        border-radius: 0 2px 2px 0;
+        box-shadow: 0 0 8px var(--accent-purple);
+      }
     }
   }
 
-  :deep(.el-menu-item.is-active) {
-    background: linear-gradient(90deg, rgba(139, 92, 246, 0.2), transparent) !important;
-    color: var(--accent-purple) !important;
-    border-left: 3px solid var(--accent-purple);
-    padding-left: 17px !important;
+  // 一级子菜单标题
+  :deep(.el-sub-menu__title) {
+    color: var(--text-secondary) !important;
+    border-radius: 8px;
+    margin: 3px 4px;
+    height: 44px;
+    transition: all 0.25s ease;
+
+    .el-icon {
+      font-size: 18px;
+      transition: transform 0.25s ease;
+    }
+
+    &:hover {
+      background: rgba(139, 92, 246, 0.12) !important;
+      color: var(--text-primary) !important;
+
+      .el-icon {
+        transform: scale(1.1);
+      }
+    }
   }
 
+  // 展开的子菜单标题
+  :deep(.el-sub-menu.is-active > .el-sub-menu__title) {
+    color: var(--accent-purple) !important;
+    font-weight: 500;
+
+    .el-icon {
+      color: var(--accent-purple) !important;
+    }
+  }
+
+  // 子菜单容器
   :deep(.el-sub-menu) {
     .el-menu {
-      background: transparent !important;
+      background: rgba(0, 0, 0, 0.15) !important;
+      border-radius: 8px;
+      margin: 4px 8px 8px 8px;
+      padding: 4px 0;
+      box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
     }
 
+    // 二级菜单项
     .el-menu-item {
-      padding-left: 50px !important;
-      font-size: 14px;
+      padding-left: 52px !important;
+      height: 38px;
+      font-size: 13px;
+      color: var(--text-muted) !important;
+      margin: 1px 4px;
+      border-radius: 6px;
+
+      &::before {
+        content: '';
+        position: absolute;
+        left: 32px;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--text-muted);
+        opacity: 0.4;
+        transition: all 0.25s ease;
+      }
+
+      &:hover {
+        background: rgba(139, 92, 246, 0.1) !important;
+        color: var(--text-secondary) !important;
+
+        &::before {
+          background: var(--accent-purple);
+          opacity: 1;
+          box-shadow: 0 0 6px var(--accent-purple);
+        }
+      }
+
+      &.is-active {
+        background: rgba(139, 92, 246, 0.15) !important;
+        color: var(--accent-purple) !important;
+        font-weight: 500;
+
+        &::before {
+          background: var(--accent-purple);
+          opacity: 1;
+          box-shadow: 0 0 6px var(--accent-purple);
+        }
+
+        box-shadow: none;
+      }
     }
   }
 
+  // 折叠状态
   :deep(.el-menu--collapse) {
     .el-menu-item,
     .el-sub-menu__title {
       justify-content: center;
+      padding-left: 0 !important;
+
+      .el-icon {
+        margin-right: 0;
+      }
     }
   }
 }
@@ -225,6 +364,7 @@ const handleCommand = (command) => {
   align-items: center;
   justify-content: space-between;
   padding: 0 20px;
+  height: 64px;
   position: relative;
 
   &::after {
