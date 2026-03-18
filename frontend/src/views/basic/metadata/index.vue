@@ -13,9 +13,11 @@
         <el-table-column prop="code" label="编码" width="120" />
         <el-table-column prop="name" label="名称" />
         <el-table-column prop="sortOrder" label="排序" width="80" />
-        <el-table-column label="操作" width="100">
+        <el-table-column label="操作" width="100" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" @click="handleEdit(row)">编辑</el-button>
+            <div class="action-buttons">
+              <el-button link type="primary" size="small" @click="handleEdit(row)">编辑</el-button>
+            </div>
           </template>
         </el-table-column>
       </el-table>

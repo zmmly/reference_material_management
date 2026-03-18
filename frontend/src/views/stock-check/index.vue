@@ -59,14 +59,16 @@
                 </span>
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="150">
+            <el-table-column label="操作" width="150" fixed="right">
               <template #default="{ row }">
-                <template v-if="row.status === 0">
-                  <el-button link type="primary" size="small" @click="handleCheckItem(row)">确认盘点</el-button>
-                </template>
-                <template v-if="row.status === 2">
-                  <el-button link type="warning" size="small" @click="handleAdjust(row)">调整库存</el-button>
-                </template>
+                <div class="action-buttons">
+                  <template v-if="row.status === 0">
+                    <el-button link type="primary" size="small" @click="handleCheckItem(row)">确认盘点</el-button>
+                  </template>
+                  <template v-if="row.status === 2">
+                    <el-button link type="warning" size="small" @click="handleAdjust(row)">调整库存</el-button>
+                  </template>
+                </div>
               </template>
             </el-table-column>
           </el-table>

@@ -17,9 +17,11 @@
         <el-table-column prop="temperature" label="温度要求" width="100" />
         <el-table-column prop="capacity" label="容量" width="80" />
         <el-table-column prop="description" label="描述" />
-        <el-table-column label="操作" width="100">
+        <el-table-column label="操作" width="100" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" @click="handleEdit(row)">编辑</el-button>
+            <div class="action-buttons">
+              <el-button link type="primary" size="small" @click="handleEdit(row)">编辑</el-button>
+            </div>
           </template>
         </el-table-column>
       </el-table>

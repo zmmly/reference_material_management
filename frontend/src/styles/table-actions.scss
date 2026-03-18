@@ -1,0 +1,165 @@
+/* 表格操作按钮统一样式 - 全局修复 */
+
+// ========== 操作按钮容器 ==========
+.action-buttons {
+  display: inline-flex;
+  gap: 8px;
+  flex-wrap: nowrap;
+  align-items: center;
+}
+
+// ========== 表格标签统一样式 ==========
+.el-table {
+  // 角色标签 - 蓝色主题
+  .role-tag {
+    background-color: #ecf5ff !important;
+    color: #409eff !important;
+    border-color: #d9ecff !important;
+    font-weight: 500;
+    padding: 0 10px;
+    height: 24px;
+    line-height: 22px;
+  }
+
+  // 编码标签 - 蓝色主题
+  .code-tag {
+    background-color: #ecf5ff !important;
+    color: #409eff !important;
+    border-color: #d9ecff !important;
+    font-weight: 500;
+    padding: 0 10px;
+    height: 24px;
+    line-height: 22px;
+  }
+
+  // 防止内容溢出
+  .el-table__body td .cell,
+  .el-table__fixed-right .cell {
+    overflow: visible !important;
+    white-space: nowrap;
+  }
+
+  // ========== 操作按钮统一样式 ==========
+  .action-buttons {
+    .el-button {
+      margin: 0;
+      padding: 5px 12px;
+      font-size: 13px;
+      font-weight: 500;
+      border-radius: 4px;
+
+      .el-icon {
+        margin-right: 4px;
+        font-size: 14px;
+      }
+
+      // Primary 按钮 - 蓝色实心
+      &.el-button--primary {
+        background-color: #409eff !important;
+        border-color: #409eff !important;
+        color: #fff !important;
+
+        &:hover,
+        &:focus {
+          background-color: #66b1ff !important;
+          border-color: #66b1ff !important;
+        }
+      }
+
+      // Success 按钮 - 绿色实心
+      &.el-button--success {
+        background-color: #67c23a !important;
+        border-color: #67c23a !important;
+        color: #fff !important;
+
+        &:hover,
+        &:focus {
+          background-color: #85ce61 !important;
+          border-color: #85ce61 !important;
+        }
+      }
+
+      // Warning 按钮 - 橙色实心
+      &.el-button--warning {
+        background-color: #e6a23c !important;
+        border-color: #e6a23c !important;
+        color: #fff !important;
+
+        &:hover,
+        &:focus {
+          background-color: #ebb563 !important;
+          border-color: #ebb563 !important;
+        }
+      }
+
+      // Danger 按钮 - 红色实心
+      &.el-button--danger {
+        background-color: #f56c6c !important;
+        border-color: #f56c6c !important;
+        color: #fff !important;
+
+        &:hover,
+        &:focus {
+          background-color: #f78989 !important;
+          border-color: #f78989 !important;
+        }
+      }
+
+      // Info 按钮 - 灰色实心
+      &.el-button--info {
+        background-color: #909399 !important;
+        border-color: #909399 !important;
+        color: #fff !important;
+
+        &:hover,
+        &:focus {
+          background-color: #a6a9ad !important;
+          border-color: #a6a9ad !important;
+        }
+      }
+    }
+  }
+
+  // link 类型按钮优化
+  .el-button.is-link {
+    padding: 4px 8px;
+    height: auto;
+    font-size: 13px;
+    font-weight: 500;
+
+    &:hover {
+      background: var(--el-fill-color-light);
+      border-radius: 4px;
+    }
+  }
+}
+
+// ========== 固定右侧的操作列 ==========
+.el-table__fixed-right {
+  background: var(--el-bg-color);
+
+  .cell {
+    padding: 8px 12px !important;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
+  }
+}
+
+// ========== 表格容器溢出处理 ==========
+.el-table__body-wrapper {
+  overflow-x: auto;
+}
+
+// ========== 响应式调整 ==========
+@media (max-width: 1200px) {
+  .action-buttons {
+    flex-wrap: wrap;
+    gap: 4px;
+
+    .el-button {
+      flex: 0 0 auto;
+    }
+  }
+}

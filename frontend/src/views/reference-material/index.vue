@@ -23,10 +23,12 @@
         <el-table-column prop="unit" label="单位" width="80" />
         <el-table-column prop="categoryName" label="分类" width="120" />
         <el-table-column prop="manufacturer" label="生产厂商" />
-        <el-table-column label="操作" width="150">
+        <el-table-column label="操作" width="180" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" @click="handleEdit(row)">编辑</el-button>
-            <el-button link type="danger" @click="handleDelete(row)">删除</el-button>
+            <div class="action-buttons">
+              <el-button link type="primary" size="small" @click="handleEdit(row)">编辑</el-button>
+              <el-button link type="danger" size="small" @click="handleDelete(row)">删除</el-button>
+            </div>
           </template>
         </el-table-column>
       </el-table>

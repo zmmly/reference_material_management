@@ -7,11 +7,13 @@
 
       <el-table :data="tableData" v-loading="loading" row-key="id" border default-expand-all>
         <el-table-column prop="name" label="分类名称" />
-        <el-table-column label="操作" width="200">
+        <el-table-column label="操作" width="280" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" @click="handleAdd(row)">添加子级</el-button>
-            <el-button link type="primary" @click="handleEdit(row)">编辑</el-button>
-            <el-button link type="danger" @click="handleDelete(row)">删除</el-button>
+            <div class="action-buttons">
+              <el-button link type="primary" size="small" @click="handleAdd(row)">添加子级</el-button>
+              <el-button link type="primary" size="small" @click="handleEdit(row)">编辑</el-button>
+              <el-button link type="danger" size="small" @click="handleDelete(row)">删除</el-button>
+            </div>
           </template>
         </el-table-column>
       </el-table>

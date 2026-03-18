@@ -16,14 +16,16 @@
               </template>
             </el-table-column>
             <el-table-column prop="applyTime" label="申请时间" width="160" />
-            <el-table-column label="操作" width="150">
+            <el-table-column label="操作" width="150" fixed="right">
               <template #default="{ row }">
-                <template v-if="row.status === 0">
-                  <el-button link type="warning" @click="handleCancel(row)">撤回</el-button>
-                </template>
-                <template v-if="row.status === 1">
-                  <el-button link type="success" @click="handleReceive(row)">确认到货</el-button>
-                </template>
+                <div class="action-buttons">
+                  <template v-if="row.status === 0">
+                    <el-button link type="warning" size="small" @click="handleCancel(row)">撤回</el-button>
+                  </template>
+                  <template v-if="row.status === 1">
+                    <el-button link type="success" size="small" @click="handleReceive(row)">确认到货</el-button>
+                  </template>
+                </div>
               </template>
             </el-table-column>
           </el-table>
@@ -37,10 +39,12 @@
             <el-table-column prop="supplierName" label="供应商" width="150" />
             <el-table-column prop="reason" label="采购原因" />
             <el-table-column prop="applyTime" label="申请时间" width="160" />
-            <el-table-column label="操作" width="150">
+            <el-table-column label="操作" width="180" fixed="right">
               <template #default="{ row }">
-                <el-button link type="success" @click="handleApprove(row, true)">通过</el-button>
-                <el-button link type="danger" @click="handleApprove(row, false)">拒绝</el-button>
+                <div class="action-buttons">
+                  <el-button link type="success" size="small" @click="handleApprove(row, true)">通过</el-button>
+                  <el-button link type="danger" size="small" @click="handleApprove(row, false)">拒绝</el-button>
+                </div>
               </template>
             </el-table-column>
           </el-table>

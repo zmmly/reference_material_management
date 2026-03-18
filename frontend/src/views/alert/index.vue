@@ -59,13 +59,15 @@
           </template>
         </el-table-column>
         <el-table-column prop="createTime" label="预警时间" width="160" />
-        <el-table-column label="操作" width="150">
+        <el-table-column label="操作" width="180" fixed="right">
           <template #default="{ row }">
-            <template v-if="row.status === 0">
-              <el-button link type="primary" @click="handleAlert(row)">处理</el-button>
-              <el-button link type="info" @click="ignoreAlert(row)">忽略</el-button>
-            </template>
-            <span v-else style="color: #999">{{ row.handlerName }} {{ row.handleTime }}</span>
+            <div class="action-buttons">
+              <template v-if="row.status === 0">
+                <el-button link type="primary" size="small" @click="handleAlert(row)">处理</el-button>
+                <el-button link type="info" size="small" @click="ignoreAlert(row)">忽略</el-button>
+              </template>
+              <span v-else style="color: #999">{{ row.handlerName }} {{ row.handleTime }}</span>
+            </div>
           </template>
         </el-table-column>
       </el-table>

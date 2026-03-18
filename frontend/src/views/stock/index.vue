@@ -45,9 +45,11 @@
             <el-tag :type="statusType(row.status)">{{ statusText(row.status) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="150">
+        <el-table-column label="操作" width="100" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" @click="handleOut(row)">出库</el-button>
+            <div class="action-buttons">
+              <el-button link type="primary" size="small" @click="handleOut(row)">出库</el-button>
+            </div>
           </template>
         </el-table-column>
       </el-table>
