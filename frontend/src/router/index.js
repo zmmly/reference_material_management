@@ -40,7 +40,8 @@ const routes = [
       { path: 'alert', name: 'Alert', component: () => import('@/views/alert/index.vue') },
       // 系统管理
       { path: 'system/user', name: 'User', component: () => import('@/views/system/user/index.vue') },
-      { path: 'system/role', name: 'Role', component: () => import('@/views/system/role/index.vue') }
+      { path: 'system/role', name: 'Role', component: () => import('@/views/system/role/index.vue') },
+      { path: 'system/backup', name: 'Backup', component: () => import('@/views/system/backup/index.vue') }
     ]
   }
 ]

@@ -68,6 +68,7 @@
           </template>
           <el-menu-item index="/system/user">用户管理</el-menu-item>
           <el-menu-item index="/system/role">角色管理</el-menu-item>
+          <el-menu-item index="/system/backup">系统备份</el-menu-item>
         </el-sub-menu>
       </el-menu>
     </el-aside>
