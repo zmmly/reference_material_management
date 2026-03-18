@@ -10,7 +10,7 @@ INSERT INTO `role` (`name`, `code`, `permissions`) VALUES
 
 -- 初始化管理员账号 (密码: admin123，使用BCrypt加密)
 INSERT INTO `user` (`username`, `password`, `real_name`, `role_id`, `status`) VALUES
-('admin', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iK7iAt6', '系统管理员', 1, 1);
+('admin', '$2b$12$3kpyHRKVqmogTt3H/5v1G.AWCvtFNOboBIaontuTkuBF3cQDwscTu', '系统管理员', 1, 1);
 
 -- 初始化分类
 INSERT INTO `category` (`name`, `parent_id`, `sort_order`) VALUES
