@@ -147,7 +147,13 @@ public class BackupService {
     }
 
     private String extractDatabaseName(String url) {
-        int start = url.lastIndexOf('/') + 1;
+        // JDBC URL format: jdbc:mysql://host:port/database?params
+        // Find the third '/' (after jdbc:mysql://)
+        int firstSlash = url.indexOf('/');
+        int secondSlash = url.indexOf('/', firstSlash + 1);
+        int thirdSlash = url.indexOf('/', secondSlash + 1);
+
+        int start = thirdSlash + 1;
         int end = url.indexOf('?', start);
         if (end == -1) {
             end = url.length();
