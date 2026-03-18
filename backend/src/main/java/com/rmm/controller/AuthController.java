@@ -4,6 +4,7 @@ import com.rmm.common.Result;
 import com.rmm.dto.ChangePasswordDTO;
 import com.rmm.dto.LoginDTO;
 import com.rmm.service.AuthService;
+import com.rmm.vo.CaptchaVO;
 import com.rmm.vo.LoginVO;
 import com.rmm.vo.UserVO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -20,6 +21,12 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthService authService;
+
+    @Operation(summary = "获取验证码", description = "获取登录验证码图片")
+    @GetMapping("/captcha")
+    public Result<CaptchaVO> getCaptcha() {
+        return Result.success(authService.generateCaptcha());
+    }
 
     @Operation(summary = "用户登录", description = "通过用户名和密码登录系统，返回JWT Token")
     @PostMapping("/login")

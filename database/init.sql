@@ -17,6 +17,7 @@ CREATE TABLE `user` (
     `email` VARCHAR(100) COMMENT '邮箱',
     `role_id` BIGINT COMMENT '角色ID',
     `status` TINYINT DEFAULT 1 COMMENT '状态: 1启用 0禁用',
+    `password_changed` TINYINT DEFAULT 0 COMMENT '是否已修改密码: 1是 0否(首次登录需修改)',
     `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
     `update_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     `deleted` TINYINT DEFAULT 0 COMMENT '逻辑删除: 1已删除'

@@ -21,6 +21,15 @@
         <el-form-item prop="password">
           <el-input v-model="form.password" type="password" placeholder="请输入密码" prefix-icon="Lock" show-password size="large" />
         </el-form-item>
+        <el-form-item prop="captchaCode">
+          <div class="captcha-row">
+            <el-input v-model="form.captchaCode" placeholder="请输入验证码" prefix-icon="Key" size="large" class="captcha-input" />
+            <div class="captcha-image" @click="refreshCaptcha" :title="captchaLoading ? '加载中...' : '点击刷新验证码'">
+              <img v-if="captchaImage && !captchaLoading" :src="captchaImage" alt="验证码" />
+              <el-icon v-else class="captcha-loading"><Loading /></el-icon>
+            </div>
+          </div>
+        </el-form-item>
         <el-form-item>
           <el-button type="primary" :loading="loading" native-type="submit" class="login-btn">
             {{ loading ? '登录中...' : '登 录' }}
@@ -32,27 +41,60 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { Loading } from '@element-plus/icons-vue'
 import { useUserStore } from '@/store/modules/user'
+import { getCaptcha } from '@/api/auth'
 
 const router = useRouter()
 const userStore = useUserStore()
 
 const formRef = ref()
 const loading = ref(false)
-const form = reactive({ username: '', password: '' })
+const captchaLoading = ref(false)
+const captchaId = ref('')
+const captchaImage = ref('')
+
+const form = reactive({
+  username: '',
+  password: '',
+  captchaCode: ''
+})
+
 const rules = {
   username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
-  password: [{ required: true, message: '请输入密码', trigger: 'blur' }]
+  password: [{ required: true, message: '请输入密码', trigger: 'blur' }],
+  captchaCode: [{ required: true, message: '请输入验证码', trigger: 'blur' }]
+}
+
+const refreshCaptcha = async () => {
+  if (captchaLoading.value) return
+  captchaLoading.value = true
+  try {
+    const res = await getCaptcha()
+    captchaId.value = res.data.captchaId
+    captchaImage.value = res.data.captchaImage
+    form.captchaCode = ''
+  } catch (e) {
+    console.error('Failed to load captcha:', e)
+    ElMessage.error('验证码加载失败，请刷新')
+  } finally {
+    captchaLoading.value = false
+  }
 }
 
 const handleLogin = async () => {
   await formRef.value.validate()
   loading.value = true
   try {
-    const res = await userStore.login(form)
+    const res = await userStore.login({
+      username: form.username,
+      password: form.password,
+      captchaId: captchaId.value,
+      captchaCode: form.captchaCode
+    })
     ElMessage.success('登录成功')
     // 检查是否需要修改密码
     if (res.data.needChangePassword) {
@@ -61,11 +103,17 @@ const handleLogin = async () => {
       router.push('/dashboard')
     }
   } catch (e) {
+    // 登录失败后刷新验证码
+    refreshCaptcha()
     console.error(e)
   } finally {
     loading.value = false
   }
 }
+
+onMounted(() => {
+  refreshCaptcha()
+})
 </script>
 
 <style lang="scss" scoped>
@@ -174,6 +222,51 @@ const handleLogin = async () => {
   font-size: 14px;
   color: var(--text-muted);
   margin: 0;
+}
+
+.captcha-row {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+}
+
+.captcha-input {
+  flex: 1;
+}
+
+.captcha-image {
+  width: 130px;
+  height: 48px;
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  transition: var(--transition-normal);
+  border: 1px solid var(--border-color);
+
+  &:hover {
+    border-color: var(--primary-color);
+  }
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  .captcha-loading {
+    font-size: 24px;
+    color: var(--text-muted);
+    animation: spin 1s linear infinite;
+  }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 .login-btn {
