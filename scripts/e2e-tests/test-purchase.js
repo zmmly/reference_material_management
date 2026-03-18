@@ -15,9 +15,9 @@ async function testPurchase() {
   try {
     // 登录
     await page.goto(`${BASE_URL}/login`);
-    await page.fill('input[placeholder="用户名"]', 'admin');
-    await page.fill('input[placeholder="密码"]', 'admin123');
-    await page.click('button:has-text("登录")');
+    await page.fill('input[placeholder="请输入用户名"]', 'admin');
+    await page.fill('input[placeholder="请输入密码"]', 'admin123');
+    await page.click('button:has-text("登")');
     await page.waitForTimeout(1000);
     // 访问采购申请
     await page.goto(`${BASE_URL}/purchase`);

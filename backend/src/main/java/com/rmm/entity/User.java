@@ -26,4 +26,7 @@ public class User {
 
     @TableField(exist = false)
     private Role role;
+
+    @TableField(exist = false)
+    private String roleName;
 }

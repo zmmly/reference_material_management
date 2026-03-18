@@ -4,7 +4,8 @@
 
 为标准物质管理系统实施完整的安全加固，适用于云服务器公网部署场景。
 
-**部署环境**：传统部署（JAR + Nginx），仅 IP 访问，5-10 人小团队
+**部署环境**：传统部署（JAR + Nginx），仅 IP 访问，10 人小团队
+**数据库安全**：MySQL 已安装，密码复杂度高，不对外网开放
 
 ## 模块一：配置安全化
 
@@ -27,6 +28,10 @@ spring:
 jwt:
   secret: ${JWT_SECRET:}
   expiration: 86400000
+
+app:
+  cors:
+    allowed-origins: ${CORS_ORIGINS:http://localhost:3000,http://localhost:3001}
 ```
 
 #### 1.2 新增文件
@@ -46,6 +51,9 @@ DB_PASSWORD=your_secure_password_here
 
 # JWT配置 (建议使用64位随机字符串)
 JWT_SECRET=please_generate_a_random_64_character_secret_key_here
+
+# CORS 允许的前端地址 (逗号分隔)
+CORS_ORIGINS=http://localhost:3000,http://YOUR_SERVER_IP
 ```
 
 #### 1.4 部署命令
@@ -133,7 +141,7 @@ public Result<Void> approve(@RequestBody ApproveDTO dto) {
 #### 限流规则
 | 限制类型 | 阈值 | 说明 |
 |---------|------|------|
-| IP 限流 | 10 次/分钟 | 同一 IP 每分钟最多 10 次登录尝试 |
+| IP 限流 | 5 次/分钟 | 同一 IP 每分钟最多 5 次登录尝试（10人小团队） |
 | 用户名限流 | 5 次/分钟 | 同一用户名每分钟最多 5 次失败尝试 |
 | 账户锁定 | 15 分钟 | 连续失败 5 次后锁定 15 分钟 |
 
@@ -167,16 +175,14 @@ config.setAllowCredentials(true);
 ```java
 @Configuration
 public class CorsConfig implements WebMvcConfigurer {
+
+    @Value("${app.cors.allowed-origins}")
+    private String[] allowedOrigins;
+
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/api/**")
-            .allowedOrigins(
-                "http://localhost:3000",
-                "http://localhost:3001",
-                "http://localhost:3002",
-                "http://localhost:3003",
-                "http://YOUR_SERVER_IP:3000"  // 替换为实际服务器IP
-            )
+            .allowedOriginPatterns(allowedOrigins)
             .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
             .allowedHeaders("*")
             .allowCredentials(true)

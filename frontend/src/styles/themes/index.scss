@@ -1,0 +1,181 @@
+// ============================================
+// 多主题配色系统
+// ============================================
+
+// 主题定义
+$themes: (
+  // 深色科技风（默认）
+  'dark-tech': (
+    name: '深色科技',
+    icon: '🌙',
+    bg-primary: #0f172a,
+    bg-secondary: #1e293b,
+    bg-tertiary: #334155,
+    text-primary: #f1f5f9,
+    text-secondary: #94a3b8,
+    text-muted: #64748b,
+    border-color: rgba(148, 163, 184, 0.1),
+    accent-primary: #8b5cf6,
+    accent-secondary: #3b82f6,
+    accent-tertiary: #06b6d4,
+    accent-success: #10b981,
+    accent-warning: #f59e0b,
+    accent-danger: #ef4444,
+    gradient-primary: linear-gradient(135deg, #8b5cf6, #3b82f6),
+    gradient-secondary: linear-gradient(135deg, #06b6d4, #3b82f6),
+    gradient-success: linear-gradient(135deg, #10b981, #06b6d4),
+    gradient-warning: linear-gradient(135deg, #f59e0b, #ec4899),
+    gradient-danger: linear-gradient(135deg, #ef4444, #f59e0b),
+    glass-bg: rgba(30, 41, 59, 0.7),
+    glass-border: rgba(148, 163, 184, 0.1),
+    sidebar-bg: linear-gradient(180deg, #0f172a 0%, #1e293b 100%),
+  ),
+
+  // 极简白
+  'light-minimal': (
+    name: '极简白',
+    icon: '☀️',
+    bg-primary: #f8fafc,
+    bg-secondary: #ffffff,
+    bg-tertiary: #f1f5f9,
+    text-primary: #1e293b,
+    text-secondary: #475569,
+    text-muted: #94a3b8,
+    border-color: rgba(0, 0, 0, 0.06),
+    accent-primary: #3b82f6,
+    accent-secondary: #6366f1,
+    accent-tertiary: #0ea5e9,
+    accent-success: #22c55e,
+    accent-warning: #f59e0b,
+    accent-danger: #ef4444,
+    gradient-primary: linear-gradient(135deg, #3b82f6, #6366f1),
+    gradient-secondary: linear-gradient(135deg, #0ea5e9, #3b82f6),
+    gradient-success: linear-gradient(135deg, #22c55e, #10b981),
+    gradient-warning: linear-gradient(135deg, #f59e0b, #eab308),
+    gradient-danger: linear-gradient(135deg, #ef4444, #f87171),
+    glass-bg: rgba(255, 255, 255, 0.9),
+    glass-border: rgba(0, 0, 0, 0.06),
+    sidebar-bg: linear-gradient(180deg, #1e293b 0%, #334155 100%),
+  ),
+
+  // 护眼绿
+  'forest-green': (
+    name: '护眼绿',
+    icon: '🌿',
+    bg-primary: #0d1f12,
+    bg-secondary: #152a18,
+    bg-tertiary: #1e3a23,
+    text-primary: #e8f5e9,
+    text-secondary: #a5d6a7,
+    text-muted: #66bb6a,
+    border-color: rgba(102, 187, 106, 0.15),
+    accent-primary: #4caf50,
+    accent-secondary: #66bb6a,
+    accent-tertiary: #81c784,
+    accent-success: #66bb6a,
+    accent-warning: #ffb74d,
+    accent-danger: #e57373,
+    gradient-primary: linear-gradient(135deg, #4caf50, #2e7d32),
+    gradient-secondary: linear-gradient(135deg, #66bb6a, #4caf50),
+    gradient-success: linear-gradient(135deg, #66bb6a, #81c784),
+    gradient-warning: linear-gradient(135deg, #ffb74d, #ffa726),
+    gradient-danger: linear-gradient(135deg, #e57373, #ef5350),
+    glass-bg: rgba(21, 42, 24, 0.8),
+    glass-border: rgba(102, 187, 106, 0.15),
+    sidebar-bg: linear-gradient(180deg, #0d1f12 0%, #152a18 100%),
+  ),
+
+  // 暖橙
+  'warm-orange': (
+    name: '暖橙',
+    icon: '🌅',
+    bg-primary: #1a1410,
+    bg-secondary: #2a1f18,
+    bg-tertiary: #3d2e24,
+    text-primary: #fef3e2,
+    text-secondary: #d4a574,
+    text-muted: #a67c52,
+    border-color: rgba(212, 165, 116, 0.15),
+    accent-primary: #f97316,
+    accent-secondary: #fb923c,
+    accent-tertiary: #fdba74,
+    accent-success: #84cc16,
+    accent-warning: #fbbf24,
+    accent-danger: #f87171,
+    gradient-primary: linear-gradient(135deg, #f97316, #ea580c),
+    gradient-secondary: linear-gradient(135deg, #fb923c, #f97316),
+    gradient-success: linear-gradient(135deg, #84cc16, #65a30d),
+    gradient-warning: linear-gradient(135deg, #fbbf24, #f59e0b),
+    gradient-danger: linear-gradient(135deg, #f87171, #ef4444),
+    glass-bg: rgba(42, 31, 24, 0.8),
+    glass-border: rgba(212, 165, 116, 0.15),
+    sidebar-bg: linear-gradient(180deg, #1a1410 0%, #2a1f18 100%),
+  ),
+
+  // 优雅紫
+  'elegant-purple': (
+    name: '优雅紫',
+    icon: '💎',
+    bg-primary: #1a1025,
+    bg-secondary: #251535,
+    bg-tertiary: #361f4a,
+    text-primary: #f3e8ff,
+    text-secondary: #c4b5fd,
+    text-muted: #a78bfa,
+    border-color: rgba(167, 139, 250, 0.15),
+    accent-primary: #a855f7,
+    accent-secondary: #c084fc,
+    accent-tertiary: #d8b4fe,
+    accent-success: #34d399,
+    accent-warning: #fbbf24,
+    accent-danger: #fb7185,
+    gradient-primary: linear-gradient(135deg, #a855f7, #7c3aed),
+    gradient-secondary: linear-gradient(135deg, #c084fc, #a855f7),
+    gradient-success: linear-gradient(135deg, #34d399, #10b981),
+    gradient-warning: linear-gradient(135deg, #fbbf24, #f59e0b),
+    gradient-danger: linear-gradient(135deg, #fb7185, #f43f5e),
+    glass-bg: rgba(37, 21, 53, 0.8),
+    glass-border: rgba(167, 139, 250, 0.15),
+    sidebar-bg: linear-gradient(180deg, #1a1025 0%, #251535 100%),
+  ),
+);
+
+// 生成 CSS 变量
+:root {
+  // 默认主题变量（由 JS 动态设置）
+  --theme-name: 'dark-tech';
+}
+
+// 应用主题变量
+@mixin apply-theme($theme) {
+  --bg-primary: #{map-get($theme, 'bg-primary')};
+  --bg-secondary: #{map-get($theme, 'bg-secondary')};
+  --bg-tertiary: #{map-get($theme, 'bg-tertiary')};
+  --bg-elevated: #{map-get($theme, 'bg-secondary')};
+  --text-primary: #{map-get($theme, 'text-primary')};
+  --text-secondary: #{map-get($theme, 'text-secondary')};
+  --text-muted: #{map-get($theme, 'text-muted')};
+  --border-color: #{map-get($theme, 'border-color')};
+  --border-glow: #{map-get($theme, 'accent-primary')}33;
+  --accent-purple: #{map-get($theme, 'accent-primary')};
+  --accent-blue: #{map-get($theme, 'accent-secondary')};
+  --accent-cyan: #{map-get($theme, 'accent-tertiary')};
+  --accent-green: #{map-get($theme, 'accent-success')};
+  --accent-orange: #{map-get($theme, 'accent-warning')};
+  --accent-red: #{map-get($theme, 'accent-danger')};
+  --gradient-purple: #{map-get($theme, 'gradient-primary')};
+  --gradient-cyan: #{map-get($theme, 'gradient-secondary')};
+  --gradient-green: #{map-get($theme, 'gradient-success')};
+  --gradient-orange: #{map-get($theme, 'gradient-warning')};
+  --gradient-red: #{map-get($theme, 'gradient-danger')};
+  --glass-bg: #{map-get($theme, 'glass-bg')};
+  --glass-border: #{map-get($theme, 'glass-border')};
+  --sidebar-bg: #{map-get($theme, 'sidebar-bg')};
+}
+
+// 为每个主题生成 data 属性选择器
+@each $theme-name, $theme-map in $themes {
+  [data-theme="#{$theme-name}"] {
+    @include apply-theme($theme-map);
+  }
+}

@@ -2,7 +2,7 @@
  * 标准物质管理系统 - E2E测试公共函数
  */
 
-const BASE_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
+const BASE_URL = process.env.FRONTEND_URL || 'http://localhost:3002';
 
 // 颜色定义
 const colors = {
