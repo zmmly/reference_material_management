@@ -169,7 +169,7 @@ const fetchCategories = async () => {
 
 const flattenTree = (tree, result = []) => {
   tree.forEach(node => {
-    result.push({ id: node.id, label: node.label })
+    result.push({ id: node.id, label: node.name })
     if (node.children?.length) flattenTree(node.children, result)
   })
   return result
