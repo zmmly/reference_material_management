@@ -33,3 +33,6 @@ app:
 logging:
   level:
     com.rmm: DEBUG
+
+backup:
+  directory: ${BACKUP_DIR:backups}

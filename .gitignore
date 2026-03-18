@@ -28,3 +28,6 @@ backend/target/
 # Logs
 logs/
 *.log
+
+# Backup files
+backend/backups/
