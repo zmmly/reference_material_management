@@ -12,4 +12,7 @@ public class LoginVO {
 
     @Schema(description = "用户信息")
     private UserVO user;
+
+    @Schema(description = "是否需要修改密码")
+    private Boolean needChangePassword;
 }

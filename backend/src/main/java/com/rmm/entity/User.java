@@ -16,6 +16,7 @@ public class User {
     private String email;
     private Long roleId;
     private Integer status;
+    private Boolean passwordChanged;
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
     @TableField(fill = FieldFill.INSERT_UPDATE)

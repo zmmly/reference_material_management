@@ -1,0 +1,30 @@
+# 生产环境配置
+# 使用方法: java -jar app.jar --spring.profiles.active=prod
+
+server:
+  port: 8080
+
+spring:
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+
+jwt:
+  secret: ${JWT_SECRET}
+
+app:
+  cors:
+    allowed-origins: ${CORS_ORIGINS}
+  swagger:
+    enabled: false
+
+mybatis-plus:
+  configuration:
+    # 生产环境关闭 SQL 日志
+    log-impl: org.apache.ibatis.logging.nologging.NoLoggingImpl
+
+logging:
+  level:
+    com.rmm: INFO
+    root: WARN

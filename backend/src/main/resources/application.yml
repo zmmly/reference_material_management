@@ -6,9 +6,9 @@ spring:
     name: reference-material-management
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/reference_material_management?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
-    username: root
-    password: 123456
+    url: ${DB_URL:jdbc:mysql://localhost:3306/reference_material_management?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai}
+    username: ${DB_USER:root}
+    password: ${DB_PASSWORD:123456}
   jackson:
     date-format: yyyy-MM-dd HH:mm:ss
     time-zone: Asia/Shanghai
@@ -21,8 +21,14 @@ mybatis-plus:
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
 
 jwt:
-  secret: YourSecretKeyForJwtTokenGenerationMustBeLongEnough123456
+  secret: ${JWT_SECRET:YourSecretKeyForJwtTokenGenerationMustBeLongEnough123456}
   expiration: 86400000
+
+app:
+  cors:
+    allowed-origins: ${CORS_ORIGINS:http://localhost:3000,http://localhost:3002}
+  swagger:
+    enabled: ${SWAGGER_ENABLED:false}
 
 logging:
   level:

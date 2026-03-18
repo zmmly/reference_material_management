@@ -1,6 +1,7 @@
 package com.rmm.controller;
 
 import com.rmm.common.Result;
+import com.rmm.dto.ChangePasswordDTO;
 import com.rmm.dto.LoginDTO;
 import com.rmm.service.AuthService;
 import com.rmm.vo.LoginVO;
@@ -31,5 +32,13 @@ public class AuthController {
     public Result<UserVO> getUserInfo() {
         Long userId = (Long) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         return Result.success(authService.getCurrentUser(userId));
+    }
+
+    @Operation(summary = "修改密码", description = "修改当前用户密码，首次登录强制修改")
+    @PostMapping("/change-password")
+    public Result<Void> changePassword(@Valid @RequestBody ChangePasswordDTO dto) {
+        Long userId = (Long) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        authService.changePassword(userId, dto.getOldPassword(), dto.getNewPassword());
+        return Result.success();
     }
 }

@@ -7,7 +7,8 @@ const USER_INFO_KEY = 'user_info'
 export const useUserStore = defineStore('user', {
   state: () => ({
     token: getToken() || '',
-    userInfo: JSON.parse(localStorage.getItem(USER_INFO_KEY) || 'null')
+    userInfo: JSON.parse(localStorage.getItem(USER_INFO_KEY) || 'null'),
+    needChangePassword: false
   }),
 
   actions: {
@@ -15,6 +16,7 @@ export const useUserStore = defineStore('user', {
       const res = await login(loginForm)
       this.token = res.data.token
       this.userInfo = res.data.user
+      this.needChangePassword = res.data.needChangePassword || false
       setToken(res.data.token)
       this.saveUserInfo(res.data.user)
       return res
@@ -35,9 +37,14 @@ export const useUserStore = defineStore('user', {
       localStorage.setItem(USER_INFO_KEY, JSON.stringify(userInfo))
     },
 
+    passwordChanged() {
+      this.needChangePassword = false
+    },
+
     logout() {
       this.token = ''
       this.userInfo = null
+      this.needChangePassword = false
       removeToken()
       localStorage.removeItem(USER_INFO_KEY)
     }

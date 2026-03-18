@@ -10,6 +10,12 @@ const routes = [
     meta: { requiresAuth: false }
   },
   {
+    path: '/change-password',
+    name: 'ChangePassword',
+    component: () => import('@/views/change-password/index.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/',
     component: () => import('@/views/layout/index.vue'),
     redirect: '/dashboard',

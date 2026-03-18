@@ -7,3 +7,7 @@ export function login(data) {
 export function getUserInfo() {
   return request.get('/auth/user-info')
 }
+
+export function changePassword(data) {
+  return request.post('/auth/change-password', data)
+}

@@ -59,6 +59,9 @@ public class AuthService {
         }
         vo.setUser(userVO);
 
+        // 检查是否需要修改密码
+        vo.setNeedChangePassword(user.getPasswordChanged() == null || !user.getPasswordChanged());
+
         return vo;
     }
 
@@ -83,5 +86,24 @@ public class AuthService {
         }
 
         return userVO;
+    }
+
+    public void changePassword(Long userId, String oldPassword, String newPassword) {
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException("用户不存在");
+        }
+
+        if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
+            throw new BusinessException("原密码错误");
+        }
+
+        if (passwordEncoder.matches(newPassword, user.getPassword())) {
+            throw new BusinessException("新密码不能与原密码相同");
+        }
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+        user.setPasswordChanged(true);
+        userMapper.updateById(user);
     }
 }
