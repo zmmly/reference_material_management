@@ -8,30 +8,22 @@ export function getStockCheck(id) {
   return request.get(`/stock-check/${id}`)
 }
 
-export function getStockCheckItems(id) {
-  return request.get(`/stock-check/${id}/items`)
-}
-
-export function getStockCheckItemsGrouped(id) {
-  return request.get(`/stock-check/${id}/items-grouped`)
+export function getStockCheckGroups(id) {
+  return request.get(`/stock-check/${id}/groups`)
 }
 
 export function createStockCheck(data) {
   return request.post('/stock-check', data)
 }
 
-export function checkStockCheckItem(checkId, itemId, actualQuantity, remarks) {
-  return request.put(`/stock-check/${checkId}/items/${itemId}`, null, { params: { actualQuantity, remarks } })
-}
-
-export function checkStockCheckBatch(checkId, data) {
-  return request.put(`/stock-check/${checkId}/batch`, data)
+export function checkStockGroup(checkId, data) {
+  return request.put(`/stock-check/${checkId}/check`, data)
 }
 
 export function completeStockCheck(id) {
   return request.put(`/stock-check/${id}/complete`)
 }
 
-export function adjustStockCheckItem(itemId, reason) {
-  return request.put(`/stock-check/items/${itemId}/adjust`, null, { params: { reason } })
+export function adjustStockCheckGroup(groupId, reason) {
+  return request.put(`/stock-check/groups/${groupId}/adjust`, null, { params: { reason } })
 }

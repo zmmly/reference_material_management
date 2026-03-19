@@ -3,14 +3,14 @@ package com.rmm.controller;
 import com.rmm.common.PageResult;
 import com.rmm.common.Result;
 import com.rmm.entity.StockCheck;
-import com.rmm.entity.StockCheckItem;
+import com.rmm.entity.StockCheckGroup;
 import com.rmm.service.StockCheckService;
 import com.rmm.util.JwtUtil;
-import com.rmm.vo.StockCheckItemGroupVO;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
@@ -35,14 +35,9 @@ public class StockCheckController {
         return Result.success(stockCheckService.getById(id));
     }
 
-    @GetMapping("/{id}/items")
-    public Result<List<StockCheckItem>> getItems(@PathVariable Long id) {
-        return Result.success(stockCheckService.getItems(id));
-    }
-
-    @GetMapping("/{id}/items-grouped")
-    public Result<List<StockCheckItemGroupVO>> getItemsGrouped(@PathVariable Long id) {
-        return Result.success(stockCheckService.getItemsGrouped(id));
+    @GetMapping("/{id}/groups")
+    public Result<List<StockCheckGroup>> getGroups(@PathVariable Long id) {
+        return Result.success(stockCheckService.getGroups(id));
     }
 
     @PostMapping
@@ -52,30 +47,16 @@ public class StockCheckController {
         return Result.success(stockCheckService.create(stockCheck, userId));
     }
 
-    @PutMapping("/{checkId}/items/{itemId}")
-    public Result<Void> checkItem(@PathVariable Long checkId,
-                                  @PathVariable Long itemId,
-                                  @RequestParam java.math.BigDecimal actualQuantity,
-                                  @RequestParam(required = false) String remarks,
-                                  HttpServletRequest request) {
-        String token = request.getHeader("Authorization").substring(7);
-        Long userId = jwtUtil.getUserId(token);
-        stockCheckService.checkItem(itemId, actualQuantity, remarks, userId);
-        return Result.success();
-    }
-
-    @PutMapping("/{checkId}/batch")
-    public Result<Void> checkBatch(@PathVariable Long checkId,
-                                   @RequestBody java.util.Map<String, Object> params,
+    @PutMapping("/{id}/check")
+    public Result<Void> checkGroup(@PathVariable Long id,
+                                   @RequestBody Map<String, Object> params,
                                    HttpServletRequest request) {
         String token = request.getHeader("Authorization").substring(7);
         Long userId = jwtUtil.getUserId(token);
-        java.util.List<Long> itemIds = ((java.util.List<?>) params.get("itemIds")).stream()
-                .map(obj -> ((Number) obj).longValue())
-                .toList();
-        java.math.BigDecimal actualQuantity = new java.math.BigDecimal(params.get("actualQuantity").toString());
+        Long groupId = ((Number) params.get("groupId")).longValue();
+        BigDecimal actualQuantity = new BigDecimal(params.get("actualQuantity").toString());
         String remarks = (String) params.get("remarks");
-        stockCheckService.checkBatch(itemIds, actualQuantity, remarks, userId);
+        stockCheckService.checkGroup(groupId, actualQuantity, remarks, userId);
         return Result.success();
     }
 
@@ -85,13 +66,13 @@ public class StockCheckController {
         return Result.success();
     }
 
-    @PutMapping("/items/{itemId}/adjust")
-    public Result<Void> adjust(@PathVariable Long itemId,
+    @PutMapping("/groups/{groupId}/adjust")
+    public Result<Void> adjust(@PathVariable Long groupId,
                                @RequestParam String reason,
                                HttpServletRequest request) {
         String token = request.getHeader("Authorization").substring(7);
         Long userId = jwtUtil.getUserId(token);
-        stockCheckService.adjust(itemId, reason, userId);
+        stockCheckService.adjust(groupId, reason, userId);
         return Result.success();
     }
 }

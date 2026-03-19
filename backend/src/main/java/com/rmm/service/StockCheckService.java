@@ -10,9 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.rmm.vo.StockCheckItemGroupVO;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -24,7 +22,8 @@ import java.util.stream.Collectors;
 public class StockCheckService {
 
     private final StockCheckMapper stockCheckMapper;
-    private final StockCheckItemMapper stockCheckItemMapper;
+    private final StockCheckGroupMapper stockCheckGroupMapper;
+    private final StockCheckItemStockMapper stockCheckItemStockMapper;
     private final StockMapper stockMapper;
     private final ReferenceMaterialMapper materialMapper;
     private final LocationMapper locationMapper;
@@ -57,189 +56,22 @@ public class StockCheckService {
         return stockCheck;
     }
 
-    public List<StockCheckItem> getItems(Long checkId) {
-        List<StockCheckItem> items = stockCheckItemMapper.selectList(
-            new LambdaQueryWrapper<StockCheckItem>().eq(StockCheckItem::getCheckId, checkId)
+    /**
+     * 获取盘点分组列表
+     */
+    public List<StockCheckGroup> getGroups(Long checkId) {
+        List<StockCheckGroup> groups = stockCheckGroupMapper.selectList(
+            new LambdaQueryWrapper<StockCheckGroup>()
+                .eq(StockCheckGroup::getCheckId, checkId)
+                .orderByAsc(StockCheckGroup::getBatchNo)
         );
-        items.forEach(this::fillItemRelations);
-        return items;
+        groups.forEach(this::fillGroupRelations);
+        return groups;
     }
 
     /**
-     * 获取按批号分组的盘点明细
+     * 创建盘点任务（按批号+位置分组）
      */
-    public List<StockCheckItemGroupVO> getItemsGrouped(Long checkId) {
-        List<StockCheckItem> items = getItems(checkId);
-
-        // 按批号+位置分组
-        Map<String, List<StockCheckItem>> grouped = items.stream()
-            .collect(Collectors.groupingBy(item -> {
-                String batchNo = item.getBatchNo() != null ? item.getBatchNo() : "";
-                String locationName = item.getLocationName() != null ? item.getLocationName() : "";
-                return batchNo + "_" + locationName;
-            }));
-
-        List<StockCheckItemGroupVO> result = new ArrayList<>();
-        for (Map.Entry<String, List<StockCheckItem>> entry : grouped.entrySet()) {
-            List<StockCheckItem> groupItems = entry.getValue();
-            StockCheckItem first = groupItems.get(0);
-
-            StockCheckItemGroupVO vo = new StockCheckItemGroupVO();
-            vo.setGroupKey(entry.getKey());
-            vo.setMaterialId(first.getMaterialId());
-            vo.setMaterialName(first.getMaterialName());
-            vo.setBatchNo(first.getBatchNo());
-            vo.setLocationName(first.getLocationName());
-
-            // 合并内部编码
-            String internalCodes = groupItems.stream()
-                .map(StockCheckItem::getInternalCode)
-                .filter(Objects::nonNull)
-                .sorted()
-                .collect(Collectors.joining(", "));
-            vo.setInternalCodes(internalCodes);
-
-            // 收集item ID
-            List<Long> itemIds = groupItems.stream()
-                .map(StockCheckItem::getId)
-                .collect(Collectors.toList());
-            vo.setItemIds(itemIds);
-            vo.setItemCount(groupItems.size());
-
-            // 合计系统数量
-            BigDecimal systemQty = groupItems.stream()
-                .map(StockCheckItem::getSystemQuantity)
-                .filter(Objects::nonNull)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-            vo.setSystemQuantity(systemQty);
-
-            // 合计实盘数量(已盘点的)
-            BigDecimal actualQty = groupItems.stream()
-                .filter(i -> i.getActualQuantity() != null)
-                .map(StockCheckItem::getActualQuantity)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-            vo.setActualQuantity(actualQty.compareTo(BigDecimal.ZERO) == 0 ? null : actualQty);
-
-            // 合计差异
-            BigDecimal diff = groupItems.stream()
-                .filter(i -> i.getDifference() != null)
-                .map(StockCheckItem::getDifference)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-            vo.setDifference(diff.compareTo(BigDecimal.ZERO) == 0 ? null : diff);
-
-            // 差异说明(取第一个有差异说明的)
-            String diffReason = groupItems.stream()
-                .filter(i -> i.getDifferenceReason() != null && !i.getDifferenceReason().isEmpty())
-                .map(StockCheckItem::getDifferenceReason)
-                .findFirst()
-                .orElse(null);
-            vo.setDifferenceReason(diffReason);
-
-            // 状态: 只有全部已盘点才算已盘点
-            boolean allChecked = groupItems.stream().allMatch(i -> i.getStatus() > 0);
-            boolean hasDiff = groupItems.stream().anyMatch(i -> i.getStatus() == 2);
-            if (!allChecked) {
-                vo.setStatus(0);
-            } else {
-                vo.setStatus(hasDiff ? 2 : 1);
-            }
-
-            // 盘点人
-            String checkerName = groupItems.stream()
-                .filter(i -> i.getCheckerName() != null)
-                .map(StockCheckItem::getCheckerName)
-                .findFirst()
-                .orElse(null);
-            vo.setCheckerName(checkerName);
-
-            // 盘点时间
-            String checkTime = groupItems.stream()
-                .filter(i -> i.getCheckTime() != null)
-                .map(i -> i.getCheckTime().toString())
-                .findFirst()
-                .orElse(null);
-            vo.setCheckTime(checkTime);
-
-            result.add(vo);
-        }
-
-        // 按批号排序
-        result.sort(Comparator.comparing(StockCheckItemGroupVO::getBatchNo,
-            Comparator.nullsLast(String::compareTo)));
-
-        return result;
-    }
-
-    /**
-     * 批量盘点(按组盘点)
-     */
-    @Transactional
-    public void checkBatch(List<Long> itemIds, BigDecimal actualQuantity, String differenceReason, Long checkerId) {
-        if (itemIds == null || itemIds.isEmpty()) {
-            throw new BusinessException("盘点明细不能为空");
-        }
-
-        // 获取所有明细
-        List<StockCheckItem> items = stockCheckItemMapper.selectBatchIds(itemIds);
-        if (items.isEmpty()) {
-            throw new BusinessException("盘点明细不存在");
-        }
-
-        // 计算系统总数量
-        BigDecimal systemQty = items.stream()
-            .map(StockCheckItem::getSystemQuantity)
-            .filter(Objects::nonNull)
-            .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        // 按比例分配实盘数量到每个明细
-        for (StockCheckItem item : items) {
-            if (item.getStatus() > 0) {
-                continue; // 跳过已盘点的
-            }
-
-            // 按比例分配: itemActual = itemSystem * (actualQuantity / systemQty)
-            BigDecimal itemActual;
-            if (systemQty.compareTo(BigDecimal.ZERO) > 0 && item.getSystemQuantity() != null) {
-                itemActual = item.getSystemQuantity()
-                    .multiply(actualQuantity)
-                    .divide(systemQty, 1, RoundingMode.HALF_UP);
-            } else {
-                itemActual = BigDecimal.ZERO;
-            }
-
-            // 设置盘点结果
-            item.setActualQuantity(itemActual);
-            item.setDifference(itemActual.subtract(item.getSystemQuantity() != null ? item.getSystemQuantity() : BigDecimal.ZERO));
-            item.setDifferenceReason(differenceReason);
-            item.setStatus(item.getDifference().compareTo(BigDecimal.ZERO) == 0 ? 1 : 2);
-            item.setCheckerId(checkerId);
-            item.setCheckTime(LocalDateTime.now());
-            stockCheckItemMapper.updateById(item);
-        }
-
-        // 更新盘点任务统计
-        Long checkId = items.get(0).getCheckId();
-        StockCheck stockCheck = stockCheckMapper.selectById(checkId);
-
-        // 重新计算已盘点数量
-        Long checkedCount = stockCheckItemMapper.selectCount(
-            new LambdaQueryWrapper<StockCheckItem>()
-                .eq(StockCheckItem::getCheckId, checkId)
-                .gt(StockCheckItem::getStatus, 0)
-        );
-        stockCheck.setCheckedCount(checkedCount.intValue());
-
-        // 重新计算差异数量
-        Long diffCount = stockCheckItemMapper.selectCount(
-            new LambdaQueryWrapper<StockCheckItem>()
-                .eq(StockCheckItem::getCheckId, checkId)
-                .eq(StockCheckItem::getStatus, 2)
-        );
-        stockCheck.setDifferenceCount(diffCount.intValue());
-
-        stockCheckMapper.updateById(stockCheck);
-    }
-
     @Transactional
     public StockCheck create(StockCheck stockCheck, Long creatorId) {
         // 生成盘点单号
@@ -253,12 +85,11 @@ public class StockCheckService {
         stockCheck.setDifferenceCount(0);
         stockCheckMapper.insert(stockCheck);
 
-        // 根据范围创建盘点明细
+        // 根据范围查询库存
         LambdaQueryWrapper<Stock> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(Stock::getStatus, 1);
 
         if ("CATEGORY".equals(stockCheck.getScope()) && stockCheck.getScopeValue() != null) {
-            // 按分类盘点
             List<Long> materialIds = materialMapper.selectList(
                 new LambdaQueryWrapper<ReferenceMaterial>()
                     .eq(ReferenceMaterial::getCategoryId, Long.parseLong(stockCheck.getScopeValue()))
@@ -269,60 +100,125 @@ public class StockCheckService {
         }
 
         List<Stock> stocks = stockMapper.selectList(wrapper);
-        int total = 0;
 
-        for (Stock stock : stocks) {
-            StockCheckItem item = new StockCheckItem();
-            item.setCheckId(stockCheck.getId());
-            item.setStockId(stock.getId());
-            item.setMaterialId(stock.getMaterialId());
-            item.setSystemQuantity(stock.getQuantity());
-            item.setStatus(0);
-            stockCheckItemMapper.insert(item);
-            total++;
+        // 按批号+位置分组
+        Map<String, List<Stock>> grouped = stocks.stream()
+            .collect(Collectors.groupingBy(stock -> {
+                String batchNo = stock.getBatchNo() != null ? stock.getBatchNo() : "";
+                String locationId = stock.getLocationId() != null ? stock.getLocationId().toString() : "";
+                return batchNo + "_" + locationId;
+            }));
+
+        int groupCount = 0;
+        for (Map.Entry<String, List<Stock>> entry : grouped.entrySet()) {
+            List<Stock> groupStocks = entry.getValue();
+            Stock first = groupStocks.get(0);
+
+            // 创建分组记录
+            StockCheckGroup group = new StockCheckGroup();
+            group.setCheckId(stockCheck.getId());
+            group.setMaterialId(first.getMaterialId());
+            group.setBatchNo(first.getBatchNo());
+            group.setLocationId(first.getLocationId());
+
+            // 获取位置名称
+            if (first.getLocationId() != null) {
+                Location location = locationMapper.selectById(first.getLocationId());
+                if (location != null) {
+                    group.setLocationName(location.getName());
+                }
+            }
+
+            // 合并内部编码
+            String internalCodes = groupStocks.stream()
+                .map(Stock::getInternalCode)
+                .filter(Objects::nonNull)
+                .sorted()
+                .collect(Collectors.joining(", "));
+            group.setInternalCodes(internalCodes);
+
+            // 统计明细数量
+            group.setItemCount(groupStocks.size());
+
+            // 合计系统数量
+            BigDecimal systemQty = groupStocks.stream()
+                .map(Stock::getQuantity)
+                .filter(Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+            group.setSystemQuantity(systemQty);
+
+            group.setStatus(0);
+            group.setCreateTime(LocalDateTime.now());
+            stockCheckGroupMapper.insert(group);
+
+            // 创建分组与库存的关联
+            for (Stock stock : groupStocks) {
+                StockCheckItemStock itemStock = new StockCheckItemStock();
+                itemStock.setCheckId(stockCheck.getId());
+                itemStock.setGroupId(group.getId());
+                itemStock.setStockId(stock.getId());
+                itemStock.setSystemQuantity(stock.getQuantity());
+                itemStock.setCreateTime(LocalDateTime.now());
+                stockCheckItemStockMapper.insert(itemStock);
+            }
+
+            groupCount++;
         }
 
-        stockCheck.setTotalCount(total);
+        // 更新盘点任务统计
+        stockCheck.setTotalCount(groupCount);
+        stockCheck.setGroupCount(groupCount);
+        stockCheck.setCheckedGroupCount(0);
         stockCheckMapper.updateById(stockCheck);
 
         return stockCheck;
     }
 
+    /**
+     * 盘点分组
+     */
     @Transactional
-    public void checkItem(Long itemId, BigDecimal actualQuantity, String differenceReason, Long checkerId) {
-        StockCheckItem item = stockCheckItemMapper.selectById(itemId);
-        if (item == null) {
-            throw new BusinessException("盘点明细不存在");
+    public void checkGroup(Long groupId, BigDecimal actualQuantity, String differenceReason, Long checkerId) {
+        StockCheckGroup group = stockCheckGroupMapper.selectById(groupId);
+        if (group == null) {
+            throw new BusinessException("盘点分组不存在");
         }
-        if (item.getStatus() != 0) {
-            throw new BusinessException("该明细已盘点");
+        if (group.getStatus() > 0) {
+            throw new BusinessException("该分组已盘点");
         }
 
-        item.setActualQuantity(actualQuantity);
-        item.setDifference(actualQuantity.subtract(item.getSystemQuantity()));
-        item.setDifferenceReason(differenceReason);
-        item.setStatus(item.getDifference().compareTo(BigDecimal.ZERO) == 0 ? 1 : 2);
-        item.setCheckerId(checkerId);
-        item.setCheckTime(LocalDateTime.now());
-        stockCheckItemMapper.updateById(item);
+        // 设置盘点结果
+        group.setActualQuantity(actualQuantity);
+        group.setDifference(actualQuantity.subtract(group.getSystemQuantity() != null ? group.getSystemQuantity() : BigDecimal.ZERO));
+        group.setDifferenceReason(differenceReason);
+        group.setStatus(group.getDifference().compareTo(BigDecimal.ZERO) == 0 ? 1 : 2);
+        group.setCheckerId(checkerId);
+        group.setCheckTime(LocalDateTime.now());
+        group.setUpdateTime(LocalDateTime.now());
+        stockCheckGroupMapper.updateById(group);
 
         // 更新盘点任务统计
-        StockCheck stockCheck = stockCheckMapper.selectById(item.getCheckId());
-        stockCheck.setCheckedCount(stockCheck.getCheckedCount() + 1);
-        if (item.getStatus() == 2) {
-            stockCheck.setDifferenceCount(stockCheck.getDifferenceCount() + 1);
-        }
-        stockCheckMapper.updateById(stockCheck);
+        updateCheckStats(group.getCheckId());
     }
 
+    /**
+     * 完成盘点
+     */
     @Transactional
     public void complete(Long id) {
         StockCheck stockCheck = stockCheckMapper.selectById(id);
         if (stockCheck == null) {
             throw new BusinessException("盘点任务不存在");
         }
-        if (stockCheck.getCheckedCount() < stockCheck.getTotalCount()) {
-            throw new BusinessException("还有未盘点的项目");
+
+        // 检查是否所有分组都已盘点
+        Long uncheckedCount = stockCheckGroupMapper.selectCount(
+            new LambdaQueryWrapper<StockCheckGroup>()
+                .eq(StockCheckGroup::getCheckId, id)
+                .eq(StockCheckGroup::getStatus, 0)
+        );
+        if (uncheckedCount > 0) {
+            throw new BusinessException("还有未盘点的分组");
         }
 
         stockCheck.setStatus(1);
@@ -330,31 +226,75 @@ public class StockCheckService {
         stockCheckMapper.updateById(stockCheck);
     }
 
+    /**
+     * 调整库存
+     */
     @Transactional
-    public void adjust(Long itemId, String reason, Long operatorId) {
-        StockCheckItem item = stockCheckItemMapper.selectById(itemId);
-        if (item == null) {
-            throw new BusinessException("盘点明细不存在");
+    public void adjust(Long groupId, String reason, Long operatorId) {
+        StockCheckGroup group = stockCheckGroupMapper.selectById(groupId);
+        if (group == null) {
+            throw new BusinessException("盘点分组不存在");
         }
-        if (item.getStatus() != 2) {
-            throw new BusinessException("只有有差异的项目才能调整");
-        }
-
-        // 调整库存
-        Stock stock = stockMapper.selectById(item.getStockId());
-        if (stock != null) {
-            stock.setQuantity(item.getActualQuantity());
-            stockMapper.updateById(stock);
+        if (group.getStatus() != 2) {
+            throw new BusinessException("只有有差异的分组才能调整");
         }
 
-        // 更新明细状态
-        item.setStatus(1);
-        item.setDifferenceReason(item.getDifferenceReason() + " [已调整:" + reason + "]");
-        stockCheckItemMapper.updateById(item);
+        // 获取该分组关联的所有库存
+        List<StockCheckItemStock> itemStocks = stockCheckItemStockMapper.selectList(
+            new LambdaQueryWrapper<StockCheckItemStock>()
+                .eq(StockCheckItemStock::getGroupId, groupId)
+        );
 
-        // 更新盘点任务差异计数
-        StockCheck stockCheck = stockCheckMapper.selectById(item.getCheckId());
-        stockCheck.setDifferenceCount(stockCheck.getDifferenceCount() - 1);
+        // 按比例调整每个库存的数量
+        BigDecimal totalSystemQty = group.getSystemQuantity();
+        BigDecimal totalActualQty = group.getActualQuantity();
+
+        for (StockCheckItemStock itemStock : itemStocks) {
+            Stock stock = stockMapper.selectById(itemStock.getStockId());
+            if (stock != null && totalSystemQty.compareTo(BigDecimal.ZERO) > 0) {
+                // 按比例分配: stockActual = stockSystem * (totalActual / totalSystem)
+                BigDecimal newQty = stock.getQuantity()
+                    .multiply(totalActualQty)
+                    .divide(totalSystemQty, 2, java.math.RoundingMode.HALF_UP);
+                stock.setQuantity(newQty);
+                stock.setUpdateTime(LocalDateTime.now());
+                stockMapper.updateById(stock);
+            }
+        }
+
+        // 更新分组状态
+        group.setStatus(1);
+        group.setDifferenceReason(group.getDifferenceReason() + " [已调整:" + reason + "]");
+        group.setUpdateTime(LocalDateTime.now());
+        stockCheckGroupMapper.updateById(group);
+
+        // 更新盘点任务统计
+        updateCheckStats(group.getCheckId());
+    }
+
+    /**
+     * 更新盘点任务统计
+     */
+    private void updateCheckStats(Long checkId) {
+        StockCheck stockCheck = stockCheckMapper.selectById(checkId);
+
+        // 统计已盘点分组数
+        Long checkedCount = stockCheckGroupMapper.selectCount(
+            new LambdaQueryWrapper<StockCheckGroup>()
+                .eq(StockCheckGroup::getCheckId, checkId)
+                .gt(StockCheckGroup::getStatus, 0)
+        );
+        stockCheck.setCheckedCount(checkedCount.intValue());
+        stockCheck.setCheckedGroupCount(checkedCount.intValue());
+
+        // 统计有差异的分组数
+        Long diffCount = stockCheckGroupMapper.selectCount(
+            new LambdaQueryWrapper<StockCheckGroup>()
+                .eq(StockCheckGroup::getCheckId, checkId)
+                .eq(StockCheckGroup::getStatus, 2)
+        );
+        stockCheck.setDifferenceCount(diffCount.intValue());
+
         stockCheckMapper.updateById(stockCheck);
     }
 
@@ -365,67 +305,33 @@ public class StockCheckService {
                 stockCheck.setCreatorName(user.getRealName());
             }
         }
-        // 计算分组统计
-        fillGroupStats(stockCheck);
-    }
 
-    /**
-     * 计算并填充分组统计数据
-     */
-    private void fillGroupStats(StockCheck stockCheck) {
-        List<StockCheckItem> items = stockCheckItemMapper.selectList(
-            new LambdaQueryWrapper<StockCheckItem>().eq(StockCheckItem::getCheckId, stockCheck.getId())
+        // 从分组表统计
+        Long groupCount = stockCheckGroupMapper.selectCount(
+            new LambdaQueryWrapper<StockCheckGroup>()
+                .eq(StockCheckGroup::getCheckId, stockCheck.getId())
         );
+        stockCheck.setGroupCount(groupCount.intValue());
 
-        // 填充明细关联信息
-        items.forEach(this::fillItemRelations);
-
-        // 按批号+位置分组
-        Map<String, List<StockCheckItem>> grouped = items.stream()
-            .collect(Collectors.groupingBy(item -> {
-                String batchNo = item.getBatchNo() != null ? item.getBatchNo() : "";
-                String locationName = item.getLocationName() != null ? item.getLocationName() : "";
-                return batchNo + "_" + locationName;
-            }));
-
-        // 计算分组总数
-        stockCheck.setGroupCount(grouped.size());
-
-        // 计算已盘点分组数（分组内所有明细都已盘点）
-        int checkedGroupCount = 0;
-        for (List<StockCheckItem> groupItems : grouped.values()) {
-            boolean allChecked = groupItems.stream().allMatch(i -> i.getStatus() > 0);
-            if (allChecked) {
-                checkedGroupCount++;
-            }
-        }
-        stockCheck.setCheckedGroupCount(checkedGroupCount);
+        Long checkedGroupCount = stockCheckGroupMapper.selectCount(
+            new LambdaQueryWrapper<StockCheckGroup>()
+                .eq(StockCheckGroup::getCheckId, stockCheck.getId())
+                .gt(StockCheckGroup::getStatus, 0)
+        );
+        stockCheck.setCheckedGroupCount(checkedGroupCount.intValue());
     }
 
-    private void fillItemRelations(StockCheckItem item) {
-        if (item.getMaterialId() != null) {
-            ReferenceMaterial material = materialMapper.selectById(item.getMaterialId());
+    private void fillGroupRelations(StockCheckGroup group) {
+        if (group.getMaterialId() != null) {
+            ReferenceMaterial material = materialMapper.selectById(group.getMaterialId());
             if (material != null) {
-                item.setMaterialName(material.getName());
+                group.setMaterialName(material.getName());
             }
         }
-        if (item.getStockId() != null) {
-            Stock stock = stockMapper.selectById(item.getStockId());
-            if (stock != null) {
-                item.setInternalCode(stock.getInternalCode());
-                item.setBatchNo(stock.getBatchNo());
-                if (stock.getLocationId() != null) {
-                    Location location = locationMapper.selectById(stock.getLocationId());
-                    if (location != null) {
-                        item.setLocationName(location.getName());
-                    }
-                }
-            }
-        }
-        if (item.getCheckerId() != null) {
-            User user = userMapper.selectById(item.getCheckerId());
+        if (group.getCheckerId() != null) {
+            User user = userMapper.selectById(group.getCheckerId());
             if (user != null) {
-                item.setCheckerName(user.getRealName());
+                group.setCheckerName(user.getRealName());
             }
         }
     }
