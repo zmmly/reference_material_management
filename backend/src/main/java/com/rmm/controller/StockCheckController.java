@@ -10,7 +10,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
@@ -54,7 +53,7 @@ public class StockCheckController {
         String token = request.getHeader("Authorization").substring(7);
         Long userId = jwtUtil.getUserId(token);
         Long groupId = ((Number) params.get("groupId")).longValue();
-        BigDecimal actualQuantity = new BigDecimal(params.get("actualQuantity").toString());
+        Integer actualQuantity = ((Number) params.get("actualQuantity")).intValue();
         String remarks = (String) params.get("remarks");
         stockCheckService.checkGroup(groupId, actualQuantity, remarks, userId);
         return Result.success();

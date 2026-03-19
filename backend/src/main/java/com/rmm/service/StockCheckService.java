@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -140,11 +141,12 @@ public class StockCheckService {
             // 统计明细数量
             group.setItemCount(groupStocks.size());
 
-            // 合计系统数量
-            BigDecimal systemQty = groupStocks.stream()
+            // 合计系统数量（转为整数）
+            int systemQty = groupStocks.stream()
                 .map(Stock::getQuantity)
                 .filter(Objects::nonNull)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+                .map(q -> q.intValue())
+                .reduce(0, Integer::sum);
             group.setSystemQuantity(systemQty);
 
             group.setStatus(0);
@@ -157,7 +159,7 @@ public class StockCheckService {
                 itemStock.setCheckId(stockCheck.getId());
                 itemStock.setGroupId(group.getId());
                 itemStock.setStockId(stock.getId());
-                itemStock.setSystemQuantity(stock.getQuantity());
+                itemStock.setSystemQuantity(stock.getQuantity() != null ? stock.getQuantity().intValue() : 0);
                 itemStock.setCreateTime(LocalDateTime.now());
                 stockCheckItemStockMapper.insert(itemStock);
             }
@@ -178,7 +180,7 @@ public class StockCheckService {
      * 盘点分组
      */
     @Transactional
-    public void checkGroup(Long groupId, BigDecimal actualQuantity, String differenceReason, Long checkerId) {
+    public void checkGroup(Long groupId, Integer actualQuantity, String differenceReason, Long checkerId) {
         StockCheckGroup group = stockCheckGroupMapper.selectById(groupId);
         if (group == null) {
             throw new BusinessException("盘点分组不存在");
@@ -189,9 +191,10 @@ public class StockCheckService {
 
         // 设置盘点结果
         group.setActualQuantity(actualQuantity);
-        group.setDifference(actualQuantity.subtract(group.getSystemQuantity() != null ? group.getSystemQuantity() : BigDecimal.ZERO));
+        int systemQty = group.getSystemQuantity() != null ? group.getSystemQuantity() : 0;
+        group.setDifference(actualQuantity - systemQty);
         group.setDifferenceReason(differenceReason);
-        group.setStatus(group.getDifference().compareTo(BigDecimal.ZERO) == 0 ? 1 : 2);
+        group.setStatus(group.getDifference() == 0 ? 1 : 2);
         group.setCheckerId(checkerId);
         group.setCheckTime(LocalDateTime.now());
         group.setUpdateTime(LocalDateTime.now());
@@ -246,16 +249,16 @@ public class StockCheckService {
         );
 
         // 按比例调整每个库存的数量
-        BigDecimal totalSystemQty = group.getSystemQuantity();
-        BigDecimal totalActualQty = group.getActualQuantity();
+        int totalSystemQty = group.getSystemQuantity() != null ? group.getSystemQuantity() : 0;
+        int totalActualQty = group.getActualQuantity() != null ? group.getActualQuantity() : 0;
 
         for (StockCheckItemStock itemStock : itemStocks) {
             Stock stock = stockMapper.selectById(itemStock.getStockId());
-            if (stock != null && totalSystemQty.compareTo(BigDecimal.ZERO) > 0) {
+            if (stock != null && totalSystemQty > 0) {
                 // 按比例分配: stockActual = stockSystem * (totalActual / totalSystem)
-                BigDecimal newQty = stock.getQuantity()
-                    .multiply(totalActualQty)
-                    .divide(totalSystemQty, 2, java.math.RoundingMode.HALF_UP);
+                BigDecimal newQty = BigDecimal.valueOf(itemStock.getSystemQuantity())
+                    .multiply(BigDecimal.valueOf(totalActualQty))
+                    .divide(BigDecimal.valueOf(totalSystemQty), 0, RoundingMode.HALF_UP);
                 stock.setQuantity(newQty);
                 stock.setUpdateTime(LocalDateTime.now());
                 stockMapper.updateById(stock);

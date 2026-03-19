@@ -2,7 +2,6 @@ package com.rmm.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
@@ -17,6 +16,6 @@ public class StockCheckItemStock {
     private Long checkId;
     private Long groupId;
     private Long stockId;
-    private BigDecimal systemQuantity;
+    private Integer systemQuantity;
     private LocalDateTime createTime;
 }
