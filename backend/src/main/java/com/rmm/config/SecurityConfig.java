@@ -31,6 +31,8 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> {
                 auth.requestMatchers("/api/auth/**").permitAll();
+                // 文件预览接口 - 无需认证
+                auth.requestMatchers("/api/upload/preview").permitAll();
 
                 // Knife4j API文档路径 - 仅在启用时开放
                 if (swaggerEnabled) {
