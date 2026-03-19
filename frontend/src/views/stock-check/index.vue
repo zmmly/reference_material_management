@@ -11,13 +11,31 @@
             </div>
           </template>
           <el-table :data="checkList" v-loading="loading" border size="small" @row-click="handleSelectCheck">
-            <el-table-column prop="checkNo" label="盘点单号" width="120" />
+            <el-table-column prop="checkNo" label="盘点单号" width="140" />
+            <el-table-column label="盘点范围" width="100">
+              <template #default="{ row }">
+                <el-tag size="small">{{ scopeText(row.scope) }}</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="范围详情" min-width="150">
+              <template #default="{ row }">
+                <span v-if="row.scope === 'ALL'">全部库存</span>
+                <span v-else-if="row.scope === 'CATEGORY'">{{ getCategoryName(row.scopeValue) }}</span>
+                <span v-else-if="row.scope === 'LOCATION'">{{ getLocationName(row.scopeValue) }}</span>
+                <span v-else>-</span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="checkDate" label="盘点日期" width="110" />
+            <el-table-column prop="remarks" label="备注" min-width="120">
+              <template #default="{ row }">
+                <span class="text-ellipsis">{{ row.remarks || '-' }}</span>
+              </template>
+            </el-table-column>
             <el-table-column prop="status" label="状态" width="80">
               <template #default="{ row }">
                 <el-tag :type="statusType(row.status)" size="small">{{ statusText(row.status) }}</el-tag>
               </template>
             </el-table-column>
-            <el-table-column prop="checkDate" label="盘点日期" width="100" />
           </el-table>
         </el-card>
       </el-col>
@@ -282,6 +300,19 @@ const confirmAdjust = async () => {
 
 const statusType = (s) => ({ 0: 'warning', 1: 'success', 2: 'info' }[s] || 'info')
 const statusText = (s) => ({ 0: '进行中', 1: '已完成', 2: '已作废' }[s] || '未知')
+const scopeText = (s) => ({ ALL: '全部', CATEGORY: '按分类', LOCATION: '按位置' }[s] || s)
+
+const getCategoryName = (id) => {
+  if (!id) return '-'
+  const category = categoryList.value.find(c => String(c.id) === String(id))
+  return category?.label || category?.name || id
+}
+
+const getLocationName = (id) => {
+  if (!id) return '-'
+  const location = locationList.value.find(l => String(l.id) === String(id))
+  return location?.name || id
+}
 
 onMounted(() => {
   fetchCheckList()
@@ -294,4 +325,11 @@ onMounted(() => {
 .page-container { padding: 20px; }
 .text-danger { color: #f56c6c; }
 .text-warning { color: #e6a23c; }
+.text-ellipsis {
+  display: inline-block;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 </style>
