@@ -3,6 +3,7 @@ package com.rmm.controller;
 import com.rmm.common.Result;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
@@ -21,7 +22,20 @@ import java.util.UUID;
 public class UploadController {
 
     @Value("${upload.path:uploads}")
+    private String configuredUploadPath;
+
     private String uploadPath;
+
+    @PostConstruct
+    public void init() {
+        // 使用用户目录下的绝对路径
+        uploadPath = System.getProperty("user.home") + "/rmm-uploads";
+        File dir = new File(uploadPath);
+        if (!dir.exists()) {
+            dir.mkdirs();
+            log.info("Created upload directory: {}", uploadPath);
+        }
+    }
 
     @Operation(summary = "上传文件")
     @PostMapping
@@ -51,11 +65,11 @@ public class UploadController {
 
             // 保存文件
             File destFile = new File(dir, newFilename);
-            file.transferTo(destFile);
+            file.transferTo(destFile.getAbsoluteFile());
 
             // 返回相对路径
             String relativePath = "/" + type + "/" + datePath + "/" + newFilename;
-            log.info("File uploaded: {}", relativePath);
+            log.info("File uploaded: {} -> {}", originalFilename, destFile.getAbsolutePath());
 
             return Result.success(relativePath);
         } catch (IOException e) {
