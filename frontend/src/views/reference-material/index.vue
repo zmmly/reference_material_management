@@ -17,12 +17,12 @@
       </el-form>
 
       <el-table :data="tableData" v-loading="loading" border>
-        <el-table-column prop="code" label="编号" width="120" />
-        <el-table-column prop="name" label="名称" />
-        <el-table-column prop="specification" label="规格" width="120" />
-        <el-table-column prop="unit" label="单位" width="80" />
+        <el-table-column prop="code" label="编号" width="140" />
+        <el-table-column prop="name" label="名称" min-width="180" />
+        <el-table-column prop="casNumber" label="CAS号" width="130" />
         <el-table-column prop="categoryName" label="分类" width="120" />
-        <el-table-column prop="manufacturer" label="生产厂商" />
+        <el-table-column prop="specification" label="规格" width="100" />
+        <el-table-column prop="purityConcentration" label="纯度/浓度" width="100" />
         <el-table-column label="操作" width="180" fixed="right">
           <template #default="{ row }">
             <div class="action-buttons">
@@ -47,74 +47,60 @@
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="编号" prop="code">
-              <el-input v-model="form.code" />
+              <el-input v-model="form.code" placeholder="请输入标准物质编号" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="名称" prop="name">
-              <el-input v-model="form.name" />
+              <el-input v-model="form.name" placeholder="请输入标准物质名称" />
             </el-form-item>
           </el-col>
         </el-row>
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="英文名">
-              <el-input v-model="form.englishName" />
+            <el-form-item label="英文名称">
+              <el-input v-model="form.englishName" placeholder="请输入英文名称" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
+            <el-form-item label="CAS号">
+              <el-input v-model="form.casNumber" placeholder="请输入CAS号" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="20">
+          <el-col :span="12">
             <el-form-item label="分类" prop="categoryId">
-              <el-select v-model="form.categoryId" placeholder="请选择" style="width: 100%">
+              <el-select v-model="form.categoryId" placeholder="请选择分类" style="width: 100%">
                 <el-option v-for="item in categoryList" :key="item.id" :label="item.label" :value="item.id" />
               </el-select>
             </el-form-item>
           </el-col>
-        </el-row>
-        <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="标准值">
-              <el-input v-model="form.standardValue" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="不确定度">
-              <el-input v-model="form.uncertainty" />
+            <el-form-item label="规格" prop="specification">
+              <el-input v-model="form.specification" placeholder="请输入规格" />
             </el-form-item>
           </el-col>
         </el-row>
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="规格">
-              <el-input v-model="form.specification" />
+            <el-form-item label="纯度/浓度" prop="purityConcentration">
+              <el-input v-model="form.purityConcentration" placeholder="请输入纯度/浓度" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="单位">
-              <el-input v-model="form.unit" />
+            <el-form-item label="基质">
+              <el-input v-model="form.matrix" placeholder="请输入基质" />
             </el-form-item>
           </el-col>
         </el-row>
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="储存条件">
-              <el-select v-model="form.storageCondition" placeholder="请选择" style="width: 100%">
-                <el-option label="-20℃" value="-20℃" />
-                <el-option label="2-8℃" value="2-8℃" />
-                <el-option label="常温" value="常温" />
-                <el-option label="阴凉干燥" value="阴凉干燥" />
-                <el-option label="10-30℃" value="10-30℃" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="生产厂商">
-              <el-input v-model="form.manufacturer" />
+            <el-form-item label="包装形式">
+              <el-input v-model="form.packageForm" placeholder="请输入包装形式" />
             </el-form-item>
           </el-col>
         </el-row>
-        <el-form-item label="备注">
-          <el-input v-model="form.remarks" type="textarea" :rows="2" />
-        </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
@@ -140,13 +126,22 @@ const formRef = ref()
 
 const queryParams = reactive({ current: 1, size: 10, name: '', categoryId: null })
 const form = reactive({
-  code: '', name: '', englishName: '', categoryId: null,
-  standardValue: '', uncertainty: '', specification: '', unit: '',
-  storageCondition: '', manufacturer: '', remarks: ''
+  code: '',
+  name: '',
+  englishName: '',
+  casNumber: '',
+  categoryId: null,
+  specification: '',
+  purityConcentration: '',
+  matrix: '',
+  packageForm: ''
 })
 const rules = {
   code: [{ required: true, message: '请输入编号', trigger: 'blur' }],
-  name: [{ required: true, message: '请输入名称', trigger: 'blur' }]
+  name: [{ required: true, message: '请输入名称', trigger: 'blur' }],
+  categoryId: [{ required: true, message: '请选择分类', trigger: 'change' }],
+  specification: [{ required: true, message: '请输入规格', trigger: 'blur' }],
+  purityConcentration: [{ required: true, message: '请输入纯度/浓度', trigger: 'blur' }]
 }
 
 const fetchData = async () => {
@@ -178,9 +173,15 @@ const flattenTree = (tree, result = []) => {
 const handleAdd = () => {
   editId.value = null
   Object.assign(form, {
-    code: '', name: '', englishName: '', categoryId: null,
-    standardValue: '', uncertainty: '', specification: '', unit: '',
-    storageCondition: '', manufacturer: '', remarks: ''
+    code: '',
+    name: '',
+    englishName: '',
+    casNumber: '',
+    categoryId: null,
+    specification: '',
+    purityConcentration: '',
+    matrix: '',
+    packageForm: ''
   })
   dialogVisible.value = true
 }

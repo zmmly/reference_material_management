@@ -2,7 +2,6 @@ package com.rmm.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
@@ -10,17 +9,25 @@ import java.time.LocalDateTime;
 public class ReferenceMaterial {
     @TableId(type = IdType.AUTO)
     private Long id;
+    /** 标准物质编号 */
     private String code;
+    /** 标准物质名称 */
     private String name;
+    /** 英文名称 */
     private String englishName;
-    private String standardValue;
-    private String uncertainty;
+    /** CAS号 */
+    private String casNumber;
+    /** 规格 */
     private String specification;
-    private String unit;
+    /** 纯度/浓度 */
+    private String purityConcentration;
+    /** 基质 */
+    private String matrix;
+    /** 包装形式 */
+    private String packageForm;
+    /** 分类ID */
     private Long categoryId;
-    private String storageCondition;
-    private String manufacturer;
-    private String remarks;
+    /** 状态 */
     private Integer status;
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
