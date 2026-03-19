@@ -6,12 +6,12 @@
           <el-input v-model="queryParams.keyword" placeholder="名称/编码/批号" clearable />
         </el-form-item>
         <el-form-item label="存放位置">
-          <el-select v-model="queryParams.locationId" placeholder="全部" clearable>
+          <el-select v-model="queryParams.locationId" placeholder="全部" clearable style="width: 150px">
             <el-option v-for="item in locationList" :key="item.id" :label="item.name" :value="item.id" />
           </el-select>
         </el-form-item>
         <el-form-item label="状态">
-          <el-select v-model="queryParams.status" placeholder="全部" clearable>
+          <el-select v-model="queryParams.status" placeholder="全部" clearable style="width: 150px">
             <el-option label="正常" :value="1" />
             <el-option label="即将过期" :value="2" />
             <el-option label="已过期" :value="3" />
