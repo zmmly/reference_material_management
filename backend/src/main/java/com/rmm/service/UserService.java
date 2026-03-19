@@ -62,7 +62,9 @@ public class UserService {
                 .eq(User::getUsername, user.getUsername())) > 0) {
             throw new BusinessException("用户名已存在");
         }
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
+        // 如果没有提供密码，使用默认密码 123456
+        String password = StringUtils.hasText(user.getPassword()) ? user.getPassword() : "123456";
+        user.setPassword(passwordEncoder.encode(password));
         user.setStatus(1);
         user.setDeleted(0);
         userMapper.insert(user);
