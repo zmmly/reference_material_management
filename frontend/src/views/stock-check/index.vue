@@ -26,6 +26,21 @@
               </template>
             </el-table-column>
             <el-table-column prop="checkDate" label="盘点日期" width="110" />
+            <el-table-column label="进度" width="120">
+              <template #default="{ row }">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <el-progress
+                    :percentage="row.totalCount > 0 ? Math.round((row.checkedCount || 0) / row.totalCount * 100) : 0"
+                    :status="row.checkedCount >= row.totalCount ? 'success' : ''"
+                    :stroke-width="8"
+                    style="flex: 1;"
+                  />
+                  <span style="font-size: 12px; color: #666; white-space: nowrap;">
+                    {{ row.checkedCount || 0 }}/{{ row.totalCount || 0 }}
+                  </span>
+                </div>
+              </template>
+            </el-table-column>
             <el-table-column prop="remarks" label="备注" min-width="120">
               <template #default="{ row }">
                 <span class="text-ellipsis">{{ row.remarks || '-' }}</span>
