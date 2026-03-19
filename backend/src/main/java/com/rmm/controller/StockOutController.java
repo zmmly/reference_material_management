@@ -53,7 +53,15 @@ public class StockOutController {
         String token = request.getHeader("Authorization").substring(7);
         Long userId = jwtUtil.getUserId(token);
         @SuppressWarnings("unchecked")
-        List<Long> stockIds = (List<Long>) params.get("stockIds");
+        List<Object> rawIds = (List<Object>) params.get("stockIds");
+        List<Long> stockIds = rawIds.stream()
+                .map(obj -> {
+                    if (obj instanceof Number) {
+                        return ((Number) obj).longValue();
+                    }
+                    return Long.parseLong(obj.toString());
+                })
+                .toList();
         String reason = (String) params.get("reason");
         String purpose = (String) params.get("purpose");
         stockOutService.batchApply(stockIds, reason, purpose, userId);
