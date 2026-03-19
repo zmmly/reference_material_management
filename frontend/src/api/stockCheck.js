@@ -12,12 +12,20 @@ export function getStockCheckItems(id) {
   return request.get(`/stock-check/${id}/items`)
 }
 
+export function getStockCheckItemsGrouped(id) {
+  return request.get(`/stock-check/${id}/items-grouped`)
+}
+
 export function createStockCheck(data) {
   return request.post('/stock-check', data)
 }
 
 export function checkStockCheckItem(checkId, itemId, actualQuantity, remarks) {
   return request.put(`/stock-check/${checkId}/items/${itemId}`, null, { params: { actualQuantity, remarks } })
+}
+
+export function checkStockCheckBatch(checkId, data) {
+  return request.put(`/stock-check/${checkId}/batch`, data)
 }
 
 export function completeStockCheck(id) {

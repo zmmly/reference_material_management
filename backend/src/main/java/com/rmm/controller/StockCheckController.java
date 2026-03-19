@@ -6,11 +6,13 @@ import com.rmm.entity.StockCheck;
 import com.rmm.entity.StockCheckItem;
 import com.rmm.service.StockCheckService;
 import com.rmm.util.JwtUtil;
+import com.rmm.vo.StockCheckItemGroupVO;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/stock-check")
@@ -38,6 +40,11 @@ public class StockCheckController {
         return Result.success(stockCheckService.getItems(id));
     }
 
+    @GetMapping("/{id}/items-grouped")
+    public Result<List<StockCheckItemGroupVO>> getItemsGrouped(@PathVariable Long id) {
+        return Result.success(stockCheckService.getItemsGrouped(id));
+    }
+
     @PostMapping
     public Result<StockCheck> create(@RequestBody StockCheck stockCheck, HttpServletRequest request) {
         String token = request.getHeader("Authorization").substring(7);
@@ -54,6 +61,21 @@ public class StockCheckController {
         String token = request.getHeader("Authorization").substring(7);
         Long userId = jwtUtil.getUserId(token);
         stockCheckService.checkItem(itemId, actualQuantity, remarks, userId);
+        return Result.success();
+    }
+
+    @PutMapping("/{checkId}/batch-check")
+    public Result<Void> checkBatch(@PathVariable Long checkId,
+                                   @RequestBody java.util.Map<String, Object> params,
+                                   HttpServletRequest request) {
+        String token = request.getHeader("Authorization").substring(7);
+        Long userId = jwtUtil.getUserId(token);
+        java.util.List<Long> itemIds = ((java.util.List<?>) params.get("itemIds")).stream()
+                .map(obj -> ((Number) obj).longValue())
+                .toList();
+        java.math.BigDecimal actualQuantity = new java.math.BigDecimal(params.get("actualQuantity").toString());
+        String remarks = (String) params.get("remarks");
+        stockCheckService.checkBatch(itemIds, actualQuantity, remarks, userId);
         return Result.success();
     }
 

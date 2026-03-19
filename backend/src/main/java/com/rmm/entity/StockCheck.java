@@ -25,4 +25,11 @@ public class StockCheck {
 
     @TableField(exist = false)
     private String creatorName;
+
+    // 分组统计字段（非持久化）
+    @TableField(exist = false)
+    private Integer groupCount;
+
+    @TableField(exist = false)
+    private Integer checkedGroupCount;
 }
