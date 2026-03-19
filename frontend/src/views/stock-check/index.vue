@@ -86,14 +86,14 @@
         <el-table-column prop="systemQuantity" label="系统数量" width="100" />
         <el-table-column label="实盘数量" width="140">
           <template #default="{ row }">
-            <span v-if="row.status > 0" :class="{ 'text-danger': row.difference !== null && row.difference.compareTo(0) !== 0 }">{{ row.actualQuantity }}</span>
+            <span v-if="row.status > 0" :class="{ 'text-danger': row.difference !== null && row.difference !== 0 }">{{ row.actualQuantity }}</span>
             <el-input-number v-else v-model="row.inputQuantity" :min="0" :precision="2" size="small" style="width: 120px" />
           </template>
         </el-table-column>
         <el-table-column label="差异" width="80">
           <template #default="{ row }">
-            <span v-if="row.status > 0" :class="{ 'text-danger': row.difference !== null && row.difference.compareTo(0) > 0, 'text-warning': row.difference !== null && row.difference.compareTo(0) < 0 }">
-              {{ row.difference !== null ? (row.difference.compareTo(0) > 0 ? '+' : '') + row.difference : '-' }}
+            <span v-if="row.status > 0" :class="{ 'text-danger': row.difference !== null && row.difference > 0, 'text-warning': row.difference !== null && row.difference < 0 }">
+              {{ row.difference !== null ? (row.difference > 0 ? '+' : '') + row.difference : '-' }}
             </span>
             <span v-else :class="{ 'text-danger': getDifference(row) > 0, 'text-warning': getDifference(row) < 0 }">
               {{ getDifference(row) > 0 ? '+' : '' }}{{ getDifference(row) }}
