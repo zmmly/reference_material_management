@@ -12,6 +12,8 @@ import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -20,6 +22,7 @@ public class StockService {
     private final StockMapper stockMapper;
     private final ReferenceMaterialMapper materialMapper;
     private final LocationMapper locationMapper;
+    private final StockOutMapper stockOutMapper;
 
     public PageResult<Stock> list(Integer current, Integer size, String keyword, Long locationId, Integer status) {
         Page<Stock> page = new Page<>(current, size);
@@ -31,7 +34,18 @@ public class StockService {
 
         Page<Stock> result = stockMapper.selectPage(page, wrapper);
 
-        result.getRecords().forEach(this::fillRelations);
+        // 获取所有库存ID
+        List<Long> stockIds = result.getRecords().stream()
+                .map(Stock::getId)
+                .toList();
+
+        // 查询有待审批出库申请的库存ID集合
+        Set<Long> pendingStockIds = getPendingStockIds(stockIds);
+
+        result.getRecords().forEach(stock -> {
+            fillRelations(stock);
+            stock.setHasPendingOut(pendingStockIds.contains(stock.getId()));
+        });
 
         if (StringUtils.hasText(keyword)) {
             String kw = keyword.toLowerCase();
@@ -50,6 +64,23 @@ public class StockService {
         pageResult.setCurrent(result.getCurrent());
         pageResult.setPages(result.getPages());
         return pageResult;
+    }
+
+    /**
+     * 获取有待审批出库申请的库存ID集合
+     */
+    private Set<Long> getPendingStockIds(List<Long> stockIds) {
+        if (stockIds == null || stockIds.isEmpty()) {
+            return Set.of();
+        }
+        List<StockOut> pendingOuts = stockOutMapper.selectList(
+            new LambdaQueryWrapper<StockOut>()
+                .in(StockOut::getStockId, stockIds)
+                .eq(StockOut::getStatus, 0)
+        );
+        return pendingOuts.stream()
+                .map(StockOut::getStockId)
+                .collect(Collectors.toSet());
     }
 
     public List<Stock> listAll() {

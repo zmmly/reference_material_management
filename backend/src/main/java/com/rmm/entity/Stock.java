@@ -30,4 +30,6 @@ public class Stock {
     private String materialCode;
     @TableField(exist = false)
     private String locationName;
+    @TableField(exist = false)
+    private Boolean hasPendingOut;
 }

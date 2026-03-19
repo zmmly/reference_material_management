@@ -48,11 +48,18 @@
             <el-tag :type="statusType(row.status)">{{ statusText(row.status) }}</el-tag>
           </template>
         </el-table-column>
+        <el-table-column label="出库状态" width="100">
+          <template #default="{ row }">
+            <el-tag v-if="row.hasPendingOut" type="warning" size="small">审批中</el-tag>
+            <span v-else class="text-muted">-</span>
+          </template>
+        </el-table-column>
         <el-table-column label="操作" width="100" fixed="right">
           <template #default="{ row }">
-            <div class="action-buttons">
-              <el-button link type="primary" size="small" @click="handleOut(row)" :disabled="row.status !== 1">出库</el-button>
-            </div>
+            <el-tooltip v-if="row.hasPendingOut" content="已有待审批的出库申请" placement="top">
+              <el-button link type="info" size="small" disabled>出库</el-button>
+            </el-tooltip>
+            <el-button v-else link type="primary" size="small" @click="handleOut(row)" :disabled="row.status !== 1">出库</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -135,7 +142,8 @@ const handleSelectionChange = (rows) => {
   selectedRows.value = rows
 }
 
-const canSelect = (row) => row.status === 1
+// 只能选择状态正常且没有待审批出库申请的库存
+const canSelect = (row) => row.status === 1 && !row.hasPendingOut
 
 const handleOut = (row) => router.push({ path: '/stock-out/apply', query: { stockId: row.id } })
 
@@ -193,4 +201,5 @@ onMounted(() => {
 .search-form { margin-bottom: 20px; }
 .text-warning { color: #e6a23c; }
 .text-danger { color: #f56c6c; }
+.text-muted { color: #909399; }
 </style>
