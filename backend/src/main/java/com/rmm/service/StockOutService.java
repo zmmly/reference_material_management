@@ -55,6 +55,16 @@ public class StockOutService {
             throw new BusinessException("该库存已出库或不可用");
         }
 
+        // 检查是否已有待审批的出库申请
+        Long pendingCount = stockOutMapper.selectCount(
+            new LambdaQueryWrapper<StockOut>()
+                .eq(StockOut::getStockId, stockOut.getStockId())
+                .eq(StockOut::getStatus, 0)
+        );
+        if (pendingCount > 0) {
+            throw new BusinessException("该库存已有待审批的出库申请，请先撤回之前的申请");
+        }
+
         // 新设计：每条库存记录代表一个物品，数量固定为1
         stockOut.setMaterialId(stock.getMaterialId());
         stockOut.setQuantity(BigDecimal.ONE);  // 固定为1
@@ -82,6 +92,16 @@ public class StockOutService {
             }
             if (stock.getStatus() != 1) {
                 throw new BusinessException("库存已出库或不可用: " + stock.getInternalCode());
+            }
+
+            // 检查是否已有待审批的出库申请
+            Long pendingCount = stockOutMapper.selectCount(
+                new LambdaQueryWrapper<StockOut>()
+                    .eq(StockOut::getStockId, stockId)
+                    .eq(StockOut::getStatus, 0)
+            );
+            if (pendingCount > 0) {
+                throw new BusinessException("库存 " + stock.getInternalCode() + " 已有待审批的出库申请，请先撤回");
             }
 
             StockOut stockOut = new StockOut();
