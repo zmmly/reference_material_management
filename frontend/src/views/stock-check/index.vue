@@ -57,6 +57,22 @@
                 <span v-if="row.status > 0" :class="{ 'text-danger': row.difference > 0, 'text-warning': row.difference < 0 }">
                   {{ row.difference > 0 ? '+' : '' }}{{ row.difference }}
                 </span>
+                <span v-else :class="{ 'text-danger': getDifference(row) > 0, 'text-warning': getDifference(row) < 0 }">
+                  {{ getDifference(row) > 0 ? '+' : '' }}{{ getDifference(row) }}
+                </span>
+              </template>
+            </el-table-column>
+            <el-table-column label="差异说明" min-width="150">
+              <template #default="{ row }">
+                <span v-if="row.status > 0">{{ row.differenceReason || '-' }}</span>
+                <template v-else>
+                  <el-input
+                    v-model="row.inputDifferenceReason"
+                    placeholder="请输入差异说明"
+                    :disabled="getDifference(row) === 0"
+                    size="small"
+                  />
+                </template>
               </template>
             </el-table-column>
             <el-table-column label="操作" width="150" fixed="right">
@@ -195,7 +211,11 @@ const handleSelectCheck = async (row) => {
   itemsLoading.value = true
   try {
     const res = await getStockCheckItems(row.id)
-    checkItems.value = (res.data || []).map(item => ({ ...item, inputQuantity: item.systemQuantity }))
+    checkItems.value = (res.data || []).map(item => ({
+      ...item,
+      inputQuantity: item.systemQuantity,
+      inputDifferenceReason: item.differenceReason || ''
+    }))
   } finally {
     itemsLoading.value = false
   }
@@ -220,9 +240,19 @@ const handleCreateSubmit = async () => {
 }
 
 const handleCheckItem = async (row) => {
-  await checkStockCheckItem(selectedCheck.value.id, row.id, row.inputQuantity, '')
+  const difference = getDifference(row)
+  // 当有差异时，必须输入差异说明
+  if (difference !== 0 && !row.inputDifferenceReason?.trim()) {
+    ElMessage.warning('存在差异，请输入差异说明')
+    return
+  }
+  await checkStockCheckItem(selectedCheck.value.id, row.id, row.inputQuantity, row.inputDifferenceReason || '')
   ElMessage.success('盘点完成')
   handleSelectCheck(selectedCheck.value)
+}
+
+const getDifference = (row) => {
+  return (row.inputQuantity || 0) - (row.systemQuantity || 0)
 }
 
 const handleComplete = async () => {
