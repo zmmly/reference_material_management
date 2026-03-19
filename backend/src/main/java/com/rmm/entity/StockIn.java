@@ -32,4 +32,6 @@ public class StockIn {
     private String locationName;
     @TableField(exist = false)
     private String operatorName;
+    @TableField(exist = false)
+    private String supplierName;
 }

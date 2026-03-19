@@ -25,6 +25,7 @@ public class StockInService {
     private final ReferenceMaterialMapper materialMapper;
     private final LocationMapper locationMapper;
     private final UserMapper userMapper;
+    private final SupplierMapper supplierMapper;
 
     public PageResult<StockIn> list(Integer current, Integer size, String keyword, String reason, String startDate, String endDate) {
         Page<StockIn> page = new Page<>(current, size);
@@ -155,6 +156,12 @@ public class StockInService {
             User user = userMapper.selectById(stockIn.getOperatorId());
             if (user != null) {
                 stockIn.setOperatorName(user.getRealName());
+            }
+        }
+        if (stockIn.getSupplierId() != null) {
+            Supplier supplier = supplierMapper.selectById(stockIn.getSupplierId());
+            if (supplier != null) {
+                stockIn.setSupplierName(supplier.getName());
             }
         }
     }

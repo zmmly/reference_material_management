@@ -26,6 +26,7 @@
           </template>
         </el-table-column>
         <el-table-column prop="quantity" label="入库数量" width="100" />
+        <el-table-column prop="supplierName" label="供应商" width="150" />
         <el-table-column prop="expiryDate" label="有效期" width="120" />
         <el-table-column prop="locationName" label="存放位置" width="120" />
         <el-table-column prop="reason" label="入库原因" width="100">
@@ -74,10 +75,19 @@
         />
         <el-row :gutter="20">
           <el-col :span="12">
+            <el-form-item label="供应商" prop="supplierId">
+              <el-select v-model="form.supplierId" placeholder="请选择供应商" filterable style="width: 100%">
+                <el-option v-for="item in supplierList" :key="item.id" :label="item.name" :value="item.id" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
             <el-form-item label="有效期" prop="expiryDate">
               <el-date-picker v-model="form.expiryDate" type="date" placeholder="选择日期" style="width: 100%" />
             </el-form-item>
           </el-col>
+        </el-row>
+        <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="存放位置" prop="locationId">
               <el-select v-model="form.locationId" placeholder="请选择" style="width: 100%">
@@ -85,8 +95,6 @@
               </el-select>
             </el-form-item>
           </el-col>
-        </el-row>
-        <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="入库原因" prop="reason">
               <el-select v-model="form.reason" placeholder="请选择" style="width: 100%">
@@ -117,6 +125,7 @@ import { ElMessage } from 'element-plus'
 import { getStockInList, createStockIn } from '@/api/stock'
 import { getAllMaterials } from '@/api/material'
 import { getAllLocations } from '@/api/location'
+import { getAllSuppliers } from '@/api/supplier'
 
 const loading = ref(false)
 const tableData = ref([])
@@ -124,11 +133,12 @@ const total = ref(0)
 const dialogVisible = ref(false)
 const materialList = ref([])
 const locationList = ref([])
+const supplierList = ref([])
 const formRef = ref()
 
 const queryParams = reactive({ current: 1, size: 10, reason: '' })
 const form = reactive({
-  materialId: null, batchNo: '', quantity: 1,
+  materialId: null, batchNo: '', quantity: 1, supplierId: null,
   expiryDate: null, locationId: null, reason: 'PURCHASE', remarks: ''
 })
 const rules = {
@@ -163,9 +173,16 @@ const fetchLocations = async () => {
   } catch (e) {}
 }
 
+const fetchSuppliers = async () => {
+  try {
+    const res = await getAllSuppliers()
+    supplierList.value = res.data || []
+  } catch (e) {}
+}
+
 const handleAdd = () => {
   Object.assign(form, {
-    materialId: null, batchNo: '', quantity: 1,
+    materialId: null, batchNo: '', quantity: 1, supplierId: null,
     expiryDate: null, locationId: null, reason: 'PURCHASE', remarks: ''
   })
   dialogVisible.value = true
@@ -187,6 +204,7 @@ onMounted(() => {
   fetchData()
   fetchMaterials()
   fetchLocations()
+  fetchSuppliers()
 })
 </script>
 

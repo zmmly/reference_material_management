@@ -26,6 +26,7 @@ const routes = [
       { path: 'basic/material', name: 'Material', component: () => import('@/views/reference-material/index.vue') },
       { path: 'basic/category', name: 'Category', component: () => import('@/views/basic/category/index.vue') },
       { path: 'basic/location', name: 'Location', component: () => import('@/views/basic/location/index.vue') },
+      { path: 'basic/supplier', name: 'Supplier', component: () => import('@/views/basic/supplier/index.vue') },
       { path: 'basic/metadata', name: 'Metadata', component: () => import('@/views/basic/metadata/index.vue') },
       // 库存管理
       { path: 'stock', name: 'Stock', component: () => import('@/views/stock/index.vue') },

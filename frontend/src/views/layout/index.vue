@@ -24,6 +24,7 @@
           <el-menu-item index="/basic/material">标准物质</el-menu-item>
           <el-menu-item index="/basic/category">分类管理</el-menu-item>
           <el-menu-item index="/basic/location">位置管理</el-menu-item>
+          <el-menu-item index="/basic/supplier">供应商管理</el-menu-item>
           <el-menu-item index="/basic/metadata">元数据配置</el-menu-item>
         </el-sub-menu>
 
