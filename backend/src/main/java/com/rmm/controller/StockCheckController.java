@@ -64,7 +64,7 @@ public class StockCheckController {
         return Result.success();
     }
 
-    @PutMapping("/{checkId}/batch-check")
+    @PutMapping("/{checkId}/batch")
     public Result<Void> checkBatch(@PathVariable Long checkId,
                                    @RequestBody java.util.Map<String, Object> params,
                                    HttpServletRequest request) {
