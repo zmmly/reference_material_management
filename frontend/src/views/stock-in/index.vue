@@ -61,8 +61,10 @@
         <el-table-column prop="operatorName" label="操作人" width="100" />
         <el-table-column label="证书" width="80">
           <template #default="{ row }">
-            <el-button v-if="row.productCertificate" link type="primary" size="small" @click="viewCertificate(row.productCertificate)">查看</el-button>
-            <span v-else class="text-muted">-</span>
+            <div class="action-buttons">
+              <el-button v-if="row.productCertificate" type="primary" size="small" @click="viewCertificate(row.productCertificate)">查看</el-button>
+              <span v-else class="text-muted">-</span>
+            </div>
           </template>
         </el-table-column>
         <el-table-column prop="createTime" label="入库时间" width="160" />

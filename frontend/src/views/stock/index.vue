@@ -55,12 +55,14 @@
             <span v-else class="text-muted">未出库</span>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="100" fixed="right">
+        <el-table-column label="操作" width="80" fixed="right">
           <template #default="{ row }">
-            <el-tooltip v-if="row.hasPendingOut" content="已有待审批的出库申请" placement="top">
-              <el-button link type="info" size="small" disabled>出库</el-button>
-            </el-tooltip>
-            <el-button v-else link type="primary" size="small" @click="handleOut(row)" :disabled="row.status !== 1">出库</el-button>
+            <div class="action-buttons">
+              <el-tooltip v-if="row.hasPendingOut" content="已有待审批的出库申请" placement="top">
+                <el-button type="info" size="small" disabled>出库</el-button>
+              </el-tooltip>
+              <el-button v-else type="primary" size="small" @click="handleOut(row)" :disabled="row.status !== 1">出库</el-button>
+            </div>
           </template>
         </el-table-column>
       </el-table>
