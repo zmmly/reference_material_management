@@ -4,6 +4,10 @@ export function getUserList(params) {
   return request.get('/system/user', { params })
 }
 
+export function getAllUsers() {
+  return request.get('/system/user/all')
+}
+
 export function createUser(data) {
   return request.post('/system/user', data)
 }

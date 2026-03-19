@@ -98,6 +98,19 @@ public class UserService {
         userMapper.updateById(user);
     }
 
+    /**
+     * 获取所有启用的用户列表
+     */
+    public List<User> listAll() {
+        LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(User::getDeleted, 0)
+               .eq(User::getStatus, 1)
+               .orderByAsc(User::getRealName);
+        List<User> users = userMapper.selectList(wrapper);
+        users.forEach(this::fillRole);
+        return users;
+    }
+
     private void fillRole(User user) {
         if (user.getRoleId() != null) {
             Role role = roleMapper.selectById(user.getRoleId());

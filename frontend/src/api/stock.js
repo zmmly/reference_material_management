@@ -16,6 +16,13 @@ export function createStockIn(data) {
   return request.post('/stock-in', data)
 }
 
+export function exportStockIn(params) {
+  return request.get('/stock-in/export', {
+    params,
+    responseType: 'blob'
+  })
+}
+
 export function getStockOutList(params) {
   return request.get('/stock-out', { params })
 }

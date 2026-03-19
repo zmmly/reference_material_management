@@ -27,14 +27,24 @@ public class StockInService {
     private final UserMapper userMapper;
     private final SupplierMapper supplierMapper;
 
-    public PageResult<StockIn> list(Integer current, Integer size, String keyword, String reason, String startDate, String endDate) {
+    public PageResult<StockIn> list(Integer current, Integer size, String keyword, String reason,
+                                      String startDate, String endDate, Long operatorId,
+                                      String materialName, String batchNo) {
         Page<StockIn> page = new Page<>(current, size);
 
         LambdaQueryWrapper<StockIn> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(StringUtils.hasText(reason), StockIn::getReason, reason)
                .ge(StringUtils.hasText(startDate), StockIn::getCreateTime, startDate + " 00:00:00")
                .le(StringUtils.hasText(endDate), StockIn::getCreateTime, endDate + " 23:59:59")
+               .eq(operatorId != null, StockIn::getOperatorId, operatorId)
+               .like(StringUtils.hasText(batchNo), StockIn::getBatchNo, batchNo)
                .orderByDesc(StockIn::getCreateTime);
+
+        // 按标准物质名称查询需要关联查询
+        if (StringUtils.hasText(materialName)) {
+            wrapper.inSql(StockIn::getMaterialId,
+                "SELECT id FROM reference_material WHERE name LIKE '%" + materialName + "%'");
+        }
 
         Page<StockIn> result = stockInMapper.selectPage(page, wrapper);
 
@@ -47,6 +57,29 @@ public class StockInService {
         pageResult.setCurrent(result.getCurrent());
         pageResult.setPages(result.getPages());
         return pageResult;
+    }
+
+    /**
+     * 获取所有入库记录（用于导出）
+     */
+    public List<StockIn> listAll(String keyword, String reason, String startDate, String endDate,
+                                  Long operatorId, String materialName, String batchNo) {
+        LambdaQueryWrapper<StockIn> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(StringUtils.hasText(reason), StockIn::getReason, reason)
+               .ge(StringUtils.hasText(startDate), StockIn::getCreateTime, startDate + " 00:00:00")
+               .le(StringUtils.hasText(endDate), StockIn::getCreateTime, endDate + " 23:59:59")
+               .eq(operatorId != null, StockIn::getOperatorId, operatorId)
+               .like(StringUtils.hasText(batchNo), StockIn::getBatchNo, batchNo)
+               .orderByDesc(StockIn::getCreateTime);
+
+        if (StringUtils.hasText(materialName)) {
+            wrapper.inSql(StockIn::getMaterialId,
+                "SELECT id FROM reference_material WHERE name LIKE '%" + materialName + "%'");
+        }
+
+        List<StockIn> list = stockInMapper.selectList(wrapper);
+        list.forEach(this::fillRelations);
+        return list;
     }
 
     /**

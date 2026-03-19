@@ -2,8 +2,25 @@
   <div class="page-container">
     <el-card>
       <el-form :inline="true" :model="queryParams" class="search-form">
+        <el-form-item label="入库时间">
+          <el-date-picker
+            v-model="dateRange"
+            type="daterange"
+            range-separator="至"
+            start-placeholder="开始日期"
+            end-placeholder="结束日期"
+            value-format="YYYY-MM-DD"
+            style="width: 240px"
+          />
+        </el-form-item>
+        <el-form-item label="标准物质">
+          <el-input v-model="queryParams.materialName" placeholder="名称" clearable style="width: 150px" />
+        </el-form-item>
+        <el-form-item label="批号">
+          <el-input v-model="queryParams.batchNo" placeholder="批号" clearable style="width: 120px" />
+        </el-form-item>
         <el-form-item label="入库原因">
-          <el-select v-model="queryParams.reason" placeholder="全部" clearable>
+          <el-select v-model="queryParams.reason" placeholder="全部" clearable style="width: 120px">
             <el-option label="新购入" value="PURCHASE" />
             <el-option label="盘盈" value="SURPLUS" />
             <el-option label="归还" value="RETURN" />
@@ -11,9 +28,16 @@
             <el-option label="其他" value="OTHER" />
           </el-select>
         </el-form-item>
+        <el-form-item label="操作人">
+          <el-select v-model="queryParams.operatorId" placeholder="全部" clearable filterable style="width: 120px">
+            <el-option v-for="item in userList" :key="item.id" :label="item.realName || item.username" :value="item.id" />
+          </el-select>
+        </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="fetchData">查询</el-button>
+          <el-button @click="handleReset">重置</el-button>
           <el-button type="success" @click="handleAdd">入库登记</el-button>
+          <el-button type="warning" @click="handleExport" :loading="exporting">导出Excel</el-button>
         </el-form-item>
       </el-form>
 
@@ -136,28 +160,46 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue'
+import { ref, reactive, onMounted, computed, watch } from 'vue'
 import { ElMessage } from 'element-plus'
-import { getStockInList, createStockIn } from '@/api/stock'
+import { getStockInList, createStockIn, exportStockIn } from '@/api/stock'
 import { getAllMaterials } from '@/api/material'
 import { getAllLocations } from '@/api/location'
 import { getAllSuppliers } from '@/api/supplier'
+import { getAllUsers } from '@/api/user'
 import { getToken } from '@/utils/auth'
 
 const loading = ref(false)
+const exporting = ref(false)
 const tableData = ref([])
 const total = ref(0)
 const dialogVisible = ref(false)
 const materialList = ref([])
 const locationList = ref([])
 const supplierList = ref([])
+const userList = ref([])
 const formRef = ref()
 const fileList = ref([])
+const dateRange = ref([])
 
 const uploadUrl = '/api/upload?type=certificate'
 const uploadHeaders = computed(() => ({ Authorization: `Bearer ${getToken()}` }))
 
-const queryParams = reactive({ current: 1, size: 10, reason: '' })
+const queryParams = reactive({
+  current: 1, size: 10, reason: '', materialName: '', batchNo: '', operatorId: null, startDate: '', endDate: ''
+})
+
+// 监听日期范围变化
+watch(dateRange, (val) => {
+  if (val && val.length === 2) {
+    queryParams.startDate = val[0]
+    queryParams.endDate = val[1]
+  } else {
+    queryParams.startDate = ''
+    queryParams.endDate = ''
+  }
+})
+
 const form = reactive({
   materialId: null, batchNo: '', quantity: 1, supplierId: null,
   expiryDate: null, locationId: null, reason: 'PURCHASE', remarks: '', productCertificate: ''
@@ -201,6 +243,21 @@ const fetchSuppliers = async () => {
   } catch (e) {}
 }
 
+const fetchUsers = async () => {
+  try {
+    const res = await getAllUsers()
+    userList.value = res.data || []
+  } catch (e) {}
+}
+
+const handleReset = () => {
+  dateRange.value = []
+  Object.assign(queryParams, {
+    current: 1, size: 10, reason: '', materialName: '', batchNo: '', operatorId: null, startDate: '', endDate: ''
+  })
+  fetchData()
+}
+
 const handleAdd = () => {
   Object.assign(form, {
     materialId: null, batchNo: '', quantity: 1, supplierId: null,
@@ -231,6 +288,31 @@ const handleSubmit = async () => {
   fetchData()
 }
 
+const handleExport = async () => {
+  exporting.value = true
+  try {
+    const blob = await exportStockIn({
+      reason: queryParams.reason,
+      materialName: queryParams.materialName,
+      batchNo: queryParams.batchNo,
+      operatorId: queryParams.operatorId,
+      startDate: queryParams.startDate,
+      endDate: queryParams.endDate
+    })
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `入库记录_${new Date().toISOString().slice(0, 10)}.xlsx`
+    link.click()
+    window.URL.revokeObjectURL(url)
+    ElMessage.success('导出成功')
+  } catch (e) {
+    ElMessage.error('导出失败')
+  } finally {
+    exporting.value = false
+  }
+}
+
 const reasonText = (r) => ({
   PURCHASE: '新购入', SURPLUS: '盘盈', RETURN: '归还', TRANSFER_IN: '调拨入', OTHER: '其他'
 }[r] || r)
@@ -240,6 +322,7 @@ onMounted(() => {
   fetchMaterials()
   fetchLocations()
   fetchSuppliers()
+  fetchUsers()
 })
 </script>
 

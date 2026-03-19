@@ -7,6 +7,8 @@ import com.rmm.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/system/user")
 @RequiredArgsConstructor
@@ -52,5 +54,10 @@ public class UserController {
     public Result<Void> resetPassword(@PathVariable Long id, @RequestParam String newPassword) {
         userService.resetPassword(id, newPassword);
         return Result.success();
+    }
+
+    @GetMapping("/all")
+    public Result<List<User>> listAll() {
+        return Result.success(userService.listAll());
     }
 }
