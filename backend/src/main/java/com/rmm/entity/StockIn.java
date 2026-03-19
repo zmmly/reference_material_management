@@ -22,6 +22,7 @@ public class StockIn {
     private Long supplierId;
     private BigDecimal price;
     private String remarks;
+    private String productCertificate;
     private Long operatorId;
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;

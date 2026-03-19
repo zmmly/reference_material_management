@@ -110,6 +110,22 @@
         <el-form-item label="备注">
           <el-input v-model="form.remarks" type="textarea" :rows="2" />
         </el-form-item>
+        <el-form-item label="产品证书">
+          <el-upload
+            v-model:file-list="fileList"
+            :action="uploadUrl"
+            :headers="uploadHeaders"
+            :on-success="handleUploadSuccess"
+            :on-error="handleUploadError"
+            :limit="1"
+            accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+          >
+            <el-button type="primary">上传文件</el-button>
+            <template #tip>
+              <div class="el-upload__tip">支持 PDF、图片、Word 文档，大小不超过 10MB</div>
+            </template>
+          </el-upload>
+        </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
@@ -120,12 +136,13 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import { getStockInList, createStockIn } from '@/api/stock'
 import { getAllMaterials } from '@/api/material'
 import { getAllLocations } from '@/api/location'
 import { getAllSuppliers } from '@/api/supplier'
+import { getToken } from '@/utils/auth'
 
 const loading = ref(false)
 const tableData = ref([])
@@ -135,11 +152,15 @@ const materialList = ref([])
 const locationList = ref([])
 const supplierList = ref([])
 const formRef = ref()
+const fileList = ref([])
+
+const uploadUrl = '/api/upload?type=certificate'
+const uploadHeaders = computed(() => ({ Authorization: `Bearer ${getToken()}` }))
 
 const queryParams = reactive({ current: 1, size: 10, reason: '' })
 const form = reactive({
   materialId: null, batchNo: '', quantity: 1, supplierId: null,
-  expiryDate: null, locationId: null, reason: 'PURCHASE', remarks: ''
+  expiryDate: null, locationId: null, reason: 'PURCHASE', remarks: '', productCertificate: ''
 })
 const rules = {
   materialId: [{ required: true, message: '请选择标准物质', trigger: 'change' }],
@@ -183,9 +204,23 @@ const fetchSuppliers = async () => {
 const handleAdd = () => {
   Object.assign(form, {
     materialId: null, batchNo: '', quantity: 1, supplierId: null,
-    expiryDate: null, locationId: null, reason: 'PURCHASE', remarks: ''
+    expiryDate: null, locationId: null, reason: 'PURCHASE', remarks: '', productCertificate: ''
   })
+  fileList.value = []
   dialogVisible.value = true
+}
+
+const handleUploadSuccess = (response) => {
+  if (response.code === 200) {
+    form.productCertificate = response.data
+    ElMessage.success('文件上传成功')
+  } else {
+    ElMessage.error(response.message || '上传失败')
+  }
+}
+
+const handleUploadError = () => {
+  ElMessage.error('文件上传失败')
 }
 
 const handleSubmit = async () => {

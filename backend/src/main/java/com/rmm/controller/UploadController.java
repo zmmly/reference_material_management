@@ -1,0 +1,86 @@
+package com.rmm.controller;
+
+import com.rmm.common.Result;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.File;
+import java.io.IOException;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.UUID;
+
+@Slf4j
+@Tag(name = "文件上传", description = "文件上传管理")
+@RestController
+@RequestMapping("/api/upload")
+public class UploadController {
+
+    @Value("${upload.path:uploads}")
+    private String uploadPath;
+
+    @Operation(summary = "上传文件")
+    @PostMapping
+    public Result<String> upload(@RequestParam("file") MultipartFile file,
+                                   @RequestParam(value = "type", defaultValue = "certificate") String type) {
+        if (file.isEmpty()) {
+            return Result.error("文件不能为空");
+        }
+
+        try {
+            // 获取原始文件名
+            String originalFilename = file.getOriginalFilename();
+            String extension = "";
+            if (originalFilename != null && originalFilename.contains(".")) {
+                extension = originalFilename.substring(originalFilename.lastIndexOf("."));
+            }
+
+            // 生成新文件名：日期/UUID.扩展名
+            String datePath = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy/MM"));
+            String newFilename = UUID.randomUUID().toString().replace("-", "") + extension;
+
+            // 创建目录
+            File dir = new File(uploadPath + "/" + type + "/" + datePath);
+            if (!dir.exists()) {
+                dir.mkdirs();
+            }
+
+            // 保存文件
+            File destFile = new File(dir, newFilename);
+            file.transferTo(destFile);
+
+            // 返回相对路径
+            String relativePath = "/" + type + "/" + datePath + "/" + newFilename;
+            log.info("File uploaded: {}", relativePath);
+
+            return Result.success(relativePath);
+        } catch (IOException e) {
+            log.error("File upload failed", e);
+            return Result.error("文件上传失败：" + e.getMessage());
+        }
+    }
+
+    @Operation(summary = "删除文件")
+    @DeleteMapping
+    public Result<Void> delete(@RequestParam String path) {
+        if (path == null || path.isEmpty()) {
+            return Result.error("文件路径不能为空");
+        }
+
+        try {
+            File file = new File(uploadPath + path);
+            if (file.exists() && file.isFile()) {
+                file.delete();
+                log.info("File deleted: {}", path);
+            }
+            return Result.success();
+        } catch (Exception e) {
+            log.error("File delete failed", e);
+            return Result.error("文件删除失败");
+        }
+    }
+}
