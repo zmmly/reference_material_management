@@ -59,6 +59,12 @@
           </template>
         </el-table-column>
         <el-table-column prop="operatorName" label="操作人" width="100" />
+        <el-table-column label="证书" width="80">
+          <template #default="{ row }">
+            <el-button v-if="row.productCertificate" link type="primary" size="small" @click="viewCertificate(row.productCertificate)">查看</el-button>
+            <span v-else class="text-muted">-</span>
+          </template>
+        </el-table-column>
         <el-table-column prop="createTime" label="入库时间" width="160" />
       </el-table>
 
@@ -317,6 +323,10 @@ const reasonText = (r) => ({
   PURCHASE: '新购入', SURPLUS: '盘盈', RETURN: '归还', TRANSFER_IN: '调拨入', OTHER: '其他'
 }[r] || r)
 
+const viewCertificate = (path) => {
+  window.open(`/api/upload/preview?path=${encodeURIComponent(path)}`, '_blank')
+}
+
 onMounted(() => {
   fetchData()
   fetchMaterials()
@@ -329,4 +339,5 @@ onMounted(() => {
 <style scoped>
 .page-container { padding: 20px; }
 .search-form { margin-bottom: 20px; }
+.text-muted { color: #909399; }
 </style>

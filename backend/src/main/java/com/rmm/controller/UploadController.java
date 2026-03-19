@@ -4,13 +4,19 @@ import com.rmm.common.Result;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.PostConstruct;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.UUID;
@@ -75,6 +81,42 @@ public class UploadController {
         } catch (IOException e) {
             log.error("File upload failed", e);
             return Result.error("文件上传失败：" + e.getMessage());
+        }
+    }
+
+    @Operation(summary = "预览文件")
+    @GetMapping("/preview")
+    public void preview(@RequestParam String path, HttpServletResponse response) throws IOException {
+        if (path == null || path.isEmpty()) {
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "文件路径不能为空");
+            return;
+        }
+
+        File file = new File(uploadPath + path);
+        if (!file.exists() || !file.isFile()) {
+            response.sendError(HttpServletResponse.SC_NOT_FOUND, "文件不存在");
+            return;
+        }
+
+        String extension = path.substring(path.lastIndexOf(".") + 1).toLowerCase();
+        String contentType = switch (extension) {
+            case "pdf" -> "application/pdf";
+            case "jpg", "jpeg" -> "image/jpeg";
+            case "png" -> "image/png";
+            case "gif" -> "image/gif";
+            case "doc" -> "application/msword";
+            case "docx" -> "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+            default -> "application/octet-stream";
+        };
+
+        response.setContentType(contentType);
+        response.setHeader("Content-Disposition", "inline; filename*=UTF-8''" +
+                URLEncoder.encode(file.getName(), StandardCharsets.UTF_8));
+        response.setContentLengthLong(file.length());
+
+        try (OutputStream os = response.getOutputStream()) {
+            Files.copy(file.toPath(), os);
+            os.flush();
         }
     }
 
