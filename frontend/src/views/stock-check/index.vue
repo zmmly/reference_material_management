@@ -44,6 +44,17 @@
             <span class="text-ellipsis">{{ row.remarks || '-' }}</span>
           </template>
         </el-table-column>
+        <el-table-column prop="creatorName" label="创建人" width="80" />
+        <el-table-column prop="checkerName" label="盘点人" width="80">
+          <template #default="{ row }">
+            <span>{{ row.checkerName || '-' }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="completeTime" label="完成时间" width="160">
+          <template #default="{ row }">
+            <span>{{ row.completeTime ? formatDateTime(row.completeTime) : '-' }}</span>
+          </template>
+        </el-table-column>
         <el-table-column prop="status" label="状态" width="80">
           <template #default="{ row }">
             <el-tag :type="statusType(row.status)" size="small">{{ statusText(row.status) }}</el-tag>
@@ -341,6 +352,12 @@ const confirmAdjust = async () => {
 const statusType = (s) => ({ 0: 'warning', 1: 'success', 2: 'info' }[s] || 'info')
 const statusText = (s) => ({ 0: '进行中', 1: '已完成', 2: '已作废' }[s] || '未知')
 const scopeText = (s) => ({ ALL: '全部', CATEGORY: '按分类', LOCATION: '按位置' }[s] || s)
+
+const formatDateTime = (dt) => {
+  if (!dt) return '-'
+  const date = new Date(dt)
+  return date.toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+}
 
 const getCategoryName = (id) => {
   if (!id) return '-'

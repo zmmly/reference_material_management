@@ -208,7 +208,7 @@ public class StockCheckService {
      * 完成盘点
      */
     @Transactional
-    public void complete(Long id) {
+    public void complete(Long id, Long userId) {
         StockCheck stockCheck = stockCheckMapper.selectById(id);
         if (stockCheck == null) {
             throw new BusinessException("盘点任务不存在");
@@ -222,6 +222,11 @@ public class StockCheckService {
         );
         if (uncheckedCount > 0) {
             throw new BusinessException("还有未盘点的分组");
+        }
+
+        // 设置盘点人（如果还没设置）
+        if (stockCheck.getCheckerId() == null) {
+            stockCheck.setCheckerId(userId);
         }
 
         stockCheck.setStatus(1);
@@ -306,6 +311,14 @@ public class StockCheckService {
             User user = userMapper.selectById(stockCheck.getCreatorId());
             if (user != null) {
                 stockCheck.setCreatorName(user.getRealName());
+            }
+        }
+
+        // 填充盘点人信息
+        if (stockCheck.getCheckerId() != null) {
+            User checker = userMapper.selectById(stockCheck.getCheckerId());
+            if (checker != null) {
+                stockCheck.setCheckerName(checker.getRealName());
             }
         }
 

@@ -19,12 +19,16 @@ public class StockCheck {
     private Integer checkedCount;
     private Integer differenceCount;
     private Long creatorId;
+    private Long checkerId;
     private LocalDateTime createTime;
     private LocalDateTime completeTime;
     private String remarks;
 
     @TableField(exist = false)
     private String creatorName;
+
+    @TableField(exist = false)
+    private String checkerName;
 
     // 分组统计字段（非持久化）
     @TableField(exist = false)

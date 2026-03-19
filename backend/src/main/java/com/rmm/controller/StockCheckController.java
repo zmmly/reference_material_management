@@ -60,8 +60,10 @@ public class StockCheckController {
     }
 
     @PutMapping("/{id}/complete")
-    public Result<Void> complete(@PathVariable Long id) {
-        stockCheckService.complete(id);
+    public Result<Void> complete(@PathVariable Long id, HttpServletRequest request) {
+        String token = request.getHeader("Authorization").substring(7);
+        Long userId = jwtUtil.getUserId(token);
+        stockCheckService.complete(id, userId);
         return Result.success();
     }
 
