@@ -127,7 +127,7 @@ const rolePermissions = {
 
 // 检查用户是否有权限访问某个模块
 const canAccess = (module) => {
-  const roleCode = userStore.userInfo?.role?.code
+  const roleCode = userStore.userInfo?.roleCode
   if (!roleCode) return false
   const permissions = rolePermissions[roleCode] || []
   return permissions.includes(module)
