@@ -66,6 +66,39 @@ public class StockOutService {
         stockOutMapper.insert(stockOut);
     }
 
+    /**
+     * 批量出库申请
+     */
+    @Transactional
+    public void batchApply(List<Long> stockIds, String reason, String purpose, Long applicantId) {
+        if (stockIds == null || stockIds.isEmpty()) {
+            throw new BusinessException("请选择要出库的库存");
+        }
+
+        for (Long stockId : stockIds) {
+            Stock stock = stockMapper.selectById(stockId);
+            if (stock == null) {
+                throw new BusinessException("库存不存在: " + stockId);
+            }
+            if (stock.getStatus() != 1) {
+                throw new BusinessException("库存已出库或不可用: " + stock.getInternalCode());
+            }
+
+            StockOut stockOut = new StockOut();
+            stockOut.setStockId(stockId);
+            stockOut.setMaterialId(stock.getMaterialId());
+            stockOut.setQuantity(BigDecimal.ONE);
+            stockOut.setInternalCode(stock.getInternalCode());
+            stockOut.setBatchNo(stock.getBatchNo());
+            stockOut.setReason(reason);
+            stockOut.setPurpose(purpose);
+            stockOut.setApplicantId(applicantId);
+            stockOut.setStatus(0);
+            stockOut.setApplyTime(LocalDateTime.now());
+            stockOutMapper.insert(stockOut);
+        }
+    }
+
     @Transactional
     public void approve(Long id, Long approverId, boolean approved, String rejectReason) {
         StockOut stockOut = stockOutMapper.selectById(id);

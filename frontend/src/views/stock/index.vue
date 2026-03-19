@@ -19,11 +19,14 @@
         </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="fetchData">查询</el-button>
-          <el-button type="success" @click="handleIn">入库登记</el-button>
+          <el-button type="warning" @click="handleBatchOut" :disabled="selectedRows.length === 0">
+            批量出库 ({{ selectedRows.length }})
+          </el-button>
         </el-form-item>
       </el-form>
 
-      <el-table :data="tableData" v-loading="loading" border>
+      <el-table :data="tableData" v-loading="loading" border @selection-change="handleSelectionChange">
+        <el-table-column type="selection" width="55" :selectable="canSelect" />
         <el-table-column prop="internalCode" label="内部编码" width="120" />
         <el-table-column prop="materialName" label="标准物质名称" />
         <el-table-column prop="batchNo" label="批号" width="120" />
@@ -48,7 +51,7 @@
         <el-table-column label="操作" width="100" fixed="right">
           <template #default="{ row }">
             <div class="action-buttons">
-              <el-button link type="primary" size="small" @click="handleOut(row)">出库</el-button>
+              <el-button link type="primary" size="small" @click="handleOut(row)" :disabled="row.status !== 1">出库</el-button>
             </div>
           </template>
         </el-table-column>
@@ -62,13 +65,40 @@
         @change="fetchData"
       />
     </el-card>
+
+    <!-- 批量出库弹窗 -->
+    <el-dialog v-model="batchOutDialogVisible" title="批量出库申请" width="500">
+      <el-form :model="batchOutForm" label-width="100px">
+        <el-form-item label="已选数量">
+          <el-tag>{{ selectedRows.length }} 件</el-tag>
+        </el-form-item>
+        <el-form-item label="出库原因" required>
+          <el-select v-model="batchOutForm.reason" placeholder="请选择" style="width: 100%">
+            <el-option label="实验使用" value="EXPERIMENT" />
+            <el-option label="过期销毁" value="EXPIRED" />
+            <el-option label="报废" value="SCRAP" />
+            <el-option label="调拨出" value="TRANSFER_OUT" />
+            <el-option label="赠送" value="DONATE" />
+            <el-option label="其他" value="OTHER" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="用途说明">
+          <el-input v-model="batchOutForm.purpose" type="textarea" :rows="3" placeholder="请输入用途说明" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="batchOutDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="confirmBatchOut" :loading="batchOutLoading">确定</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { getStockList } from '@/api/stock'
+import { ElMessage } from 'element-plus'
+import { getStockList, batchApplyStockOut } from '@/api/stock'
 import { getAllLocations } from '@/api/location'
 
 const router = useRouter()
@@ -76,6 +106,10 @@ const loading = ref(false)
 const tableData = ref([])
 const total = ref(0)
 const locationList = ref([])
+const selectedRows = ref([])
+const batchOutDialogVisible = ref(false)
+const batchOutLoading = ref(false)
+const batchOutForm = reactive({ reason: '', purpose: '' })
 
 const queryParams = reactive({ current: 1, size: 10, keyword: '', locationId: null, status: null })
 
@@ -97,8 +131,43 @@ const fetchLocations = async () => {
   } catch (e) {}
 }
 
-const handleIn = () => router.push('/stock-in')
+const handleSelectionChange = (rows) => {
+  selectedRows.value = rows
+}
+
+const canSelect = (row) => row.status === 1
+
 const handleOut = (row) => router.push({ path: '/stock-out/apply', query: { stockId: row.id } })
+
+const handleBatchOut = () => {
+  if (selectedRows.value.length === 0) {
+    ElMessage.warning('请选择要出库的库存')
+    return
+  }
+  batchOutForm.reason = ''
+  batchOutForm.purpose = ''
+  batchOutDialogVisible.value = true
+}
+
+const confirmBatchOut = async () => {
+  if (!batchOutForm.reason) {
+    ElMessage.warning('请选择出库原因')
+    return
+  }
+  batchOutLoading.value = true
+  try {
+    await batchApplyStockOut({
+      stockIds: selectedRows.value.map(r => r.id),
+      reason: batchOutForm.reason,
+      purpose: batchOutForm.purpose
+    })
+    ElMessage.success('批量出库申请成功')
+    batchOutDialogVisible.value = false
+    fetchData()
+  } finally {
+    batchOutLoading.value = false
+  }
+}
 
 const isWarning = (date) => {
   if (!date) return false

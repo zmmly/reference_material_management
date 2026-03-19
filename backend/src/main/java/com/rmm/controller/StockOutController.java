@@ -9,6 +9,9 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/stock-out")
 @RequiredArgsConstructor
@@ -42,6 +45,18 @@ public class StockOutController {
         String token = request.getHeader("Authorization").substring(7);
         Long userId = jwtUtil.getUserId(token);
         stockOutService.apply(stockOut, userId);
+        return Result.success();
+    }
+
+    @PostMapping("/batch")
+    public Result<Void> batchApply(@RequestBody Map<String, Object> params, HttpServletRequest request) {
+        String token = request.getHeader("Authorization").substring(7);
+        Long userId = jwtUtil.getUserId(token);
+        @SuppressWarnings("unchecked")
+        List<Long> stockIds = (List<Long>) params.get("stockIds");
+        String reason = (String) params.get("reason");
+        String purpose = (String) params.get("purpose");
+        stockOutService.batchApply(stockIds, reason, purpose, userId);
         return Result.success();
     }
 
