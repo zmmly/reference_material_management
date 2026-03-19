@@ -12,27 +12,39 @@
         <el-form-item label="标准物质">
           <el-input :value="stockInfo.materialName" disabled />
         </el-form-item>
-        <el-form-item label="内部编码">
-          <el-input :value="stockInfo.internalCode" disabled />
-        </el-form-item>
-        <el-form-item label="批号">
-          <el-input :value="stockInfo.batchNo" disabled />
-        </el-form-item>
-        <el-form-item label="当前库存">
-          <el-input :value="stockInfo.quantity" disabled />
-        </el-form-item>
-        <el-form-item label="有效期">
-          <el-input :value="stockInfo.expiryDate" disabled />
-        </el-form-item>
-        <el-form-item label="存放位置">
-          <el-input :value="stockInfo.locationName" disabled />
-        </el-form-item>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="内部编码">
+              <el-input :value="stockInfo.internalCode" disabled />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="批号">
+              <el-input :value="stockInfo.batchNo" disabled />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="有效期">
+              <el-input :value="stockInfo.expiryDate" disabled />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="存放位置">
+              <el-input :value="stockInfo.locationName" disabled />
+            </el-form-item>
+          </el-col>
+        </el-row>
         <el-divider />
-        <el-form-item label="出库数量" prop="quantity">
-          <el-input-number v-model="form.quantity" :min="1" :max="stockInfo.quantity || 9999" />
-        </el-form-item>
+        <el-alert
+          title="出库数量固定为1（单件物品）"
+          type="info"
+          :closable="false"
+          style="margin-bottom: 16px"
+        />
         <el-form-item label="出库原因" prop="reason">
-          <el-select v-model="form.reason" placeholder="请选择出库原因">
+          <el-select v-model="form.reason" placeholder="请选择出库原因" style="width: 100%">
             <el-option label="实验使用" value="EXPERIMENT" />
             <el-option label="过期销毁" value="EXPIRED" />
             <el-option label="报废" value="SCRAP" />
@@ -68,20 +80,17 @@ const stockInfo = ref({
   materialName: '',
   internalCode: '',
   batchNo: '',
-  quantity: 0,
   expiryDate: '',
   locationName: ''
 })
 
 const form = reactive({
   stockId: null,
-  quantity: 1,
   reason: '',
   purpose: ''
 })
 
 const rules = {
-  quantity: [{ required: true, message: '请输入出库数量', trigger: 'blur' }],
   reason: [{ required: true, message: '请选择出库原因', trigger: 'change' }],
   purpose: [{ required: true, message: '请输入用途说明', trigger: 'blur' }]
 }
@@ -99,7 +108,6 @@ const fetchStockInfo = async () => {
     const res = await getStock(stockId)
     stockInfo.value = res.data || {}
     form.stockId = parseInt(stockId)
-    form.quantity = 1
   } catch (error) {
     ElMessage.error('获取库存信息失败')
     router.push('/stock')

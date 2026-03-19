@@ -18,9 +18,13 @@
       </el-form>
 
       <el-table :data="tableData" v-loading="loading" border>
-        <el-table-column prop="materialName" label="标准物质" />
+        <el-table-column prop="materialName" label="标准物质" min-width="150" />
         <el-table-column prop="batchNo" label="批号" width="120" />
-        <el-table-column prop="internalCode" label="内部编码" width="120" />
+        <el-table-column prop="internalCode" label="内部编码" min-width="160">
+          <template #default="{ row }">
+            <el-tag v-if="row.internalCode">{{ row.internalCode }}</el-tag>
+          </template>
+        </el-table-column>
         <el-table-column prop="quantity" label="入库数量" width="100" />
         <el-table-column prop="expiryDate" label="有效期" width="120" />
         <el-table-column prop="locationName" label="存放位置" width="120" />
@@ -45,35 +49,35 @@
     <el-dialog v-model="dialogVisible" title="入库登记" width="600">
       <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
         <el-form-item label="标准物质" prop="materialId">
-          <el-select v-model="form.materialId" placeholder="请选择" filterable style="width: 100%">
+          <el-select v-model="form.materialId" placeholder="请选择标准物质" filterable style="width: 100%">
             <el-option v-for="item in materialList" :key="item.id" :label="`${item.code} - ${item.name}`" :value="item.id" />
           </el-select>
         </el-form-item>
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="批号" prop="batchNo">
-              <el-input v-model="form.batchNo" />
+              <el-input v-model="form.batchNo" placeholder="请输入批号" />
             </el-form-item>
           </el-col>
-          <el-col :span="12">
-            <el-form-item label="内部编码" prop="internalCode">
-              <el-input v-model="form.internalCode" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="入库数量" prop="quantity">
               <el-input-number v-model="form.quantity" :min="1" style="width: 100%" />
             </el-form-item>
           </el-col>
+        </el-row>
+        <el-alert
+          v-if="form.batchNo"
+          :title="`内部编码将自动生成: ${form.batchNo.toUpperCase()}-NNN`"
+          type="info"
+          :closable="false"
+          style="margin-bottom: 16px"
+        />
+        <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="有效期" prop="expiryDate">
               <el-date-picker v-model="form.expiryDate" type="date" placeholder="选择日期" style="width: 100%" />
             </el-form-item>
           </el-col>
-        </el-row>
-        <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="存放位置" prop="locationId">
               <el-select v-model="form.locationId" placeholder="请选择" style="width: 100%">
@@ -81,6 +85,8 @@
               </el-select>
             </el-form-item>
           </el-col>
+        </el-row>
+        <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="入库原因" prop="reason">
               <el-select v-model="form.reason" placeholder="请选择" style="width: 100%">
@@ -122,11 +128,12 @@ const formRef = ref()
 
 const queryParams = reactive({ current: 1, size: 10, reason: '' })
 const form = reactive({
-  materialId: null, batchNo: '', internalCode: '', quantity: 1,
+  materialId: null, batchNo: '', quantity: 1,
   expiryDate: null, locationId: null, reason: 'PURCHASE', remarks: ''
 })
 const rules = {
   materialId: [{ required: true, message: '请选择标准物质', trigger: 'change' }],
+  batchNo: [{ required: true, message: '请输入批号', trigger: 'blur' }],
   quantity: [{ required: true, message: '请输入入库数量', trigger: 'blur' }],
   reason: [{ required: true, message: '请选择入库原因', trigger: 'change' }]
 }
@@ -158,7 +165,7 @@ const fetchLocations = async () => {
 
 const handleAdd = () => {
   Object.assign(form, {
-    materialId: null, batchNo: '', internalCode: '', quantity: 1,
+    materialId: null, batchNo: '', quantity: 1,
     expiryDate: null, locationId: null, reason: 'PURCHASE', remarks: ''
   })
   dialogVisible.value = true

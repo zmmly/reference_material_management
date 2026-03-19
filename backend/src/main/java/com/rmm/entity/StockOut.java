@@ -12,6 +12,8 @@ public class StockOut {
     private Long id;
     private Long stockId;
     private Long materialId;
+    private String internalCode;
+    private String batchNo;
     private BigDecimal quantity;
     private String reason;
     private String purpose;
@@ -29,6 +31,4 @@ public class StockOut {
     private String applicantName;
     @TableField(exist = false)
     private String approverName;
-    @TableField(exist = false)
-    private String stockInternalCode;
 }

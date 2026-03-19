@@ -51,11 +51,15 @@ public class StockOutService {
         if (stock == null) {
             throw new BusinessException("库存不存在");
         }
-        if (stock.getQuantity().compareTo(stockOut.getQuantity()) < 0) {
-            throw new BusinessException("库存不足");
+        if (stock.getStatus() != 1) {
+            throw new BusinessException("该库存已出库或不可用");
         }
 
+        // 新设计：每条库存记录代表一个物品，数量固定为1
         stockOut.setMaterialId(stock.getMaterialId());
+        stockOut.setQuantity(BigDecimal.ONE);  // 固定为1
+        stockOut.setInternalCode(stock.getInternalCode());  // 记录内部编码
+        stockOut.setBatchNo(stock.getBatchNo());  // 记录批号
         stockOut.setApplicantId(applicantId);
         stockOut.setStatus(0);
         stockOut.setApplyTime(LocalDateTime.now());
@@ -77,11 +81,12 @@ public class StockOutService {
             if (stock == null) {
                 throw new BusinessException("库存不存在");
             }
-            if (stock.getQuantity().compareTo(stockOut.getQuantity()) < 0) {
-                throw new BusinessException("库存不足，无法批准");
+            if (stock.getStatus() != 1) {
+                throw new BusinessException("该库存已出库或不可用");
             }
 
-            stock.setQuantity(stock.getQuantity().subtract(stockOut.getQuantity()));
+            // 标记库存为已出库
+            stock.setStatus(0);
             stock.setLastOutTime(LocalDateTime.now());
             stockMapper.updateById(stock);
 
@@ -133,12 +138,6 @@ public class StockOutService {
             User user = userMapper.selectById(stockOut.getApproverId());
             if (user != null) {
                 stockOut.setApproverName(user.getRealName());
-            }
-        }
-        if (stockOut.getStockId() != null) {
-            Stock stock = stockMapper.selectById(stockOut.getStockId());
-            if (stock != null) {
-                stockOut.setStockInternalCode(stock.getInternalCode());
             }
         }
     }
