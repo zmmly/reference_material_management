@@ -50,8 +50,9 @@
         </el-table-column>
         <el-table-column label="出库状态" width="100">
           <template #default="{ row }">
-            <el-tag v-if="row.hasPendingOut" type="warning" size="small">审批中</el-tag>
-            <span v-else class="text-muted">-</span>
+            <el-tag v-if="row.hasApprovedOut" type="success" size="small">已出库</el-tag>
+            <el-tag v-else-if="row.hasPendingOut" type="warning" size="small">审批中</el-tag>
+            <span v-else class="text-muted">未出库</span>
           </template>
         </el-table-column>
         <el-table-column label="操作" width="100" fixed="right">

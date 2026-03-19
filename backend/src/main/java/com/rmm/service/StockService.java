@@ -45,6 +45,8 @@ public class StockService {
         result.getRecords().forEach(stock -> {
             fillRelations(stock);
             stock.setHasPendingOut(pendingStockIds.contains(stock.getId()));
+            // 已出库：状态为0表示已出库
+            stock.setHasApprovedOut(stock.getStatus() != null && stock.getStatus() == 0);
         });
 
         if (StringUtils.hasText(keyword)) {

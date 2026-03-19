@@ -32,4 +32,6 @@ public class Stock {
     private String locationName;
     @TableField(exist = false)
     private Boolean hasPendingOut;
+    @TableField(exist = false)
+    private Boolean hasApprovedOut;
 }
