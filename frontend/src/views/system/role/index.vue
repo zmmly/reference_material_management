@@ -111,8 +111,10 @@ const fetchData = async () => {
   loading.value = true
   try {
     const res = await getRoleList(queryParams)
-    tableData.value = res.data.records || []
-    total.value = res.data.total || 0
+    // 后端返回的是 List 而不是分页结果
+    const list = res.data || []
+    tableData.value = list
+    total.value = list.length
   } finally {
     loading.value = false
   }
