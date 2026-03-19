@@ -67,6 +67,8 @@ public class UserService {
         user.setPassword(passwordEncoder.encode(password));
         user.setStatus(1);
         user.setDeleted(0);
+        // 使用默认密码时，需要用户首次登录后修改密码
+        user.setPasswordChanged(false);
         userMapper.insert(user);
     }
 

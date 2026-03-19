@@ -16,7 +16,7 @@
           <span>首页</span>
         </el-menu-item>
 
-        <el-sub-menu index="basic">
+        <el-sub-menu index="basic" v-if="canAccess('basic')">
           <template #title>
             <el-icon><Setting /></el-icon>
             <span>基础数据</span>
@@ -28,7 +28,7 @@
           <el-menu-item index="/basic/metadata">元数据配置</el-menu-item>
         </el-sub-menu>
 
-        <el-sub-menu index="stock">
+        <el-sub-menu index="stock" v-if="canAccess('stock')">
           <template #title>
             <el-icon><Box /></el-icon>
             <span>库存管理</span>
@@ -38,7 +38,7 @@
           <el-menu-item index="/stock-out">出库管理</el-menu-item>
         </el-sub-menu>
 
-        <el-sub-menu index="purchase">
+        <el-sub-menu index="purchase" v-if="canAccess('purchase')">
           <template #title>
             <el-icon><ShoppingCart /></el-icon>
             <span>采购管理</span>
@@ -46,7 +46,7 @@
           <el-menu-item index="/purchase">采购申请</el-menu-item>
         </el-sub-menu>
 
-        <el-sub-menu index="check">
+        <el-sub-menu index="check" v-if="canAccess('check')">
           <template #title>
             <el-icon><DocumentChecked /></el-icon>
             <span>盘点管理</span>
@@ -54,7 +54,7 @@
           <el-menu-item index="/stock-check">盘点任务</el-menu-item>
         </el-sub-menu>
 
-        <el-sub-menu index="alert">
+        <el-sub-menu index="alert" v-if="canAccess('alert')">
           <template #title>
             <el-icon><Bell /></el-icon>
             <span>预警中心</span>
@@ -62,7 +62,7 @@
           <el-menu-item index="/alert">预警管理</el-menu-item>
         </el-sub-menu>
 
-        <el-sub-menu index="system">
+        <el-sub-menu index="system" v-if="canAccess('system')">
           <template #title>
             <el-icon><Tools /></el-icon>
             <span>系统管理</span>
@@ -117,6 +117,21 @@ useTheme()
 
 const isCollapse = ref(false)
 const activeMenu = computed(() => route.path)
+
+// 角色权限配置
+const rolePermissions = {
+  ADMIN: ['basic', 'stock', 'purchase', 'check', 'alert', 'system'],
+  MANAGER: ['basic', 'stock', 'purchase', 'check', 'alert'],
+  USER: ['stock', 'check']
+}
+
+// 检查用户是否有权限访问某个模块
+const canAccess = (module) => {
+  const roleCode = userStore.userInfo?.role?.code
+  if (!roleCode) return false
+  const permissions = rolePermissions[roleCode] || []
+  return permissions.includes(module)
+}
 
 const handleCommand = (command) => {
   if (command === 'logout') {
