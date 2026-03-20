@@ -98,14 +98,17 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { getDashboardSummary, getCategoryStats, getExpiryStats } from '@/api/report'
 import { getAlertList, getAlertStats } from '@/api/alert'
+import * as echarts from 'echarts'
 
 const router = useRouter()
 const categoryChartRef = ref(null)
 const expiryChartRef = ref(null)
+let categoryChart = null
+let expiryChart = null
 
 const summary = ref({ totalStock: 0, totalMaterials: 0, monthIn: 0, monthOut: 0 })
 const alertStats = ref({ total: 0, expiry: 0, stockLow: 0, unused: 0 })
@@ -163,41 +166,149 @@ const fetchExpiryStats = async () => {
 
 const renderCategoryChart = (data) => {
   if (!categoryChartRef.value) return
+
+  // 销毁旧图表
+  if (categoryChart) {
+    categoryChart.dispose()
+  }
+
+  categoryChart = echarts.init(categoryChartRef.value)
+
   const colors = ['#8b5cf6', '#3b82f6', '#06b6d4', '#10b981', '#f59e0b', '#ec4899', '#ef4444']
-  categoryChartRef.value.innerHTML = `
-    <div class="chart-bars">
-      ${data.map((item, i) => `
-        <div class="chart-bar-item">
-          <span class="chart-bar-label">${item.name}</span>
-          <div class="chart-bar-track">
-            <div class="chart-bar-fill" style="width: ${Math.min(item.count * 5, 100)}%; background: ${colors[i % colors.length]}"></div>
-          </div>
-          <span class="chart-bar-value">${item.count} 种</span>
-        </div>
-      `).join('')}
-    </div>
-  `
+
+  const option = {
+    tooltip: {
+      trigger: 'item',
+      formatter: '{b}: {c} 种 ({d}%)'
+    },
+    legend: {
+      orient: 'vertical',
+      right: '5%',
+      top: 'center',
+      textStyle: {
+        color: '#64748b',
+        fontSize: 13
+      }
+    },
+    series: [
+      {
+        name: '库存分类',
+        type: 'pie',
+        radius: ['40%', '70%'],
+        center: ['35%', '50%'],
+        avoidLabelOverlap: false,
+        itemStyle: {
+          borderRadius: 8,
+          borderColor: '#fff',
+          borderWidth: 2
+        },
+        label: {
+          show: false
+        },
+        emphasis: {
+          label: {
+            show: true,
+            fontSize: 14,
+            fontWeight: 'bold'
+          },
+          itemStyle: {
+            shadowBlur: 10,
+            shadowOffsetX: 0,
+            shadowColor: 'rgba(0, 0, 0, 0.2)'
+          }
+        },
+        labelLine: {
+          show: false
+        },
+        data: data.map((item, i) => ({
+          value: item.count,
+          name: item.name,
+          itemStyle: { color: colors[i % colors.length] }
+        }))
+      }
+    ]
+  }
+
+  categoryChart.setOption(option)
 }
 
 const renderExpiryChart = (data) => {
   if (!expiryChartRef.value) return
-  const colors = {
-    '正常': 'linear-gradient(135deg, #10b981, #06b6d4)',
-    '即将过期(1个月内)': 'linear-gradient(135deg, #f59e0b, #ec4899)',
-    '紧急(7天内)': 'linear-gradient(135deg, #ef4444, #f59e0b)',
-    '已过期': 'linear-gradient(135deg, #64748b, #94a3b8)'
+
+  // 销毁旧图表
+  if (expiryChart) {
+    expiryChart.dispose()
   }
 
-  expiryChartRef.value.innerHTML = `
-    <div class="expiry-stats">
-      ${data.map(item => `
-        <div class="expiry-stat-item">
-          <div class="expiry-stat-value" style="background: ${colors[item.name] || 'linear-gradient(135deg, #8b5cf6, #3b82f6)'}">${item.value}</div>
-          <div class="expiry-stat-label">${item.name}</div>
-        </div>
-      `).join('')}
-    </div>
-  `
+  expiryChart = echarts.init(expiryChartRef.value)
+
+  const colorMap = {
+    '正常': '#10b981',
+    '即将过期(1个月内)': '#f59e0b',
+    '紧急(7天内)': '#ef4444',
+    '已过期': '#64748b'
+  }
+
+  const option = {
+    tooltip: {
+      trigger: 'item',
+      formatter: '{b}: {c} 件 ({d}%)'
+    },
+    legend: {
+      orient: 'vertical',
+      right: '5%',
+      top: 'center',
+      textStyle: {
+        color: '#64748b',
+        fontSize: 13
+      }
+    },
+    series: [
+      {
+        name: '有效期分布',
+        type: 'pie',
+        radius: ['40%', '70%'],
+        center: ['35%', '50%'],
+        avoidLabelOverlap: false,
+        itemStyle: {
+          borderRadius: 8,
+          borderColor: '#fff',
+          borderWidth: 2
+        },
+        label: {
+          show: false
+        },
+        emphasis: {
+          label: {
+            show: true,
+            fontSize: 14,
+            fontWeight: 'bold'
+          },
+          itemStyle: {
+            shadowBlur: 10,
+            shadowOffsetX: 0,
+            shadowColor: 'rgba(0, 0, 0, 0.2)'
+          }
+        },
+        labelLine: {
+          show: false
+        },
+        data: data.map(item => ({
+          value: item.value,
+          name: item.name,
+          itemStyle: { color: colorMap[item.name] || '#8b5cf6' }
+        }))
+      }
+    ]
+  }
+
+  expiryChart.setOption(option)
+}
+
+// 窗口大小变化时重新调整图表
+const handleResize = () => {
+  categoryChart?.resize()
+  expiryChart?.resize()
 }
 
 const handleCardClick = (route) => router.push(route)
@@ -211,10 +322,17 @@ const formatTime = (t) => t ? t.substring(0, 10) : ''
 onMounted(() => {
   fetchData()
   fetchAlerts()
+  window.addEventListener('resize', handleResize)
   nextTick(() => {
     fetchCategoryStats()
     fetchExpiryStats()
   })
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize)
+  categoryChart?.dispose()
+  expiryChart?.dispose()
 })
 </script>
 
@@ -352,83 +470,6 @@ onMounted(() => {
 
 .chart-container {
   height: 300px;
-}
-
-.chart-bars {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding: 16px;
-  gap: 16px;
-}
-
-.chart-bar-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.chart-bar-label {
-  width: 100px;
-  font-size: 14px;
-  color: var(--text-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.chart-bar-track {
-  flex: 1;
-  height: 8px;
-  background: rgba(139, 92, 246, 0.1);
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.chart-bar-fill {
-  height: 100%;
-  border-radius: 4px;
-  transition: width 0.6s ease;
-}
-
-.chart-bar-value {
-  width: 60px;
-  text-align: right;
-  font-size: 14px;
-  color: var(--text-muted);
-}
-
-.expiry-stats {
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 32px;
-  flex-wrap: wrap;
-  padding: 20px;
-}
-
-.expiry-stat-item {
-  text-align: center;
-}
-
-.expiry-stat-value {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 28px;
-  font-weight: 700;
-  color: #fff;
-  margin: 0 auto 12px;
-}
-
-.expiry-stat-label {
-  font-size: 14px;
-  color: var(--text-muted);
 }
 
 .quick-entry-card {

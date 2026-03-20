@@ -154,6 +154,7 @@ public class ReportService {
 
         List<Stock> allStock = stockMapper.selectList(
             new LambdaQueryWrapper<Stock>()
+                .eq(Stock::getStatus, 1)  // 只统计在库的库存，排除已出库
                 .isNotNull(Stock::getExpiryDate)
                 .gt(Stock::getQuantity, BigDecimal.ZERO)
         );
