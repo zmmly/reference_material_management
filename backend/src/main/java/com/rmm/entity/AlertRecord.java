@@ -11,6 +11,7 @@ public class AlertRecord {
     private Long id;
     private String type;
     private Long stockId;
+    private String internalCodes;  // 新增字段：存储所有关联库存的内部编号，逗号分隔
     private Long materialId;
     private String content;
     private Integer level;
