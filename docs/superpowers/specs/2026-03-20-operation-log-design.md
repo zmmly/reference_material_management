@@ -44,10 +44,13 @@ public class OperationLog {
 
 **OperationLogAspect.java**
 - 切点：`com.rmm.controller..*.*(..)`
-- 通知类型：`@AfterReturning`（方法执行成功后记录）
+- 通知类型：
+  - `@AfterReturning`（方法执行成功后记录）
+  - `@AfterThrowing`（登录失败等异常情况记录）
 - 拦截规则：
   - 只拦截 `@PostMapping`, `@PutMapping`, `@DeleteMapping` 方法
-  - 排除查询方法（方法名包含 list/page/get/query）
+  - 排除查询方法（方法名以 list/get/page/query/find 开头）
+  - 排除下载方法（方法名以 download 开头）
 
 #### 3. 模块名称映射
 
@@ -69,24 +72,30 @@ public class OperationLog {
 | AlertController | 预警管理 |
 | MetadataController | 元数据管理 |
 | AuthController | 认证管理 |
+| BackupController | 系统备份 |
+| UploadController | 文件上传 |
+| ReportController | 报表管理 |
 
 #### 4. 操作类型映射
 
 从方法名解析操作类型：
 
-| 方法名前缀 | 操作类型 |
-|-----------|---------|
-| create/add/save | 新增 |
-| update/modify/edit | 修改 |
+| 方法名前缀/包含 | 操作类型 |
+|----------------|---------|
+| create/add/save/apply/batch | 新增 |
+| update/modify/edit/change/reset | 修改 |
 | delete/remove | 删除 |
-| approve/reject | 审批 |
-| login/logout | 登录/登出 |
+| approve | 审批通过 |
+| reject | 审批拒绝 |
+| cancel | 取消 |
+| login | 登录 |
+| upload | 上传 |
 
 #### 5. Controller API
 
 **OperationLogController.java**
 - `GET /api/operation-logs/page` - 分页查询日志
-  - 参数：page, size, startTime, endTime, module, action, username
+  - 参数：page(默认1), size(默认20), startTime, endTime, module, action, username
   - 返回：分页数据
 - `GET /api/operation-logs/{id}` - 查询日志详情
 
@@ -130,7 +139,19 @@ public class OperationLog {
   - 显示完整日志信息
   - detail 字段格式化 JSON 显示
 
-#### 4. API 模块
+#### 4. 菜单项配置
+
+在 `layout/index.vue` 中添加菜单项：
+
+```vue
+<!-- 在"系统管理"菜单组中添加 -->
+<el-menu-item index="/system/operation-log" v-if="canAccess('system')">
+  <el-icon><Document /></el-icon>
+  <span>操作日志</span>
+</el-menu-item>
+```
+
+#### 5. API 模块
 
 **api/operationLog.js**
 ```javascript
@@ -146,7 +167,10 @@ export function getOperationLogDetail(id) {
 ### 权限控制
 
 - 后端：在 OperationLogController 添加 `@PreAuthorize("hasRole('ADMIN')")`
-- 前端：路由 meta.roles 配置为 `['ADMIN']`，菜单中只对 ADMIN 角色显示
+- 前端：
+  - 操作日志属于 'system' 模块，只有 ADMIN 角色有 'system' 权限
+  - 在 `layout/index.vue` 的侧边栏菜单中添加操作日志菜单项
+  - 菜单项添加条件渲染：`v-if="canAccess('system')"`
 
 ## 日志记录规则
 
@@ -164,7 +188,9 @@ export function getOperationLogDetail(id) {
 | 盘点管理 | 创建/完成盘点 | 盘点批次 | 盘点结果 |
 | 采购管理 | 创建/审批采购单 | 采购单号 | 采购详情 |
 | 供应商管理 | 创建/修改/删除 | 供应商名称 | 完整参数 |
-| 认证管理 | 登录成功/失败 | 用户名 | 登录结果、IP |
+| 认证管理 | 登录成功 | 用户名 | 登录IP |
+| 系统备份 | 创建/删除备份 | 备份文件名 | 备份类型 |
+| 文件上传 | 上传文件 | 文件名 | 文件大小、类型 |
 
 ### 敏感字段过滤
 
@@ -195,6 +221,12 @@ CREATE TABLE `operation_log` (
 - `idx_log_user` - user_id 索引
 - `idx_log_time` - create_time 索引
 
+建议新增索引：
+```sql
+-- 优化查询性能的复合索引
+CREATE INDEX idx_log_query ON operation_log(module, action, create_time);
+```
+
 ## 实现要点
 
 ### 1. AOP切面实现
@@ -213,11 +245,17 @@ public class OperationLogAspect {
     @AfterReturning(pointcut = "controllerPointcut()", returning = "result")
     public void recordLog(JoinPoint joinPoint, Object result) {
         // 1. 检查是否是写操作（POST/PUT/DELETE）
-        // 2. 排除查询方法
+        // 2. 排除查询方法（方法名以 list/get/page/query/find/download 开头）
         // 3. 解析模块、操作类型
         // 4. 提取操作对象和详情
         // 5. 获取当前用户和IP
         // 6. 异步保存日志
+    }
+
+    @AfterThrowing(pointcut = "controllerPointcut()", throwing = "ex")
+    public void recordFailureLog(JoinPoint joinPoint, Exception ex) {
+        // 记录登录失败等异常操作
+        // 仅针对 AuthController.login 方法
     }
 }
 ```
@@ -232,35 +270,85 @@ public class OperationLogService {
 
     @Async
     public void saveLog(OperationLog log) {
-        operationLogMapper.insert(log);
+        try {
+            operationLogMapper.insert(log);
+        } catch (Exception e) {
+            // 记录日志失败不应影响业务，仅记录错误
+            log.error("保存操作日志失败", e);
+        }
     }
 }
 ```
 
-需要在启动类添加 `@EnableAsync` 注解。
+需要创建异步配置类：
+
+```java
+@Configuration
+@EnableAsync
+public class AsyncConfig {
+    @Bean
+    public Executor taskExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(2);
+        executor.setMaxPoolSize(5);
+        executor.setQueueCapacity(100);
+        executor.setThreadNamePrefix("log-");
+        executor.initialize();
+        return executor;
+    }
+}
+```
 
 ### 3. 获取当前用户
 
-从 SecurityContext 获取：
+从 SecurityContext 获取（当前系统中 principal 是用户ID）：
 
 ```java
 Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-if (auth != null && auth.getPrincipal() instanceof UserDetails) {
-    UserDetails userDetails = (UserDetails) auth.getPrincipal();
-    // 获取用户信息
+if (auth != null && auth.getPrincipal() instanceof Long) {
+    Long userId = (Long) auth.getPrincipal();
+    // 通过 UserService 获取用户名（可使用缓存优化）
+    User user = userService.getById(userId);
+    String username = user != null ? user.getUsername() : "unknown";
+    // 设置到日志对象
+    log.setUserId(userId);
+    log.setUsername(username);
 }
 ```
 
 ### 4. 获取IP地址
 
-从 HttpServletRequest 获取：
+创建工具类处理IP提取（支持代理）：
 
+```java
+public class IpUtils {
+
+    public static String getIpAddress(HttpServletRequest request) {
+        String ip = request.getHeader("X-Forwarded-For");
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeader("Proxy-Client-IP");
+        }
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeader("WL-Proxy-Client-IP");
+        }
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getRemoteAddr();
+        }
+        // X-Forwarded-For 可能包含多个IP，取第一个
+        if (ip != null && ip.contains(",")) {
+            ip = ip.split(",")[0].trim();
+        }
+        return ip;
+    }
+}
+```
+
+在切面中使用：
 ```java
 @Autowired
 private HttpServletRequest request;
 
-String ip = request.getRemoteAddr();
-// 如果使用代理，需要检查 X-Forwarded-For 头
+String ip = IpUtils.getIpAddress(request);
 ```
 
 ## 后续优化
