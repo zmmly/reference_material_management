@@ -1,6 +1,7 @@
 package com.rmm.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.rmm.entity.*;
 import com.rmm.mapper.*;
 import lombok.RequiredArgsConstructor;
@@ -144,11 +145,11 @@ public class AlertService {
 
         // 按标准物质汇总在库数量
         List<Map<String, Object>> lowStockMaterials = stockMapper.selectMaps(
-            new LambdaQueryWrapper<Stock>()
+            new QueryWrapper<Stock>()
                 .select("material_id", "COUNT(*) as total_count")
-                .gt(Stock::getQuantity, BigDecimal.ZERO)
-                .eq(Stock::getStatus, 1)  // 在库状态
-                .groupBy(Stock::getMaterialId)
+                .gt("quantity", BigDecimal.ZERO)
+                .eq("status", 1)  // 在库状态
+                .groupBy("material_id")
                 .having("COUNT(*) <= {0}", config.getThreshold())
         );
 
@@ -248,12 +249,34 @@ public class AlertService {
                 record.setMaterialName(material.getName());
             }
         }
-        if (record.getStockId() != null) {
+
+        // 对于库存预警，使用数据库中存储的 internalCodes
+        // 对于其他预警类型，从 stock 表查询单个 internalCode
+        if ("STOCK_LOW".equals(record.getType())) {
+            // internalCodes 已从数据库加载，无需额外处理
+            // 如果需要兼容旧数据（internalCodes 为空），可按 materialId 查询
+            if (record.getInternalCodes() == null || record.getInternalCodes().isEmpty()) {
+                // 兼容处理：查询该物质所有在库的内部编码
+                List<Stock> stocks = stockMapper.selectList(
+                    new LambdaQueryWrapper<Stock>()
+                        .eq(Stock::getMaterialId, record.getMaterialId())
+                        .gt(Stock::getQuantity, BigDecimal.ZERO)
+                        .eq(Stock::getStatus, 1)
+                );
+                String codes = stocks.stream()
+                    .map(Stock::getInternalCode)
+                    .filter(Objects::nonNull)
+                    .filter(code -> !code.isEmpty())
+                    .collect(Collectors.joining(", "));
+                record.setInternalCodes(codes);
+            }
+        } else if (record.getStockId() != null) {
             Stock stock = stockMapper.selectById(record.getStockId());
             if (stock != null) {
                 record.setInternalCode(stock.getInternalCode());
             }
         }
+
         if (record.getHandlerId() != null) {
             User user = userMapper.selectById(record.getHandlerId());
             if (user != null) {
