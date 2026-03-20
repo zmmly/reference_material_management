@@ -212,8 +212,9 @@ public class AlertService {
         );
 
         for (Stock stock : stocks) {
+            String internalCode = stock.getInternalCode() != null ? stock.getInternalCode() : "未知编号";
             createAlertIfNotExists("UNUSED", stock, stock.getMaterialId(),
-                String.format("【%s】已超过%d个月未使用", getMaterialName(stock.getMaterialId()), config.getThreshold()), 1);
+                String.format("【%s-%s】已超过%d个月未使用", getMaterialName(stock.getMaterialId()), internalCode, config.getThreshold()), 1);
         }
     }
 
