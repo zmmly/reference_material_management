@@ -174,6 +174,28 @@ public class AlertService {
         }
     }
 
+    private void createStockLowAlertIfNotExists(Long materialId, Long totalCount,
+                                                 Integer threshold, String internalCodes) {
+        Long existing = alertRecordMapper.selectCount(
+            new LambdaQueryWrapper<AlertRecord>()
+                .eq(AlertRecord::getType, "STOCK_LOW")
+                .eq(AlertRecord::getMaterialId, materialId)
+                .eq(AlertRecord::getStatus, 0)
+        );
+        if (existing > 0) return;
+
+        AlertRecord record = new AlertRecord();
+        record.setType("STOCK_LOW");
+        record.setStockId(null);
+        record.setMaterialId(materialId);
+        record.setInternalCodes(internalCodes);
+        record.setContent(String.format("【%s】库存不足，当前库存: %d 件（阈值: %d 件）",
+            getMaterialName(materialId), totalCount, threshold));
+        record.setLevel(2);
+        record.setStatus(0);
+        alertRecordMapper.insert(record);
+    }
+
     private void checkUnusedAlerts() {
         AlertConfig config = getConfig("UNUSED_MONTHS");
         if (config == null || config.getEnabled() != 1) return;
