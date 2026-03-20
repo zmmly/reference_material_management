@@ -62,7 +62,11 @@
             <el-tag :type="statusType(row.status)">{{ statusText(row.status) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="createTime" label="预警时间" width="160" />
+        <el-table-column prop="createTime" label="预警时间" width="160">
+          <template #default="{ row }">
+            {{ row.createTime ? row.createTime.replace('T', ' ') : '-' }}
+          </template>
+        </el-table-column>
         <el-table-column label="操作" width="180" fixed="right">
           <template #default="{ row }">
             <div class="action-buttons">
@@ -70,7 +74,7 @@
                 <el-button link type="primary" size="small" @click="handleAlert(row)">处理</el-button>
                 <el-button link type="info" size="small" @click="ignoreAlert(row)">忽略</el-button>
               </template>
-              <span v-else style="color: #999">{{ row.handlerName }} {{ row.handleTime }}</span>
+              <span v-else style="color: #999">{{ row.handlerName }} {{ row.handleTime ? row.handleTime.replace('T', ' ') : '' }}</span>
             </div>
           </template>
         </el-table-column>
