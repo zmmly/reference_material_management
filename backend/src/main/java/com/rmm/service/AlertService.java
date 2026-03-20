@@ -14,6 +14,9 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -139,15 +142,35 @@ public class AlertService {
         AlertConfig config = getConfig("STOCK_LOW");
         if (config == null || config.getEnabled() != 1) return;
 
-        List<Stock> stocks = stockMapper.selectList(
+        // 按标准物质汇总在库数量
+        List<Map<String, Object>> lowStockMaterials = stockMapper.selectMaps(
             new LambdaQueryWrapper<Stock>()
-                .le(Stock::getQuantity, config.getThreshold())
+                .select("material_id", "COUNT(*) as total_count")
                 .gt(Stock::getQuantity, BigDecimal.ZERO)
+                .eq(Stock::getStatus, 1)  // 在库状态
+                .groupBy(Stock::getMaterialId)
+                .having("COUNT(*) <= {0}", config.getThreshold())
         );
 
-        for (Stock stock : stocks) {
-            createAlertIfNotExists("STOCK_LOW", stock, stock.getMaterialId(),
-                String.format("【%s】库存不足，当前库存: %s", getMaterialName(stock.getMaterialId()), stock.getQuantity()), 2);
+        for (Map<String, Object> item : lowStockMaterials) {
+            Long materialId = ((Number) item.get("material_id")).longValue();
+            Long totalCount = ((Number) item.get("total_count")).longValue();
+
+            // 查询该物质所有在库的内部编码
+            List<Stock> stocks = stockMapper.selectList(
+                new LambdaQueryWrapper<Stock>()
+                    .eq(Stock::getMaterialId, materialId)
+                    .gt(Stock::getQuantity, BigDecimal.ZERO)
+                    .eq(Stock::getStatus, 1)
+            );
+            // 过滤掉 null 和空字符串的内部编码
+            String internalCodes = stocks.stream()
+                .map(Stock::getInternalCode)
+                .filter(Objects::nonNull)
+                .filter(code -> !code.isEmpty())
+                .collect(Collectors.joining(", "));
+
+            createStockLowAlertIfNotExists(materialId, totalCount, config.getThreshold(), internalCodes);
         }
     }
 
