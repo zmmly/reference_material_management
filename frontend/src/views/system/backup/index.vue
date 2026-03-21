@@ -23,14 +23,14 @@
       <!-- 数据表格 -->
       <el-table :data="tableData" v-loading="loading" border stripe class="data-table">
         <el-table-column prop="filename" label="备份文件名" min-width="220" />
-        <el-table-column prop="fileSize" label="文件大小" width="120">
+        <el-table-column prop="fileSize" label="文件大小" min-width="100">
           <template #default="{ row }">
             {{ formatFileSize(row.fileSize) }}
           </template>
         </el-table-column>
-        <el-table-column prop="backupTime" label="备份时间" width="180" />
-        <el-table-column prop="operatorName" label="操作人" width="120" />
-        <el-table-column label="操作" width="180" fixed="right">
+        <el-table-column prop="backupTime" label="备份时间" min-width="150" />
+        <el-table-column prop="operatorName" label="操作人" min-width="100" />
+        <el-table-column label="操作" min-width="150" fixed="right">
           <template #default="{ row }">
             <div class="action-buttons">
               <el-button type="primary" size="small" @click="handleDownload(row)">
