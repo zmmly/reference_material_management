@@ -12,9 +12,13 @@ public class Purchase {
     @TableId(type = IdType.AUTO)
     private Long id;
     private Long materialId;
+    private String specification;
+    private String batchNumber;
+    private String unit;
     private BigDecimal quantity;
     private Long supplierId;
     private BigDecimal estimatedPrice;
+    private BigDecimal totalAmount;
     private LocalDate estimatedArrivalDate;
     private String reason;
     private Long applicantId;

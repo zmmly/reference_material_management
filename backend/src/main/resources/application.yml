@@ -9,6 +9,9 @@ spring:
     url: ${DB_URL:jdbc:mysql://localhost:3306/reference_material_management?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai}
     username: ${DB_USER:root}
     password: ${DB_PASSWORD:123456}
+  sql:
+    init:
+      mode: always
   jackson:
     date-format: yyyy-MM-dd HH:mm:ss
     time-zone: Asia/Shanghai

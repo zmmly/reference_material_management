@@ -5,11 +5,20 @@
         <el-tab-pane label="我的申请" name="my">
           <el-button type="primary" style="margin-bottom: 16px" @click="handleAdd">新建采购申请</el-button>
           <el-table :data="myApplications" v-loading="loading" border>
+            <el-table-column prop="applicantName" label="申请人" width="100" />
             <el-table-column prop="materialName" label="标准物质" />
-            <el-table-column prop="quantity" label="采购数量" width="100" />
-            <el-table-column prop="estimatedPrice" label="预估单价" width="100" />
+            <el-table-column prop="specification" label="规格" width="120" />
+            <el-table-column prop="batchNumber" label="批号" width="120" />
+            <el-table-column prop="quantity" label="数量" width="80" />
+            <el-table-column prop="unit" label="单位" width="80" />
+            <el-table-column prop="estimatedPrice" label="单价" width="80" />
+            <el-table-column prop="totalAmount" label="金额" width="100">
+              <template #default="{ row }">
+                {{ row.totalAmount ? row.totalAmount.toFixed(2) : '' }}
+              </template>
+            </el-table-column>
             <el-table-column prop="supplierName" label="供应商" width="150" />
-            <el-table-column prop="estimatedArrivalDate" label="预计到货日期" width="120" />
+            <el-table-column prop="estimatedArrivalDate" label="预计到货" width="120" />
             <el-table-column prop="status" label="状态" width="100">
               <template #default="{ row }">
                 <el-tag :type="statusType(row.status)">{{ statusText(row.status) }}</el-tag>
@@ -34,8 +43,16 @@
           <el-table :data="pendingList" v-loading="loading" border>
             <el-table-column prop="applicantName" label="申请人" width="100" />
             <el-table-column prop="materialName" label="标准物质" />
-            <el-table-column prop="quantity" label="采购数量" width="100" />
-            <el-table-column prop="estimatedPrice" label="预估单价" width="100" />
+            <el-table-column prop="specification" label="规格" width="120" />
+            <el-table-column prop="batchNumber" label="批号" width="120" />
+            <el-table-column prop="quantity" label="数量" width="80" />
+            <el-table-column prop="unit" label="单位" width="80" />
+            <el-table-column prop="estimatedPrice" label="单价" width="80" />
+            <el-table-column prop="totalAmount" label="金额" width="100">
+              <template #default="{ row }">
+                {{ row.totalAmount ? row.totalAmount.toFixed(2) : '' }}
+              </template>
+            </el-table-column>
             <el-table-column prop="supplierName" label="供应商" width="150" />
             <el-table-column prop="reason" label="采购原因" />
             <el-table-column prop="applyTime" label="申请时间" width="160" />
@@ -52,42 +69,79 @@
       </el-tabs>
     </el-card>
 
-    <el-dialog v-model="dialogVisible" title="采购申请" width="600">
-      <el-form ref="formRef" :model="form" :rules="rules" label-width="120px">
-        <el-form-item label="标准物质" prop="materialId">
-          <el-select v-model="form.materialId" placeholder="请选择" filterable style="width: 100%">
-            <el-option v-for="item in materialList" :key="item.id" :label="`${item.code} - ${item.name}`" :value="item.id" />
-          </el-select>
-        </el-form-item>
+    <el-dialog v-model="dialogVisible" title="采购申请" width="750">
+      <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
         <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="采购数量" prop="quantity">
-              <el-input-number v-model="form.quantity" :min="1" style="width: 100%" />
+          <el-col :span="24">
+            <el-form-item label="标准物质" prop="materialId">
+              <el-select v-model="form.materialId" placeholder="请选择" filterable style="width: 100%" @change="handleMaterialChange">
+                <el-option v-for="item in materialList" :key="item.id" :label="`${item.code} - ${item.name}`" :value="item.id" />
+              </el-select>
             </el-form-item>
           </el-col>
-          <el-col :span="12">
-            <el-form-item label="预估单价">
-              <el-input-number v-model="form.estimatedPrice" :precision="2" :min="0" style="width: 100%" />
+        </el-row>
+        <el-row :gutter="20">
+          <el-col :span="8">
+            <el-form-item label="规格" prop="specification">
+              <el-input v-model="form.specification" placeholder="如：100mg/支" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="批号" prop="batchNumber">
+              <el-input v-model="form.batchNumber" placeholder="批号" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="单位" prop="unit">
+              <el-select v-model="form.unit" placeholder="请选择" style="width: 100%">
+                <el-option label="支" value="支" />
+                <el-option label="瓶" value="瓶" />
+                <el-option label="盒" value="盒" />
+                <el-option label="套" value="套" />
+                <el-option label="包" value="包" />
+                <el-option label="袋" value="袋" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="20">
+          <el-col :span="8">
+            <el-form-item label="数量" prop="quantity">
+              <el-input-number v-model="form.quantity" :min="1" @change="calculateAmount" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="单价" prop="estimatedPrice">
+              <el-input-number v-model="form.estimatedPrice" :precision="2" :min="0" @change="calculateAmount" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="金额">
+              <el-input v-model="totalAmountDisplay" disabled placeholder="自动计算" style="width: 100%" />
             </el-form-item>
           </el-col>
         </el-row>
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="供应商">
-              <el-select v-model="form.supplierId" placeholder="请选择" style="width: 100%">
+            <el-form-item label="供应商" prop="supplierId">
+              <el-select v-model="form.supplierId" placeholder="请选择" filterable style="width: 100%">
                 <el-option v-for="item in supplierList" :key="item.id" :label="item.name" :value="item.id" />
               </el-select>
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="预计到货日期">
+            <el-form-item label="预计到货">
               <el-date-picker v-model="form.estimatedArrivalDate" type="date" placeholder="选择日期" style="width: 100%" />
             </el-form-item>
           </el-col>
         </el-row>
-        <el-form-item label="采购原因" prop="reason">
-          <el-input v-model="form.reason" type="textarea" :rows="3" />
-        </el-form-item>
+        <el-row :gutter="20">
+          <el-col :span="24">
+            <el-form-item label="采购原因" prop="reason">
+              <el-input v-model="form.reason" type="textarea" :rows="3" />
+            </el-form-item>
+          </el-col>
+        </el-row>
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
@@ -110,6 +164,7 @@ import { ref, reactive, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getPurchaseList, getAllPurchaseList, applyPurchase, approvePurchase, cancelPurchase, receivePurchase } from '@/api/purchase'
 import { getAllMaterials } from '@/api/material'
+import { getAllSuppliers } from '@/api/supplier'
 import { useUserStore } from '@/store/modules/user'
 
 const userStore = useUserStore()
@@ -138,13 +193,38 @@ const pendingList = computed(() => {
 })
 
 const form = reactive({
-  materialId: null, quantity: 1, estimatedPrice: null,
+  materialId: null, specification: '', batchNumber: '', unit: '支',
+  quantity: 1, estimatedPrice: null,
   supplierId: null, estimatedArrivalDate: null, reason: ''
 })
 const rules = {
   materialId: [{ required: true, message: '请选择标准物质', trigger: 'change' }],
+  specification: [{ required: true, message: '请输入规格', trigger: 'blur' }],
+  batchNumber: [{ required: true, message: '请输入批号', trigger: 'blur' }],
+  unit: [{ required: true, message: '请选择单位', trigger: 'change' }],
   quantity: [{ required: true, message: '请输入采购数量', trigger: 'blur' }],
+  estimatedPrice: [{ required: true, message: '请输入预估单价', trigger: 'blur' }],
+  supplierId: [{ required: true, message: '请选择供应商', trigger: 'change' }],
   reason: [{ required: true, message: '请输入采购原因', trigger: 'blur' }]
+}
+
+const totalAmountDisplay = computed(() => {
+  if (form.quantity && form.estimatedPrice) {
+    return (form.quantity * form.estimatedPrice).toFixed(2)
+  }
+  return ''
+})
+
+const calculateAmount = () => {
+  // 金额自动计算，无需额外逻辑
+}
+
+const handleMaterialChange = (materialId) => {
+  const material = materialList.value.find(item => item.id === materialId)
+  if (material) {
+    // 可根据标准物质信息自动填充规格等
+    form.specification = material.specification || ''
+  }
 }
 
 const fetchData = async () => {
@@ -164,9 +244,17 @@ const fetchMaterials = async () => {
   } catch (e) {}
 }
 
+const fetchSuppliers = async () => {
+  try {
+    const res = await getAllSuppliers()
+    supplierList.value = res.data || []
+  } catch (e) {}
+}
+
 const handleAdd = () => {
   Object.assign(form, {
-    materialId: null, quantity: 1, estimatedPrice: null,
+    materialId: null, specification: '', batchNumber: '', unit: '支',
+    quantity: 1, estimatedPrice: null,
     supplierId: null, estimatedArrivalDate: null, reason: ''
   })
   dialogVisible.value = true
@@ -224,6 +312,7 @@ const statusText = (s) => ({ 0: '待审批', 1: '已通过', 2: '已拒绝', 3: 
 onMounted(() => {
   fetchData()
   fetchMaterials()
+  fetchSuppliers()
 })
 </script>
 

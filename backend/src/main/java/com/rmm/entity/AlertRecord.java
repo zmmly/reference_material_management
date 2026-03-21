@@ -26,5 +26,7 @@ public class AlertRecord {
     @TableField(exist = false)
     private String internalCode;
     @TableField(exist = false)
+    private String locationName;
+    @TableField(exist = false)
     private String handlerName;
 }

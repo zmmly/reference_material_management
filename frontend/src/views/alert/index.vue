@@ -49,6 +49,11 @@
             {{ row.internalCodes || row.internalCode || '-' }}
           </template>
         </el-table-column>
+        <el-table-column prop="locationName" label="存放位置" width="120">
+          <template #default="{ row }">
+            {{ row.locationName || '-' }}
+          </template>
+        </el-table-column>
         <el-table-column prop="content" label="预警内容" />
         <el-table-column prop="level" label="级别" width="80">
           <template #default="{ row }">

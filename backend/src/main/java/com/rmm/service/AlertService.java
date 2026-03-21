@@ -28,6 +28,7 @@ public class AlertService {
     private final AlertRecordMapper alertRecordMapper;
     private final StockMapper stockMapper;
     private final ReferenceMaterialMapper materialMapper;
+    private final LocationMapper locationMapper;
     private final UserMapper userMapper;
 
     public AlertConfig getConfig(String type) {
@@ -257,7 +258,7 @@ public class AlertService {
             // internalCodes 已从数据库加载，无需额外处理
             // 如果需要兼容旧数据（internalCodes 为空），可按 materialId 查询
             if (record.getInternalCodes() == null || record.getInternalCodes().isEmpty()) {
-                // 兼容处理：查询该物质所有在库的内部编码
+                // 兼容处理：查询该物质所有在库的内部编号
                 List<Stock> stocks = stockMapper.selectList(
                     new LambdaQueryWrapper<Stock>()
                         .eq(Stock::getMaterialId, record.getMaterialId())
@@ -271,10 +272,38 @@ public class AlertService {
                     .collect(Collectors.joining(", "));
                 record.setInternalCodes(codes);
             }
+
+            // 查询库存不足预警涉及的所有位置
+            List<Stock> stocks = stockMapper.selectList(
+                new LambdaQueryWrapper<Stock>()
+                    .eq(Stock::getMaterialId, record.getMaterialId())
+                    .gt(Stock::getQuantity, BigDecimal.ZERO)
+                    .eq(Stock::getStatus, 1)
+            );
+            String locations = stocks.stream()
+                .map(Stock::getLocationId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .map(locationId -> {
+                    Location location = locationMapper.selectById(locationId);
+                    return location != null ? location.getName() : "";
+                })
+                .filter(name -> !name.isEmpty())
+                .collect(Collectors.joining(", "));
+            record.setLocationName(locations);
+
         } else if (record.getStockId() != null) {
             Stock stock = stockMapper.selectById(record.getStockId());
             if (stock != null) {
                 record.setInternalCode(stock.getInternalCode());
+
+                // 查询单个库存的位置信息
+                if (stock.getLocationId() != null) {
+                    Location location = locationMapper.selectById(stock.getLocationId());
+                    if (location != null) {
+                        record.setLocationName(location.getName());
+                    }
+                }
             }
         }
 

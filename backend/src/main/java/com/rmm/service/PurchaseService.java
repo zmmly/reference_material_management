@@ -59,6 +59,16 @@ public class PurchaseService {
             throw new BusinessException("标准物质不存在");
         }
 
+        // 自动计算金额（采购数量 * 预估单价）
+        if (purchase.getQuantity() != null && purchase.getEstimatedPrice() != null) {
+            purchase.setTotalAmount(purchase.getQuantity().multiply(purchase.getEstimatedPrice()));
+        }
+
+        // 设置默认单位
+        if (!org.springframework.util.StringUtils.hasText(purchase.getUnit())) {
+            purchase.setUnit("支");
+        }
+
         purchase.setApplicantId(applicantId);
         purchase.setApplyTime(LocalDateTime.now());
         purchase.setStatus(0);
