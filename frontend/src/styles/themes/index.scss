@@ -138,6 +138,33 @@ $themes: (
     glass-border: rgba(167, 139, 250, 0.15),
     sidebar-bg: linear-gradient(180deg, #1a1025 0%, #251535 100%),
   ),
+
+  // 原型紫 - 基于prototype.html设计风格
+  'prototype-purple': (
+    name: '原型紫',
+    icon: '🎨',
+    bg-primary: #f5f7fa,
+    bg-secondary: #ffffff,
+    bg-tertiary: #f8f9fa,
+    text-primary: #333333,
+    text-secondary: #666666,
+    text-muted: #999999,
+    border-color: rgba(0, 0, 0, 0.06),
+    accent-primary: #667eea,
+    accent-secondary: #764ba2,
+    accent-tertiary: #4ecdc4,
+    accent-success: #51cf66,
+    accent-warning: #ff9f43,
+    accent-danger: #ff6b6b,
+    gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%),
+    gradient-secondary: linear-gradient(135deg, #667eea 0%, #4ecdc4 100%),
+    gradient-success: linear-gradient(135deg, #51cf66 0%, #4ecdc4 100%),
+    gradient-warning: linear-gradient(135deg, #ff9f43 0%, #ff6b6b 100%),
+    gradient-danger: linear-gradient(135deg, #ff6b6b 0%, #f87171 100%),
+    glass-bg: rgba(255, 255, 255, 0.95),
+    glass-border: rgba(0, 0, 0, 0.06),
+    sidebar-bg: linear-gradient(180deg, #ffffff 0%, #f8f9fa 100%),
+  ),
 );
 
 // 生成 CSS 变量

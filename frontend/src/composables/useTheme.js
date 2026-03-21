@@ -7,10 +7,11 @@ export const themes = [
   { key: 'forest-green', name: '护眼绿', icon: '🌿' },
   { key: 'warm-orange', name: '暖橙', icon: '🌅' },
   { key: 'elegant-purple', name: '优雅紫', icon: '💎' },
+  { key: 'prototype-purple', name: '原型紫', icon: '🎨' },
 ]
 
 const STORAGE_KEY = 'rmm-theme'
-const DEFAULT_THEME = 'dark-tech'
+const DEFAULT_THEME = 'prototype-purple'
 
 // 全局状态
 const currentTheme = ref(DEFAULT_THEME)
@@ -19,7 +20,8 @@ const currentTheme = ref(DEFAULT_THEME)
 function applyTheme(themeKey) {
   document.documentElement.setAttribute('data-theme', themeKey)
   // 同步更新 Element Plus 的暗黑模式
-  if (themeKey === 'light-minimal') {
+  const lightThemes = ['light-minimal', 'prototype-purple']
+  if (lightThemes.includes(themeKey)) {
     document.documentElement.classList.remove('dark')
   } else {
     document.documentElement.classList.add('dark')

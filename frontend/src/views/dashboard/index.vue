@@ -3,9 +3,9 @@
     <!-- 统计卡片 -->
     <el-row :gutter="20" class="stat-row">
       <el-col :span="6" v-for="(card, index) in statCards" :key="index">
-        <div class="stat-card-dark" :style="{ '--card-accent': card.gradient }" @click="handleCardClick(card.route)">
+        <div class="stat-card-dark" :class="card.cardClass" :style="{ '--card-accent': card.borderColor }" @click="handleCardClick(card.route)">
           <div class="stat-card-content">
-            <div class="stat-icon-dark" :style="{ '--icon-gradient': card.gradient }">
+            <div class="stat-icon-dark" :style="{ '--icon-bg': card.iconBg }">
               <el-icon><component :is="card.icon" /></el-icon>
             </div>
             <div class="stat-info">
@@ -64,10 +64,14 @@
             </div>
           </template>
           <div v-if="alertList.length > 0" class="alert-list">
-            <div v-for="alert in alertList" :key="alert.id" class="alert-item" @click="router.push('/alert')">
-              <el-tag :type="levelType(alert.level)" size="small">{{ levelText(alert.level) }}</el-tag>
-              <span class="alert-content">{{ alert.content }}</span>
-              <span class="alert-time">{{ formatTime(alert.createTime) }}</span>
+            <div v-for="alert in alertList" :key="alert.id" class="alert-item" :class="alertClass(alert)" @click="router.push('/alert')">
+              <div class="alert-icon" :style="{ background: alertIconBg(alert.level) }">
+                <el-icon><component :is="alertIcon(alert.level)" /></el-icon>
+              </div>
+              <div class="alert-content">
+                <div class="alert-title">{{ alert.content }}</div>
+                <div class="alert-time">{{ formatTime(alert.createTime) }}</div>
+              </div>
             </div>
           </div>
           <el-empty v-else description="暂无预警" :image-size="60" />
@@ -122,10 +126,42 @@ const totalTodoCount = computed(() => {
 })
 
 const statCards = ref([
-  { label: '库存总数', value: 0, icon: 'Box', gradient: 'linear-gradient(135deg, #8b5cf6, #3b82f6)', route: '/stock' },
-  { label: '标准物质种类', value: 0, icon: 'Collection', gradient: 'linear-gradient(135deg, #06b6d4, #3b82f6)', route: '/basic/material' },
-  { label: '本月入库', value: 0, icon: 'Download', gradient: 'linear-gradient(135deg, #f59e0b, #ec4899)', route: '/stock-in' },
-  { label: '本月出库', value: 0, icon: 'Upload', gradient: 'linear-gradient(135deg, #10b981, #06b6d4)', route: '/stock-out' }
+  {
+    label: '库存总数',
+    value: 0,
+    icon: 'Box',
+    cardClass: 'primary',
+    borderColor: '#667eea',
+    iconBg: 'rgba(102, 126, 234, 0.1)',
+    route: '/stock'
+  },
+  {
+    label: '标准物质种类',
+    value: 0,
+    icon: 'Collection',
+    cardClass: 'info',
+    borderColor: '#4ecdc4',
+    iconBg: 'rgba(78, 205, 196, 0.1)',
+    route: '/basic/material'
+  },
+  {
+    label: '本月入库',
+    value: 0,
+    icon: 'Download',
+    cardClass: 'success',
+    borderColor: '#51cf66',
+    iconBg: 'rgba(81, 207, 102, 0.1)',
+    route: '/stock-in'
+  },
+  {
+    label: '本月出库',
+    value: 0,
+    icon: 'Upload',
+    cardClass: 'warning',
+    borderColor: '#ff9f43',
+    iconBg: 'rgba(255, 159, 67, 0.1)',
+    route: '/stock-out'
+  }
 ])
 
 const quickEntries = [
@@ -233,7 +269,7 @@ const renderCategoryChart = (data) => {
 
   categoryChart = echarts.init(categoryChartRef.value)
 
-  const colors = ['#8b5cf6', '#3b82f6', '#06b6d4', '#10b981', '#f59e0b', '#ec4899', '#ef4444']
+  const colors = ['#667eea', '#4ecdc4', '#51cf66', '#ff9f43', '#764ba2', '#ff6b6b', '#2196f3']
 
   const option = {
     tooltip: {
@@ -245,7 +281,7 @@ const renderCategoryChart = (data) => {
       right: '5%',
       top: 'center',
       textStyle: {
-        color: '#64748b',
+        color: '#666',
         fontSize: 13
       }
     },
@@ -301,10 +337,10 @@ const renderExpiryChart = (data) => {
   expiryChart = echarts.init(expiryChartRef.value)
 
   const colorMap = {
-    '正常': '#10b981',
-    '即将过期(1个月内)': '#f59e0b',
-    '紧急(7天内)': '#ef4444',
-    '已过期': '#64748b'
+    '正常': '#51cf66',
+    '即将过期(1个月内)': '#ff9f43',
+    '紧急(7天内)': '#ff6b6b',
+    '已过期': '#999999'
   }
 
   const option = {
@@ -317,7 +353,7 @@ const renderExpiryChart = (data) => {
       right: '5%',
       top: 'center',
       textStyle: {
-        color: '#64748b',
+        color: '#666',
         fontSize: 13
       }
     },
@@ -376,6 +412,25 @@ const levelType = (l) => ({ 1: 'info', 2: 'warning', 3: 'danger' }[l] || 'info')
 const levelText = (l) => ({ 1: '普通', 2: '重要', 3: '紧急' }[l] || '普通')
 const formatTime = (t) => t ? t.substring(0, 10) : ''
 
+// 预警相关函数
+const alertClass = (alert) => {
+  if (alert.level === 3) return 'alert-overdue'
+  if (alert.level === 2) return 'alert-expiring'
+  return 'alert-low-stock'
+}
+
+const alertIcon = (level) => {
+  if (level === 3) return 'Clock'
+  if (level === 2) return 'WarningFilled'
+  return 'Bell'
+}
+
+const alertIconBg = (level) => {
+  if (level === 3) return 'rgba(255, 107, 107, 0.2)'
+  if (level === 2) return 'rgba(255, 159, 67, 0.2)'
+  return 'rgba(33, 150, 243, 0.2)'
+}
+
 onMounted(async () => {
   window.addEventListener('resize', handleResize)
   nextTick(async () => {
@@ -397,6 +452,7 @@ onUnmounted(() => {
 <style lang="scss" scoped>
 .dashboard {
   padding: 0;
+  background: #f5f7fa;
 }
 
 .stat-row {
@@ -405,15 +461,13 @@ onUnmounted(() => {
 
 .stat-card-dark {
   position: relative;
-  padding: 24px;
-  background: var(--glass-bg);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-lg);
+  padding: 20px;
+  background: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
   cursor: pointer;
   overflow: hidden;
-  transition: var(--transition-normal);
+  transition: transform 0.3s, box-shadow 0.3s;
 
   &::before {
     content: '';
@@ -426,9 +480,8 @@ onUnmounted(() => {
   }
 
   &:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 20px 40px rgba(139, 92, 246, 0.15);
-    border-color: rgba(139, 92, 246, 0.3);
+    transform: translateY(-3px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
   }
 }
 
@@ -443,16 +496,29 @@ onUnmounted(() => {
 }
 
 .stat-value {
-  font-size: 32px;
-  font-weight: 700;
-  color: var(--text-primary);
+  font-size: 28px;
+  font-weight: bold;
+  color: #333;
   line-height: 1.2;
 }
 
 .stat-label {
-  color: var(--text-muted);
+  color: #999;
   font-size: 14px;
-  margin-top: 4px;
+  margin-top: 8px;
+}
+
+.stat-icon-dark {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--icon-bg);
+  color: var(--card-accent);
+  font-size: 20px;
+  transition: all 0.3s;
 }
 
 .content-row {
@@ -466,14 +532,15 @@ onUnmounted(() => {
 }
 
 .card-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--text-primary);
+  font-size: 18px;
+  font-weight: bold;
+  color: #333;
 }
 
 .header-badge {
   :deep(.el-badge__content) {
-    background: var(--accent-purple);
+    background: #ff6b6b;
+    border-color: #ff6b6b;
   }
 }
 
@@ -495,35 +562,65 @@ onUnmounted(() => {
 .alert-item {
   display: flex;
   align-items: center;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--border-color);
+  gap: 15px;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 10px;
   cursor: pointer;
-  transition: var(--transition-fast);
+  transition: all 0.3s;
+  background: #ffffff;
+  border-left: 4px solid;
 
   &:last-child {
-    border-bottom: none;
+    margin-bottom: 0;
   }
 
   &:hover {
-    background: rgba(139, 92, 246, 0.05);
-    margin: 0 -20px;
-    padding: 12px 20px;
-    border-radius: var(--radius-sm);
+    transform: translateX(5px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   }
+
+  &.alert-expiring {
+    background: #fff3e0;
+    border-left-color: #ff9f43;
+  }
+
+  &.alert-low-stock {
+    background: #e3f2fd;
+    border-left-color: #2196f3;
+  }
+
+  &.alert-overdue {
+    background: #ffebee;
+    border-left-color: #ff6b6b;
+  }
+}
+
+.alert-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
 }
 
 .alert-content {
   flex: 1;
-  margin-left: 12px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: var(--text-primary);
+  min-width: 0;
+}
+
+.alert-title {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 5px;
 }
 
 .alert-time {
-  color: var(--text-muted);
-  font-size: 12px;
+  color: #666;
+  font-size: 13px;
 }
 
 .chart-container {
@@ -542,11 +639,12 @@ onUnmounted(() => {
   align-items: center;
   padding: 20px 12px;
   cursor: pointer;
-  border-radius: var(--radius-md);
-  transition: var(--transition-normal);
+  border-radius: 8px;
+  transition: all 0.3s;
+  background: transparent;
 
   &:hover {
-    background: rgba(139, 92, 246, 0.08);
+    background: rgba(102, 126, 234, 0.05);
     transform: translateY(-2px);
 
     .quick-entry-icon {
@@ -556,28 +654,23 @@ onUnmounted(() => {
 }
 
 .quick-entry-icon {
-  width: 56px;
-  height: 56px;
-  border-radius: var(--radius-md);
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #fff;
-  background: var(--entry-gradient);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   margin-bottom: 12px;
-  transition: var(--transition-normal);
-  background-size: 200% 200%;
-  animation: gradient-shift 3s ease infinite;
+  transition: all 0.3s;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
 }
 
 .quick-entry-name {
   font-size: 14px;
-  color: var(--text-secondary);
+  color: #666;
   text-align: center;
-}
-
-@keyframes gradient-shift {
-  0%, 100% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
+  font-weight: 500;
 }
 </style>

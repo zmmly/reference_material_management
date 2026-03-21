@@ -1,0 +1,223 @@
+// ============================================
+// 原型紫主题专属样式
+// 基于prototype.html设计风格
+// ============================================
+
+// 为原型紫主题添加特定样式
+[data-theme='prototype-purple'] {
+  // 全局背景
+  body,
+  .layout-container {
+    background: #f5f7fa !important;
+  }
+
+  // 侧边栏样式
+  .aside {
+    background: linear-gradient(180deg, #ffffff 0%, #f8f9fa 100%) !important;
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.05) !important;
+
+    &::before {
+      background: linear-gradient(180deg, rgba(102, 126, 234, 0.05) 0%, transparent 100%) !important;
+    }
+
+    .logo {
+      &::after {
+        background: linear-gradient(90deg,
+          transparent 0%,
+          rgba(102, 126, 234, 0.2) 20%,
+          rgba(102, 126, 234, 0.3) 50%,
+          rgba(102, 126, 234, 0.2) 80%,
+          transparent 100%
+        ) !important;
+      }
+
+      .logo-text {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+    }
+  }
+
+  // 菜单样式
+  .dark-menu {
+    :deep(.el-menu-item) {
+      color: #666 !important;
+
+      &:hover {
+        background: #f8f9fa !important;
+        color: #667eea !important;
+      }
+
+      &.is-active {
+        background: #f0f2ff !important;
+        color: #667eea !important;
+
+        &::before {
+          background: #667eea !important;
+          box-shadow: 0 0 8px #667eea;
+        }
+      }
+    }
+
+    :deep(.el-sub-menu__title) {
+      color: #666 !important;
+
+      &:hover {
+        background: #f8f9fa !important;
+        color: #667eea !important;
+      }
+    }
+
+    :deep(.el-sub-menu.is-active > .el-sub-menu__title) {
+      color: #667eea !important;
+
+      .el-icon {
+        color: #667eea !important;
+      }
+    }
+
+    :deep(.el-sub-menu) {
+      .el-menu {
+        background: #ffffff !important;
+
+        .el-menu-item {
+          color: #999 !important;
+
+          &::before {
+            background: #999 !important;
+          }
+
+          &:hover {
+            background: #f8f9fa !important;
+            color: #667eea !important;
+
+            &::before {
+              background: #667eea !important;
+              box-shadow: 0 0 6px #667eea;
+            }
+          }
+
+          &.is-active {
+            background: #f0f2ff !important;
+            color: #667eea !important;
+
+            &::before {
+              background: #667eea !important;
+              box-shadow: 0 0 6px #667eea;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // 头部样式
+  .header {
+    background: transparent !important;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06) !important;
+
+    &::after {
+      background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.06), transparent) !important;
+    }
+  }
+
+  .header-right {
+    .user-info {
+      color: #666 !important;
+
+      &:hover {
+        background: rgba(102, 126, 234, 0.08) !important;
+        color: #667eea !important;
+      }
+    }
+  }
+
+  // 主内容区域
+  .main {
+    background: #f5f7fa !important;
+  }
+
+  // 卡片样式
+  .el-card {
+    background: #ffffff !important;
+    border: 1px solid rgba(0, 0, 0, 0.06) !important;
+
+    :deep(.el-card__header) {
+      border-bottom: 1px solid rgba(0, 0, 0, 0.06) !important;
+    }
+  }
+
+  // 按钮样式优化
+  .el-button--primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    border: none !important;
+
+    &:hover {
+      background: linear-gradient(135deg, #5568d3 0%, #6a4190 100%) !important;
+      box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+    }
+  }
+
+  // 输入框样式
+  .el-input__wrapper,
+  .el-textarea__inner {
+    &:hover {
+      border-color: #667eea !important;
+    }
+
+    &.is-focus {
+      border-color: #667eea !important;
+      box-shadow: 0 0 0 1px rgba(102, 126, 234, 0.1) !important;
+    }
+  }
+
+  // 表格样式
+  .el-table {
+    .el-table__header th {
+      background: #f8f9fa !important;
+      color: #666 !important;
+      border-bottom: 2px solid #e0e0e0 !important;
+    }
+
+    .el-table__body tr:hover > td {
+      background: #f8f9fa !important;
+    }
+  }
+
+  // 徽章样式
+  .el-tag {
+    border-radius: 12px !important;
+    border: none !important;
+
+    &.el-tag--success {
+      background: #e3f9e5 !important;
+      color: #51cf66 !important;
+    }
+
+    &.el-tag--warning {
+      background: #fff3e0 !important;
+      color: #ff9f43 !important;
+    }
+
+    &.el-tag--danger {
+      background: #ffebee !important;
+      color: #ff6b6b !important;
+    }
+
+    &.el-tag--info {
+      background: #e3f2fd !important;
+      color: #2196f3 !important;
+    }
+  }
+}
+
+// 响应式调整
+@media (max-width: 768px) {
+  [data-theme='prototype-purple'] {
+    .aside {
+      box-shadow: none !important;
+    }
+  }
+}
