@@ -184,6 +184,23 @@
     .el-table__body tr:hover > td {
       background: #f8f9fa !important;
     }
+
+    // 单元格内容自动换行
+    .cell {
+      white-space: normal !important;
+      word-break: break-word !important;
+      overflow: visible !important;
+      text-overflow: unset !important;
+    }
+
+    // 固定列的单元格也支持换行
+    .el-table__fixed .cell,
+    .el-table__fixed-right .cell {
+      white-space: normal !important;
+      word-break: break-word !important;
+      overflow: visible !important;
+      text-overflow: unset !important;
+    }
   }
 
   // 徽章样式
