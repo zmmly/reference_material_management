@@ -19,7 +19,9 @@
             <el-table-column prop="createTime" label="创建时间" min-width="140" />
             <el-table-column label="操作" min-width="100" fixed="right">
               <template #default="{ row }">
-                <el-button link type="primary" size="small" @click="handleStart(row)">开始验收</el-button>
+                <div class="action-buttons">
+                  <el-button type="primary" size="small" @click="handleStart(row)">开始验收</el-button>
+                </div>
               </template>
             </el-table-column>
           </el-table>
@@ -43,7 +45,9 @@
             <el-table-column prop="acceptanceDate" label="验收日期" min-width="140" />
             <el-table-column label="操作" min-width="80" fixed="right">
               <template #default="{ row }">
-                <el-button link type="primary" size="small" @click="handleView(row)">查看</el-button>
+                <div class="action-buttons">
+                  <el-button type="primary" size="small" @click="handleView(row)">查看</el-button>
+                </div>
               </template>
             </el-table-column>
           </el-table>
