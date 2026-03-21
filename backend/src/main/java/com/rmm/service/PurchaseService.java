@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @Service
@@ -69,10 +70,42 @@ public class PurchaseService {
             purchase.setUnit("支");
         }
 
+        // 生成采购申请单号
+        if (purchase.getPurchaseNo() == null || purchase.getPurchaseNo().isEmpty()) {
+            purchase.setPurchaseNo(generatePurchaseNo());
+        }
+
         purchase.setApplicantId(applicantId);
         purchase.setApplyTime(LocalDateTime.now());
         purchase.setStatus(0);
         purchaseMapper.insert(purchase);
+    }
+
+    /**
+     * 生成采购申请单号
+     * 规则：CG + 年月日 + 4位流水号
+     * 示例：CG202603220001
+     */
+    private String generatePurchaseNo() {
+        String today = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+
+        // 查询今日最大的单号
+        LambdaQueryWrapper<Purchase> wrapper = new LambdaQueryWrapper<>();
+        wrapper.likeRight(Purchase::getPurchaseNo, "CG" + today)
+               .orderByDesc(Purchase::getPurchaseNo)
+               .last("LIMIT 1");
+
+        Purchase lastPurchase = purchaseMapper.selectOne(wrapper);
+
+        int sequence = 1;
+        if (lastPurchase != null && lastPurchase.getPurchaseNo() != null) {
+            String lastNo = lastPurchase.getPurchaseNo();
+            // 从 CG202603220001 提取 0001
+            String lastSequence = lastNo.substring(12);
+            sequence = Integer.parseInt(lastSequence) + 1;
+        }
+
+        return String.format("CG%s%04d", today, sequence);
     }
 
     @Transactional
@@ -114,20 +147,6 @@ public class PurchaseService {
         }
 
         purchase.setStatus(3);
-        purchaseMapper.updateById(purchase);
-    }
-
-    @Transactional
-    public void markArrived(Long id) {
-        Purchase purchase = purchaseMapper.selectById(id);
-        if (purchase == null) {
-            throw new BusinessException("采购申请不存在");
-        }
-        if (purchase.getStatus() != 1) {
-            throw new BusinessException("只能标记已通过的申请为到货");
-        }
-
-        purchase.setStatus(4);
         purchaseMapper.updateById(purchase);
     }
 

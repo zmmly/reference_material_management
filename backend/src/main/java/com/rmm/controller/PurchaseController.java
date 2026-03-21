@@ -4,6 +4,7 @@ import com.rmm.common.PageResult;
 import com.rmm.common.Result;
 import com.rmm.entity.Purchase;
 import com.rmm.service.PurchaseService;
+import com.rmm.service.PurchaseAcceptanceService;
 import com.rmm.util.JwtUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 public class PurchaseController {
 
     private final PurchaseService purchaseService;
+    private final PurchaseAcceptanceService acceptanceService;
     private final JwtUtil jwtUtil;
 
     @GetMapping
@@ -70,7 +72,7 @@ public class PurchaseController {
 
     @PutMapping("/{id}/arrive")
     public Result<Void> markArrived(@PathVariable Long id) {
-        purchaseService.markArrived(id);
+        acceptanceService.createAcceptance(id);
         return Result.success();
     }
 }

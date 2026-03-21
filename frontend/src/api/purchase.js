@@ -25,5 +25,5 @@ export function cancelPurchase(id) {
 }
 
 export function receivePurchase(id) {
-  return request.put(`/purchase/${id}/receive`)
+  return request.put(`/purchase/${id}/arrive`)
 }

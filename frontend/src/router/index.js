@@ -35,6 +35,7 @@ const routes = [
       { path: 'stock-out/apply', name: 'StockOutApply', component: () => import('@/views/stock-out/apply.vue') },
       // 采购管理
       { path: 'purchase', name: 'Purchase', component: () => import('@/views/purchase/index.vue') },
+      { path: 'purchase-acceptance', name: 'PurchaseAcceptance', component: () => import('@/views/purchase-acceptance/index.vue') },
       // 盘点管理
       { path: 'stock-check', name: 'StockCheck', component: () => import('@/views/stock-check/index.vue') },
       // 预警中心

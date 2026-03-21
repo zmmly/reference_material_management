@@ -5,6 +5,7 @@
         <el-tab-pane label="我的申请" name="my">
           <el-button type="primary" style="margin-bottom: 16px" @click="handleAdd">新建采购申请</el-button>
           <el-table :data="myApplications" v-loading="loading" border>
+            <el-table-column prop="purchaseNo" label="采购单号" width="150" />
             <el-table-column prop="applicantName" label="申请人" width="100" />
             <el-table-column prop="materialName" label="标准物质" />
             <el-table-column prop="specification" label="规格" width="120" />
@@ -300,14 +301,14 @@ const confirmReject = async () => {
 }
 
 const handleReceive = async (row) => {
-  await ElMessageBox.confirm('确定该采购已到货？将自动生成入库记录')
+  await ElMessageBox.confirm('确定该采购已到货？将自动生成验货申请单。')
   await receivePurchase(row.id)
-  ElMessage.success('已确认到货')
+  ElMessage.success('已生成验收申请单')
   fetchData()
 }
 
-const statusType = (s) => ({ 0: 'warning', 1: 'success', 2: 'danger', 3: 'info', 4: 'primary' }[s] || 'info')
-const statusText = (s) => ({ 0: '待审批', 1: '已通过', 2: '已拒绝', 3: '已撤回', 4: '已到货' }[s] || '未知')
+const statusType = (s) => ({ 0: 'warning', 1: 'success', 2: 'danger', 3: 'info', 4: 'primary', 6: 'success', 7: 'danger' }[s] || 'info')
+const statusText = (s) => ({ 0: '待审批', 1: '已通过', 2: '已拒绝', 3: '已撤回', 4: '待验收', 6: '验收通过', 7: '验收拒绝' }[s] || '未知')
 
 onMounted(() => {
   fetchData()

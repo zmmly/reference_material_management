@@ -44,6 +44,7 @@
             <span>采购管理</span>
           </template>
           <el-menu-item index="/purchase">采购申请</el-menu-item>
+          <el-menu-item index="/purchase-acceptance">采购验收</el-menu-item>
         </el-sub-menu>
 
         <el-sub-menu index="check" v-if="canAccess('check')">

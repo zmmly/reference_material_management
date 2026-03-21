@@ -11,6 +11,7 @@ import java.time.LocalDateTime;
 public class Purchase {
     @TableId(type = IdType.AUTO)
     private Long id;
+    private String purchaseNo;
     private Long materialId;
     private String specification;
     private String batchNumber;
