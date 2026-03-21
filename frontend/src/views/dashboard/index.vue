@@ -175,6 +175,13 @@ const fetchTodos = async () => {
       },
       {
         id: 2,
+        title: `待审批采购请求：${allPurchases.filter(p => p.status === 1).length}项`,
+        type: 'primary',
+        time: null,
+        route: '/purchase'
+      },
+      {
+        id: 3,
         title: `待处理预警：${alertList.value.length}项`,
         type: 'danger',
         time: alertList.value.length > 0 ? alertList.value[0]?.createTime : null,
