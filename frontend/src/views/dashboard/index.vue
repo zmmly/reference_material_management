@@ -102,6 +102,7 @@ import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { getDashboardSummary, getCategoryStats, getExpiryStats } from '@/api/report'
 import { getAlertList, getAlertStats } from '@/api/alert'
+import { getAllPurchaseList } from '@/api/purchase'
 import * as echarts from 'echarts'
 
 const router = useRouter()
@@ -147,6 +148,39 @@ const fetchAlerts = async () => {
   try {
     const res = await getAlertList({ status: 0 })
     alertList.value = (res.data || []).slice(0, 5)
+  } catch (e) {}
+}
+
+const fetchTodos = async () => {
+  try {
+    // 获取待审批和待处理的采购申请
+    const res = await getAllPurchaseList({ current: 1, size: 10 })
+    const allPurchases = res.data?.records || []
+
+    // 待办事项配置
+    todoList.value = [
+      {
+        id: 1,
+        title: `待审批采购申请：${allPurchases.filter(p => p.status === 0).length}项`,
+        type: 'warning',
+        time: null,
+        route: '/purchase'
+      },
+      {
+        id: 2,
+        title: `待确认到货：${allPurchases.filter(p => p.status === 1).length}项`,
+        type: 'primary',
+        time: null,
+        route: '/purchase'
+      },
+      {
+        id: 3,
+        title: `待处理预警：${alertList.value.length}项`,
+        type: 'danger',
+        time: alertList.value.length > 0 ? alertList.value[0]?.createTime : null,
+        route: '/alert'
+      }
+    ]
   } catch (e) {}
 }
 
@@ -324,6 +358,7 @@ onMounted(() => {
   fetchAlerts()
   window.addEventListener('resize', handleResize)
   nextTick(() => {
+    fetchTodos()
     fetchCategoryStats()
     fetchExpiryStats()
   })
