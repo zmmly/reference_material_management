@@ -34,6 +34,13 @@ public class SecurityConfig {
                 // 文件预览接口 - 无需认证
                 auth.requestMatchers("/api/upload/preview").permitAll();
 
+                // 首页统计API - 无需认证
+                auth.requestMatchers("/api/dashboard/**").permitAll();
+                // 预警API - 无需认证
+                auth.requestMatchers("/api/alerts/**").permitAll();
+                // 采购申请列表API - 无需认证
+                auth.requestMatchers("/api/purchase/all").permitAll();
+
                 // Knife4j API文档路径 - 仅在启用时开放
                 if (swaggerEnabled) {
                     auth.requestMatchers("/doc.html").permitAll()
