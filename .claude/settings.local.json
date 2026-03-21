@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(docker exec:*)",
+      "Bash(curl:*)",
+      "Bash(java:*)",
+      "Bash(mvn:*)",
+      "Bash(mysql:*)",
+      "Bash(find:*)",
+      "Bash(netstat:*)",
+      "Bash(ls:*)",
+      "Bash(tasklist:*)",
+      "Bash(wmic process:*)",
+      "Bash(dir:*)"
+    ]
+  }
+}

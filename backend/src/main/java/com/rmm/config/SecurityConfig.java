@@ -34,8 +34,7 @@ public class SecurityConfig {
                 // 文件预览接口 - 无需认证
                 auth.requestMatchers("/api/upload/preview").permitAll();
 
-                // 首页统计API - 无需认证
-                auth.requestMatchers("/api/dashboard/**").permitAll();
+                // 首页统计API - 需要认证
                 // 预警API - 无需认证
                 auth.requestMatchers("/api/alerts/**").permitAll();
                 // 采购申请列表API - 无需认证

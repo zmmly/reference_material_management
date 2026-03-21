@@ -4,6 +4,10 @@ export function getDashboardSummary() {
   return request.get('/reports/dashboard/summary')
 }
 
+export function getDashboardTodoItems() {
+  return request.get('/reports/dashboard/todo-items')
+}
+
 export function getCategoryStats() {
   return request.get('/reports/dashboard/category-stats')
 }

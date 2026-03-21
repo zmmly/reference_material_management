@@ -19,6 +19,11 @@ public class DashboardController {
         return Result.success(dashboardService.getStats());
     }
 
+    @GetMapping("/todo-items")
+    public Result<Map<String, Object>> getTodoItems() {
+        return Result.success(dashboardService.getTodoItems());
+    }
+
     @GetMapping("/expiry-stats")
     public Result<Map<String, Object>> getExpiryStats() {
         return Result.success(dashboardService.getExpiryStats());

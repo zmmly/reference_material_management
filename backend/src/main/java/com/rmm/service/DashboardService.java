@@ -89,4 +89,28 @@ public class DashboardService {
 
         return result;
     }
+
+    public Map<String, Object> getTodoItems() {
+        Map<String, Object> result = new HashMap<>();
+
+        // 待审批采购申请数量
+        long pendingPurchaseCount = purchaseMapper.selectCount(
+            new LambdaQueryWrapper<Purchase>().eq(Purchase::getStatus, 0)
+        );
+        result.put("pendingPurchaseCount", (int) pendingPurchaseCount);
+
+        // 已通过待确认数量
+        long approvedPurchaseCount = purchaseMapper.selectCount(
+            new LambdaQueryWrapper<Purchase>().eq(Purchase::getStatus, 1)
+        );
+        result.put("approvedPurchaseCount", (int) approvedPurchaseCount);
+
+        // 待处理预警数量（status=0）
+        long alertCount = alertRecordMapper.selectCount(
+            new LambdaQueryWrapper<AlertRecord>().eq(AlertRecord::getStatus, 0)
+        );
+        result.put("alertCount", (int) alertCount);
+
+        return result;
+    }
 }

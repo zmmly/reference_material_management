@@ -41,13 +41,13 @@
           <template #header>
             <div class="card-header">
               <span class="card-title">📋 待办事项</span>
-              <el-badge :value="todoList.length" class="header-badge" />
+              <el-badge :value="totalTodoCount" class="header-badge" />
             </div>
           </template>
           <el-timeline v-if="todoList.length > 0">
             <el-timeline-item v-for="item in todoList" :key="item.id"
               :type="item.type" :timestamp="item.time" placement="top">
-              <div class="todo-item" @click="handleTodoClick(item)">
+              <div class="todo-item" @click="item.route && router.push(item.route)">
                 {{ item.title }}
               </div>
             </el-timeline-item>
@@ -64,7 +64,7 @@
             </div>
           </template>
           <div v-if="alertList.length > 0" class="alert-list">
-            <div v-for="alert in alertList" :key="alert.id" class="alert-item" @click="goToAlert">
+            <div v-for="alert in alertList" :key="alert.id" class="alert-item" @click="router.push('/alert')">
               <el-tag :type="levelType(alert.level)" size="small">{{ levelText(alert.level) }}</el-tag>
               <span class="alert-content">{{ alert.content }}</span>
               <span class="alert-time">{{ formatTime(alert.createTime) }}</span>
@@ -98,11 +98,10 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { getDashboardSummary, getCategoryStats, getExpiryStats } from '@/api/report'
-import { getAlertList, getAlertStats } from '@/api/alert'
-import { getAllPurchaseList } from '@/api/purchase'
+import { getDashboardSummary, getCategoryStats, getExpiryStats, getDashboardTodoItems } from '@/api/report'
+import { getAlertList } from '@/api/alert'
 import * as echarts from 'echarts'
 
 const router = useRouter()
@@ -115,6 +114,11 @@ const summary = ref({ totalStock: 0, totalMaterials: 0, monthIn: 0, monthOut: 0 
 const alertStats = ref({ total: 0, expiry: 0, stockLow: 0, unused: 0 })
 const alertList = ref([])
 const todoList = ref([])
+const todoData = ref({ pendingPurchaseCount: 0, approvedPurchaseCount: 0, alertCount: 0 })
+
+const totalTodoCount = computed(() => {
+  return (todoData.value.pendingPurchaseCount + todoData.value.approvedPurchaseCount + todoData.value.alertCount)
+})
 
 const statCards = ref([
   { label: '库存总数', value: 0, icon: 'Box', gradient: 'linear-gradient(135deg, #8b5cf6, #3b82f6)', route: '/stock' },
@@ -141,7 +145,49 @@ const fetchData = async () => {
     statCards.value[1].value = summary.value.totalMaterials || 0
     statCards.value[2].value = summary.value.monthIn || 0
     statCards.value[3].value = summary.value.monthOut || 0
-  } catch (e) {}
+  } catch (e) {
+    console.error('获取统计信息失败:', e)
+  }
+}
+
+const fetchTodoItems = async () => {
+  try {
+    console.log('开始获取待办事项数据...')
+    const res = await getDashboardTodoItems()
+    console.log('待办事项API响应:', res)
+
+    if (res.code === 200 && res.data) {
+      todoData.value = res.data
+      console.log('待办事项数据:', todoData.value)
+
+      todoList.value = [
+        {
+          id: 1,
+          title: `待审批采购申请：${todoData.value.pendingPurchaseCount}项`,
+          type: 'warning',
+          time: null,
+          route: '/purchase'
+        },
+        {
+          id: 2,
+          title: `待确认到货：${todoData.value.approvedPurchaseCount}项`,
+          type: 'primary',
+          time: null,
+          route: '/purchase'
+        },
+        {
+          id: 3,
+          title: `待处理预警：${todoData.value.alertCount}项`,
+          type: 'danger',
+          time: alertList.value.length > 0 ? alertList.value[0]?.createTime : null,
+          route: '/alert'
+        }
+      ]
+      console.log('待办事项列表:', todoList.value)
+    }
+  } catch (e) {
+    console.error('获取待办事项失败:', e)
+  }
 }
 
 const fetchAlerts = async () => {
@@ -158,54 +204,6 @@ const fetchAlerts = async () => {
     console.log('预警列表:', alertList.value)
   } catch (e) {
     console.error('获取预警数据失败:', e)
-    console.error('错误详情:', e.message)
-  }
-}
-
-const fetchTodos = async () => {
-  try {
-    console.log('开始获取待办事项... alertList长度:', alertList.value.length)
-
-    // 获取待审批的采购申请
-    const res = await getAllPurchaseList({ current: 1, size: 10 })
-    console.log('采购申请API响应:', res)
-
-    const allPurchases = res.data?.records || []
-    console.log('采购申请数据:', allPurchases)
-    console.log('采购申请总数:', allPurchases.length)
-    console.log('待审批数量:', allPurchases.filter(p => p.status === 0).length)
-    console.log('已通过数量:', allPurchases.filter(p => p.status === 1).length)
-
-    // 待办事项配置
-    const pendingPurchases = allPurchases.filter(p => p.status === 0)
-
-    todoList.value = [
-      {
-        id: 1,
-        title: `待审批采购申请：${pendingPurchases.length}项`,
-        type: 'warning',
-        time: pendingPurchases.length > 0 ? pendingPurchases[0]?.applyTime : null,
-        route: '/purchase'
-      },
-      {
-        id: 2,
-        title: `待确认到货：${pendingPurchases.length}项`,
-        type: 'primary',
-        time: pendingPurchases.length > 0 ? pendingPurchases[0]?.applyTime : null,
-        route: '/purchase'
-      },
-      {
-        id: 3,
-        title: `待处理预警：${alertList.value.length}项`,
-        type: 'danger',
-        time: alertList.value.length > 0 ? alertList.value[0]?.createTime : null,
-        route: '/alert'
-      }
-    ]
-    console.log('待办事项列表:', todoList.value)
-  } catch (e) {
-    console.error('获取待办事项失败:', e)
-    console.error('错误详情:', e.message)
   }
 }
 
@@ -226,7 +224,6 @@ const fetchExpiryStats = async () => {
 const renderCategoryChart = (data) => {
   if (!categoryChartRef.value) return
 
-  // 销毁旧图表
   if (categoryChart) {
     categoryChart.dispose()
   }
@@ -294,7 +291,6 @@ const renderCategoryChart = (data) => {
 const renderExpiryChart = (data) => {
   if (!expiryChartRef.value) return
 
-  // 销毁旧图表
   if (expiryChart) {
     expiryChart.dispose()
   }
@@ -364,7 +360,6 @@ const renderExpiryChart = (data) => {
   expiryChart.setOption(option)
 }
 
-// 窗口大小变化时重新调整图表
 const handleResize = () => {
   categoryChart?.resize()
   expiryChart?.resize()
@@ -381,11 +376,9 @@ const formatTime = (t) => t ? t.substring(0, 10) : ''
 onMounted(async () => {
   window.addEventListener('resize', handleResize)
   nextTick(async () => {
-    // 按顺序执行异步函数
     await fetchData()
     await fetchAlerts()
-    console.log('fetchAlerts完成，alertList长度:', alertList.value.length)
-    await fetchTodos()
+    await fetchTodoItems()
     await fetchCategoryStats()
     await fetchExpiryStats()
   })
@@ -580,7 +573,6 @@ onUnmounted(() => {
   text-align: center;
 }
 
-// 动画
 @keyframes gradient-shift {
   0%, 100% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }
