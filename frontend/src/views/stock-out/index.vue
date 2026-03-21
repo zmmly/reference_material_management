@@ -5,19 +5,19 @@
         <el-tab-pane label="我的申请" name="my">
           <el-table :data="myApplications" v-loading="loading" border>
             <el-table-column prop="materialName" label="标准物质" />
-            <el-table-column prop="stockInternalCode" label="内部编码" width="120" />
-            <el-table-column prop="quantity" label="申请数量" width="100" />
-            <el-table-column prop="reason" label="出库原因" width="100">
+            <el-table-column prop="stockInternalCode" label="内部编码" min-width="100" />
+            <el-table-column prop="quantity" label="申请数量" min-width="80" />
+            <el-table-column prop="reason" label="出库原因" min-width="80">
               <template #default="{ row }">{{ reasonText(row.reason) }}</template>
             </el-table-column>
             <el-table-column prop="purpose" label="用途说明" />
-            <el-table-column prop="status" label="状态" width="100">
+            <el-table-column prop="status" label="状态" min-width="80">
               <template #default="{ row }">
                 <el-tag :type="statusType(row.status)">{{ statusText(row.status) }}</el-tag>
               </template>
             </el-table-column>
-            <el-table-column prop="applyTime" label="申请时间" width="160" />
-            <el-table-column label="操作" width="100" fixed="right">
+            <el-table-column prop="applyTime" label="申请时间" min-width="140" />
+            <el-table-column label="操作" min-width="100" fixed="right">
               <template #default="{ row }">
                 <div class="action-buttons">
                   <el-button v-if="row.status === 0" link type="warning" size="small" @click="handleCancel(row)">撤回</el-button>
@@ -28,16 +28,16 @@
         </el-tab-pane>
         <el-tab-pane label="待审批" name="pending" v-if="canApprove">
           <el-table :data="pendingList" v-loading="loading" border>
-            <el-table-column prop="applicantName" label="申请人" width="100" />
+            <el-table-column prop="applicantName" label="申请人" min-width="80" />
             <el-table-column prop="materialName" label="标准物质" />
-            <el-table-column prop="stockInternalCode" label="内部编码" width="120" />
-            <el-table-column prop="quantity" label="申请数量" width="100" />
-            <el-table-column prop="reason" label="出库原因" width="100">
+            <el-table-column prop="stockInternalCode" label="内部编码" min-width="100" />
+            <el-table-column prop="quantity" label="申请数量" min-width="80" />
+            <el-table-column prop="reason" label="出库原因" min-width="80">
               <template #default="{ row }">{{ reasonText(row.reason) }}</template>
             </el-table-column>
             <el-table-column prop="purpose" label="用途说明" />
-            <el-table-column prop="applyTime" label="申请时间" width="160" />
-            <el-table-column label="操作" width="180" fixed="right">
+            <el-table-column prop="applyTime" label="申请时间" min-width="140" />
+            <el-table-column label="操作" min-width="150" fixed="right">
               <template #default="{ row }">
                 <div class="action-buttons">
                   <el-button link type="success" size="small" @click="handleApprove(row, true)">通过</el-button>

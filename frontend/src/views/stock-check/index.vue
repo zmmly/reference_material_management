@@ -50,7 +50,7 @@
             <span>{{ row.checkerName || '-' }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="completeTime" label="完成时间" width="160">
+        <el-table-column prop="completeTime" label="完成时间" min-width="140">
           <template #default="{ row }">
             <span>{{ row.completeTime ? formatDateTime(row.completeTime) : '-' }}</span>
           </template>

@@ -17,13 +17,13 @@
       </el-form>
 
       <el-table :data="tableData" v-loading="loading" border>
-        <el-table-column prop="code" label="编号" width="140" />
+        <el-table-column prop="code" label="编号" min-width="120" />
         <el-table-column prop="name" label="名称" min-width="180" />
-        <el-table-column prop="casNumber" label="CAS号" width="130" />
-        <el-table-column prop="categoryName" label="分类" width="120" />
-        <el-table-column prop="specification" label="规格" width="100" />
-        <el-table-column prop="purityConcentration" label="纯度/浓度" width="100" />
-        <el-table-column label="操作" width="180" fixed="right">
+        <el-table-column prop="casNumber" label="CAS号" min-width="110" />
+        <el-table-column prop="categoryName" label="分类" min-width="100" />
+        <el-table-column prop="specification" label="规格" min-width="80" />
+        <el-table-column prop="purityConcentration" label="纯度/浓度" min-width="80" />
+        <el-table-column label="操作" min-width="150" fixed="right">
           <template #default="{ row }">
             <div class="action-buttons">
               <el-button link type="primary" size="small" @click="handleEdit(row)">编辑</el-button>
