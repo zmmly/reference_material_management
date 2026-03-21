@@ -60,7 +60,7 @@
           <template #header>
             <div class="card-header">
               <span class="card-title">⚠️ 预警信息</span>
-              <el-badge :value="alertList.length" type="danger" class="header-badge" />
+              <el-badge :value="alertTotal" type="danger" class="header-badge" />
             </div>
           </template>
           <div v-if="alertList.length > 0" class="alert-list">
@@ -113,6 +113,7 @@ let expiryChart = null
 const summary = ref({ totalStock: 0, totalMaterials: 0, monthIn: 0, monthOut: 0 })
 const alertStats = ref({ total: 0, expiry: 0, stockLow: 0, unused: 0 })
 const alertList = ref([])
+const alertTotal = ref(0)
 const todoList = ref([])
 const todoData = ref({ pendingPurchaseCount: 0, approvedPurchaseCount: 0, alertCount: 0 })
 
@@ -200,6 +201,8 @@ const fetchAlerts = async () => {
 
     const alerts = res.data || []
     alertList.value = alerts.slice(0, 5)
+    alertTotal.value = alerts.length
+    console.log('预警总数:', alertTotal.value)
     console.log('预警列表长度:', alertList.value.length)
     console.log('预警列表:', alertList.value)
   } catch (e) {
