@@ -376,14 +376,16 @@ const levelType = (l) => ({ 1: 'info', 2: 'warning', 3: 'danger' }[l] || 'info')
 const levelText = (l) => ({ 1: '普通', 2: '重要', 3: '紧急' }[l] || '普通')
 const formatTime = (t) => t ? t.substring(0, 10) : ''
 
-onMounted(() => {
+onMounted(async () => {
   window.addEventListener('resize', handleResize)
-  nextTick(() => {
-    fetchData()
-    fetchAlerts()
-    fetchTodos()
-    fetchCategoryStats()
-    fetchExpiryStats()
+  nextTick(async () => {
+    // 按顺序执行异步函数
+    await fetchData()
+    await fetchAlerts()
+    console.log('fetchAlerts完成，alertList长度:', alertList.value.length)
+    await fetchTodos()
+    await fetchCategoryStats()
+    await fetchExpiryStats()
   })
 })
 
