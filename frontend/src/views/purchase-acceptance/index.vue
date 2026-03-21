@@ -4,20 +4,20 @@
       <el-tabs v-model="activeTab">
         <el-tab-pane label="待验收" name="pending">
           <el-table :data="pendingList" v-loading="loading" border>
-            <el-table-column prop="purchaseNo" label="采购单号" width="150" />
+            <el-table-column prop="purchaseNo" label="采购单号" min-width="130" />
             <el-table-column prop="materialName" label="标准物质" />
-            <el-table-column prop="specification" label="规格" width="120" />
-            <el-table-column prop="batchNumber" label="批号" width="120" />
-            <el-table-column prop="quantity" label="数量" width="80" />
-            <el-table-column prop="unit" label="单位" width="80" />
-            <el-table-column prop="supplierName" label="供应商" width="150" />
-            <el-table-column prop="acceptanceResultText" label="验收状态" width="100">
+            <el-table-column prop="specification" label="规格" min-width="100" />
+            <el-table-column prop="batchNumber" label="批号" min-width="100" />
+            <el-table-column prop="quantity" label="数量" min-width="70" />
+            <el-table-column prop="unit" label="单位" min-width="60" />
+            <el-table-column prop="supplierName" label="供应商" min-width="120" />
+            <el-table-column prop="acceptanceResultText" label="验收状态" min-width="80">
               <template #default="{ row }">
                 <el-tag :type="statusType(row.acceptanceResult)">{{ row.acceptanceResultText }}</el-tag>
               </template>
             </el-table-column>
-            <el-table-column prop="createTime" label="创建时间" width="160" />
-            <el-table-column label="操作" width="150" fixed="right">
+            <el-table-column prop="createTime" label="创建时间" min-width="140" />
+            <el-table-column label="操作" min-width="100" fixed="right">
               <template #default="{ row }">
                 <el-button link type="primary" size="small" @click="handleStart(row)">开始验收</el-button>
               </template>
@@ -27,21 +27,21 @@
 
         <el-tab-pane label="验收记录" name="history">
           <el-table :data="historyList" v-loading="loading" border>
-            <el-table-column prop="purchaseNo" label="采购单号" width="150" />
+            <el-table-column prop="purchaseNo" label="采购单号" min-width="130" />
             <el-table-column prop="materialName" label="标准物质" />
-            <el-table-column prop="specification" label="规格" width="120" />
-            <el-table-column prop="batchNumber" label="批号" width="120" />
-            <el-table-column prop="quantity" label="数量" width="80" />
-            <el-table-column prop="unit" label="单位" width="80" />
-            <el-table-column prop="supplierName" label="供应商" width="150" />
-            <el-table-column prop="acceptanceResultText" label="验收状态" width="100">
+            <el-table-column prop="specification" label="规格" min-width="100" />
+            <el-table-column prop="batchNumber" label="批号" min-width="100" />
+            <el-table-column prop="quantity" label="数量" min-width="70" />
+            <el-table-column prop="unit" label="单位" min-width="60" />
+            <el-table-column prop="supplierName" label="供应商" min-width="120" />
+            <el-table-column prop="acceptanceResultText" label="验收状态" min-width="80">
               <template #default="{ row }">
                 <el-tag :type="statusType(row.acceptanceResult)">{{ row.acceptanceResultText }}</el-tag>
               </template>
             </el-table-column>
-            <el-table-column prop="acceptanceUserName" label="验收人" width="100" />
-            <el-table-column prop="acceptanceDate" label="验收日期" width="160" />
-            <el-table-column label="操作" width="100" fixed="right">
+            <el-table-column prop="acceptanceUserName" label="验收人" min-width="80" />
+            <el-table-column prop="acceptanceDate" label="验收日期" min-width="140" />
+            <el-table-column label="操作" min-width="80" fixed="right">
               <template #default="{ row }">
                 <el-button link type="primary" size="small" @click="handleView(row)">查看</el-button>
               </template>

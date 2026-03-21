@@ -19,17 +19,17 @@
 
       <el-table :data="tableData" v-loading="loading" border>
         <el-table-column prop="name" label="供应商名称" min-width="180" />
-        <el-table-column prop="contact" label="联系人" width="120" />
-        <el-table-column prop="phone" label="联系电话" width="140" />
+        <el-table-column prop="contact" label="联系人" min-width="100" />
+        <el-table-column prop="phone" label="联系电话" min-width="120" />
         <el-table-column prop="address" label="地址" min-width="200" />
-        <el-table-column prop="status" label="状态" width="80">
+        <el-table-column prop="status" label="状态" min-width="70">
           <template #default="{ row }">
             <el-tag :type="row.status === 1 ? 'success' : 'danger'">
               {{ row.status === 1 ? '启用' : '禁用' }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="180" fixed="right">
+        <el-table-column label="操作" min-width="150" fixed="right">
           <template #default="{ row }">
             <div class="action-buttons">
               <el-button type="primary" size="small" @click="handleEdit(row)">编辑</el-button>

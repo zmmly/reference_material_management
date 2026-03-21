@@ -10,10 +10,10 @@
       <el-button type="primary" style="margin-bottom: 16px" @click="handleAdd">新增</el-button>
 
       <el-table :data="tableData" v-loading="loading" border>
-        <el-table-column prop="code" label="编码" width="120" />
+        <el-table-column prop="code" label="编码" min-width="100" />
         <el-table-column prop="name" label="名称" />
-        <el-table-column prop="sortOrder" label="排序" width="80" />
-        <el-table-column label="操作" width="100" fixed="right">
+        <el-table-column prop="sortOrder" label="排序" min-width="70" />
+        <el-table-column label="操作" min-width="100" fixed="right">
           <template #default="{ row }">
             <div class="action-buttons">
               <el-button link type="primary" size="small" @click="handleEdit(row)">编辑</el-button>

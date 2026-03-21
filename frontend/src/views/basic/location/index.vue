@@ -12,12 +12,12 @@
       </el-form>
 
       <el-table :data="tableData" v-loading="loading" border>
-        <el-table-column prop="code" label="位置编码" width="120" />
+        <el-table-column prop="code" label="位置编码" min-width="100" />
         <el-table-column prop="name" label="位置名称" />
-        <el-table-column prop="temperature" label="温度要求" width="100" />
-        <el-table-column prop="capacity" label="容量" width="80" />
+        <el-table-column prop="temperature" label="温度要求" min-width="90" />
+        <el-table-column prop="capacity" label="容量" min-width="70" />
         <el-table-column prop="description" label="描述" />
-        <el-table-column label="操作" width="100" fixed="right">
+        <el-table-column label="操作" min-width="100" fixed="right">
           <template #default="{ row }">
             <div class="action-buttons">
               <el-button link type="primary" size="small" @click="handleEdit(row)">编辑</el-button>

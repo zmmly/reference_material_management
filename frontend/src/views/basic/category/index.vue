@@ -7,7 +7,7 @@
 
       <el-table :data="tableData" v-loading="loading" row-key="id" border default-expand-all>
         <el-table-column prop="name" label="分类名称" />
-        <el-table-column label="操作" width="280" fixed="right">
+        <el-table-column label="操作" min-width="200" fixed="right">
           <template #default="{ row }">
             <div class="action-buttons">
               <el-button link type="primary" size="small" @click="handleAdd(row)">添加子级</el-button>

@@ -38,7 +38,7 @@
       </el-form>
 
       <el-table :data="tableData" v-loading="loading" border>
-        <el-table-column prop="type" label="预警类型" width="120">
+        <el-table-column prop="type" label="预警类型" min-width="100">
           <template #default="{ row }">
             <el-tag :type="typeTag(row.type)">{{ typeText(row.type) }}</el-tag>
           </template>
@@ -49,30 +49,30 @@
             {{ row.internalCodes || row.internalCode || '-' }}
           </template>
         </el-table-column>
-        <el-table-column prop="locationName" label="存放位置" width="120">
+        <el-table-column prop="locationName" label="存放位置" min-width="100">
           <template #default="{ row }">
             {{ row.locationName || '-' }}
           </template>
         </el-table-column>
         <el-table-column prop="content" label="预警内容" />
-        <el-table-column prop="level" label="级别" width="80">
+        <el-table-column prop="level" label="级别" min-width="70">
           <template #default="{ row }">
             <el-tag :type="levelType(row.level)" effect="dark" size="small">
               {{ levelText(row.level) }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="status" label="状态" width="80">
+        <el-table-column prop="status" label="状态" min-width="70">
           <template #default="{ row }">
             <el-tag :type="statusType(row.status)">{{ statusText(row.status) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="createTime" label="预警时间" width="160">
+        <el-table-column prop="createTime" label="预警时间" min-width="150">
           <template #default="{ row }">
             {{ row.createTime ? row.createTime.replace('T', ' ') : '-' }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="180" fixed="right">
+        <el-table-column label="操作" min-width="120" fixed="right">
           <template #default="{ row }">
             <div class="action-buttons">
               <template v-if="row.status === 0">
