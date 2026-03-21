@@ -40,6 +40,9 @@ public class SecurityConfig {
                 // 采购申请列表API - 无需认证
                 auth.requestMatchers("/api/purchase/all").permitAll();
 
+                // 待办事项API - 无需认证
+                auth.requestMatchers("/api/reports/dashboard/**").permitAll();
+
                 // Knife4j API文档路径 - 仅在启用时开放
                 if (swaggerEnabled) {
                     auth.requestMatchers("/doc.html").permitAll()
