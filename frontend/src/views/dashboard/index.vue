@@ -149,20 +149,32 @@ const fetchAlerts = async () => {
     console.log('开始获取预警数据...')
     const res = await getAlertList({ status: 0 })
     console.log('预警数据响应:', res)
-    alertList.value = (res.data || []).slice(0, 5)
+    console.log('响应码:', res?.code)
+    console.log('响应数据:', res?.data)
+
+    const alerts = res.data || []
+    alertList.value = alerts.slice(0, 5)
+    console.log('预警列表长度:', alertList.value.length)
     console.log('预警列表:', alertList.value)
   } catch (e) {
     console.error('获取预警数据失败:', e)
+    console.error('错误详情:', e.message)
   }
 }
 
 const fetchTodos = async () => {
   try {
     console.log('开始获取待办事项... alertList长度:', alertList.value.length)
+
     // 获取待审批的采购申请
     const res = await getAllPurchaseList({ current: 1, size: 10 })
+    console.log('采购申请API响应:', res)
+
     const allPurchases = res.data?.records || []
     console.log('采购申请数据:', allPurchases)
+    console.log('采购申请总数:', allPurchases.length)
+    console.log('待审批数量:', allPurchases.filter(p => p.status === 0).length)
+    console.log('已通过数量:', allPurchases.filter(p => p.status === 1).length)
 
     // 待办事项配置
     todoList.value = [
@@ -191,6 +203,7 @@ const fetchTodos = async () => {
     console.log('待办事项列表:', todoList.value)
   } catch (e) {
     console.error('获取待办事项失败:', e)
+    console.error('错误详情:', e.message)
   }
 }
 
