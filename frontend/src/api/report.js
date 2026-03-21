@@ -5,7 +5,7 @@ export function getDashboardSummary() {
 }
 
 export function getDashboardTodoItems() {
-  return request.get('/reports/dashboard/todo-items')
+  return request.get('/api/dashboard/todo-items')
 }
 
 export function getCategoryStats() {
