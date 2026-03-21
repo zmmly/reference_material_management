@@ -1,8 +1,12 @@
 // 引入深色主题和主题系统（@use必须在最前面）
 @use './dark-theme.scss';
 @use './themes/index.scss';
+@use './design-system.scss';
+@use './typography.scss';
+@use './form-elements.scss';
 @use './table-actions.scss';
 @use './prototype-theme.scss';
+@use './animations.scss';
 
 * {
   margin: 0;

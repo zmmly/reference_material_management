@@ -450,24 +450,31 @@ onUnmounted(() => {
 </script>
 
 <style lang="scss" scoped>
+@use '@/styles/design-system' as *;
+
 .dashboard {
   padding: 0;
   background: #f5f7fa;
+  min-height: 100vh;
 }
 
 .stat-row {
-  margin-bottom: 20px;
+  margin-bottom: var(--spacing-xl);
+}
+
+.content-row {
+  margin-bottom: var(--spacing-xl);
 }
 
 .stat-card-dark {
   position: relative;
-  padding: 20px;
+  padding: var(--spacing-xl);
   background: #ffffff;
-  border-radius: 10px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
   cursor: pointer;
   overflow: hidden;
-  transition: transform 0.3s, box-shadow 0.3s;
+  transition: transform var(--transition-slow), box-shadow var(--transition-slow);
 
   &::before {
     content: '';
@@ -475,20 +482,25 @@ onUnmounted(() => {
     left: 0;
     top: 0;
     bottom: 0;
-    width: 4px;
+    width: 3px;
     background: var(--card-accent);
   }
 
   &:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+  }
+
+  &:active {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
   }
 }
 
 .stat-card-content {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: var(--spacing-lg);
 }
 
 .stat-info {
@@ -496,29 +508,32 @@ onUnmounted(() => {
 }
 
 .stat-value {
-  font-size: 28px;
-  font-weight: bold;
-  color: #333;
-  line-height: 1.2;
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+  color: #1a1a2e;
+  line-height: var(--line-height-tight);
+  letter-spacing: -0.5px;
 }
 
 .stat-label {
-  color: #999;
-  font-size: 14px;
-  margin-top: 8px;
+  color: #6b7280;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  margin-top: var(--spacing-sm);
+  letter-spacing: 0.25px;
 }
 
 .stat-icon-dark {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-lg);
   display: flex;
   align-items: center;
   justify-content: center;
   background: var(--icon-bg);
   color: var(--card-accent);
-  font-size: 20px;
-  transition: all 0.3s;
+  font-size: 24px;
+  transition: all var(--transition-slow);
 }
 
 .content-row {
@@ -532,15 +547,18 @@ onUnmounted(() => {
 }
 
 .card-title {
-  font-size: 18px;
-  font-weight: bold;
-  color: #333;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: #1a1a2e;
+  letter-spacing: 0.5px;
 }
 
 .header-badge {
   :deep(.el-badge__content) {
     background: #ff6b6b;
     border-color: #ff6b6b;
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
   }
 }
 
@@ -555,55 +573,74 @@ onUnmounted(() => {
 }
 
 .alert-list {
-  max-height: 280px;
+  max-height: 320px;
   overflow-y: auto;
+
+  // 自定义滚动条
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 3px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+
+    &:hover {
+      background: #94a3b8;
+    }
+  }
 }
 
 .alert-item {
   display: flex;
   align-items: center;
-  gap: 15px;
-  padding: 15px;
-  border-radius: 8px;
-  margin-bottom: 10px;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--spacing-sm);
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all var(--transition-base);
   background: #ffffff;
-  border-left: 4px solid;
+  border-left: 3px solid;
 
   &:last-child {
     margin-bottom: 0;
   }
 
   &:hover {
-    transform: translateX(5px);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    transform: translateX(4px);
+    box-shadow: var(--shadow-sm);
   }
 
   &.alert-expiring {
-    background: #fff3e0;
+    background: linear-gradient(135deg, #fff7ed 0%, #fff3e0 100%);
     border-left-color: #ff9f43;
   }
 
   &.alert-low-stock {
-    background: #e3f2fd;
+    background: linear-gradient(135deg, #eff6ff 0%, #e3f2fd 100%);
     border-left-color: #2196f3;
   }
 
   &.alert-overdue {
-    background: #ffebee;
+    background: linear-gradient(135deg, #fef2f2 0%, #ffebee 100%);
     border-left-color: #ff6b6b;
   }
 }
 
 .alert-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20px;
+  font-size: 18px;
   flex-shrink: 0;
 }
 
@@ -613,18 +650,21 @@ onUnmounted(() => {
 }
 
 .alert-title {
-  font-weight: 600;
-  color: #333;
-  margin-bottom: 5px;
+  font-weight: var(--font-weight-semibold);
+  color: #1a1a2e;
+  font-size: var(--font-size-sm);
+  margin-bottom: var(--spacing-xs);
+  line-height: var(--line-height-tight);
 }
 
 .alert-time {
-  color: #666;
-  font-size: 13px;
+  color: #6b7280;
+  font-size: var(--font-size-xs);
 }
 
 .chart-container {
-  height: 300px;
+  height: 280px;
+  position: relative;
 }
 
 .quick-entry-card {
@@ -637,40 +677,46 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 20px 12px;
+  padding: var(--spacing-lg);
   cursor: pointer;
-  border-radius: 8px;
-  transition: all 0.3s;
-  background: transparent;
+  border-radius: var(--radius-md);
+  transition: all var(--transition-base);
+  background: #ffffff;
 
   &:hover {
     background: rgba(102, 126, 234, 0.05);
-    transform: translateY(-2px);
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-md);
 
     .quick-entry-icon {
       transform: scale(1.1);
     }
   }
+
+  &:active {
+    transform: translateY(-1px);
+  }
 }
 
 .quick-entry-icon {
-  width: 50px;
-  height: 50px;
-  border-radius: 12px;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-lg);
   display: flex;
   align-items: center;
   justify-content: center;
   color: #fff;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  margin-bottom: 12px;
-  transition: all 0.3s;
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+  margin-bottom: var(--spacing-md);
+  transition: all var(--transition-slow);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.25);
 }
 
 .quick-entry-name {
-  font-size: 14px;
-  color: #666;
+  font-size: var(--font-size-sm);
+  color: #374151;
   text-align: center;
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
+  letter-spacing: 0.25px;
 }
 </style>

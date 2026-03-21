@@ -3,37 +3,198 @@
 // ========== 操作按钮容器 ==========
 .action-buttons {
   display: inline-flex;
-  gap: 8px;
+  gap: var(--spacing-sm);
   flex-wrap: nowrap;
   align-items: center;
 }
 
 // ========== 卡片样式优化 ==========
 .el-card {
-  border-radius: 10px !important;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05) !important;
-  border: 1px solid transparent;
-  transition: all 0.3s ease;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-sm) !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  transition: all var(--transition-base);
+  background: #ffffff !important;
+
+  &:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+  }
+
+  :deep(.el-card__header) {
+    padding: var(--spacing-lg) var(--spacing-xl) !important;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06) !important;
+    font-weight: var(--font-weight-semibold);
+    font-size: var(--font-size-base);
+    color: #1f2937;
+    letter-spacing: 0.25px;
+  }
+
+  :deep(.el-card__body) {
+    padding: var(--spacing-xl) !important;
+    font-size: var(--font-size-sm);
+    color: #4b5563;
+    line-height: var(--line-height-base);
+  }
+
+  // 添加卡片顶部装饰
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #667eea 0%, #764ba2 50%, #667eea 100%);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  }
+}
+
+// ========== 面板和容器样式 ==========
+.page-container {
+  padding: var(--spacing-xl);
+  background: #f5f7fa;
+  min-height: calc(100vh - 64px);
+}
+
+// ========== 描述列表优化 ==========
+.el-descriptions {
+  :deep(.el-descriptions__header) {
+    font-weight: var(--font-weight-semibold);
+    font-size: var(--font-size-sm);
+    color: #374151;
+  }
+
+  :deep(.el-descriptions__body) {
+    font-size: var(--font-size-sm);
+    color: #4b5563;
+  }
+
+  :deep(.el-descriptions__label) {
+    font-weight: var(--font-weight-medium);
+    color: #6b7280;
+  }
+
+  :deep(.el-descriptions__content) {
+    color: #1f2937;
+  }
+}
+
+// ========== 分隔线优化 ==========
+.el-divider {
+  &--horizontal {
+    margin: var(--spacing-lg) 0 !important;
+
+    :deep(.el-divider__text) {
+      background: #f5f7fa !important;
+      padding: 0 var(--spacing-md);
+      font-weight: var(--font-weight-semibold);
+      font-size: var(--font-size-sm);
+      color: #374151;
+    }
+  }
+
+  :deep(.el-divider__text.is-left) {
+    left: 0 !important;
+  }
+}
+
+// ========== 标签页优化 ==========
+.el-tabs {
+  :deep(.el-tabs__nav-wrap::after) {
+    background: linear-gradient(90deg, transparent, rgba(102, 126, 234, 0.1), transparent) !important;
+  }
+
+  :deep(.el-tabs__item) {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    color: #6b7280;
+    padding: 0 var(--spacing-lg) !important;
+    height: 40px;
+    line-height: 40px;
+    transition: all var(--transition-base);
+
+    &:hover {
+      color: #667eea !important;
+    }
+
+    &.is-active {
+      color: #667eea !important;
+      font-weight: var(--font-weight-semibold);
+    }
+  }
+
+  :deep(.el-tabs__active-bar) {
+    height: 3px !important;
+    background: linear-gradient(90deg, #667eea 0%, #764ba2 100%) !important;
+  }
+}
+
+// ========== 进度条优化 ==========
+.el-progress {
+  :deep(.el-progress-bar__inner) {
+    background: linear-gradient(90deg, #667eea 0%, #764ba2 100%) !important;
+    box-shadow: 0 1px 3px rgba(102, 126, 234, 0.3);
+  }
+
+  :deep(.el-progress__text) {
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+    color: #374151;
+  }
+}
+
+// ========== 时间轴优化 ==========
+.el-timeline {
+  :deep(.el-timeline-item__timestamp) {
+    font-size: var(--font-size-xs);
+    color: #9ca3af;
+  }
+
+  :deep(.el-timeline-item__content) {
+    font-size: var(--font-size-sm);
+    color: #374151;
+  }
+
+  :deep(.el-timeline-item__tail) {
+    border-left: 2px solid #e5e7eb;
+  }
+
+  :deep(.el-timeline-item__node--normal) {
+    background: #667eea !important;
+    border-color: rgba(102, 126, 234, 0.2) !important;
+  }
 }
 
 // ========== 表格样式优化 ==========
 .el-table {
-  border-radius: 8px;
+  border-radius: var(--radius-md) !important;
   overflow: hidden;
+  box-shadow: var(--shadow-xs) !important;
 
   .el-table__header th {
-    background-color: #f8f9fa !important;
-    color: #666 !important;
-    font-weight: 600;
-    border-bottom: 2px solid #e0e0e0 !important;
+    background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%) !important;
+    color: #475569 !important;
+    font-weight: var(--font-weight-semibold);
+    border-bottom: 2px solid #e2e8f0 !important;
+    padding: var(--spacing-md) 0 !important;
+    font-size: var(--font-size-sm);
+    letter-spacing: 0.25px;
+  }
+
+  .el-table__body td {
+    padding: var(--spacing-md) var(--spacing-lg) !important;
+    font-size: var(--font-size-sm);
+    color: #334155;
+    border-bottom: 1px solid #f1f5f9 !important;
   }
 
   .el-table__body tr:hover > td {
-    background-color: #f8f9fa !important;
+    background: linear-gradient(90deg, #f0f9ff 0%, #e0f2fe 100%) !important;
   }
 
   .el-table__row {
-    transition: background-color 0.3s;
+    transition: background-color var(--transition-base);
   }
 
   // 单元格内容自动换行
@@ -42,6 +203,7 @@
     word-break: break-word !important;
     overflow: visible !important;
     text-overflow: unset !important;
+    line-height: var(--line-height-base);
   }
 
   // 固定列的单元格也支持换行
@@ -51,6 +213,7 @@
     word-break: break-word !important;
     overflow: visible !important;
     text-overflow: unset !important;
+    line-height: var(--line-height-base);
   }
 }
 
@@ -67,47 +230,63 @@
     line-height: 22px;
   }
 
-  // 编码标签 - 蓝色主题
+  // 编码标签 - 现代化蓝色主题
   .code-tag {
-    background-color: #e3f2fd !important;
-    color: #2196f3 !important;
+    background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%) !important;
+    color: #0369a1 !important;
     border-color: transparent !important;
-    font-weight: 500;
-    padding: 4px 10px;
-    height: 24px;
+    font-weight: var(--font-weight-medium);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    height: 26px;
     line-height: 16px;
-    border-radius: 12px;
+    border-radius: var(--radius-full);
+    box-shadow: 0 1px 2px rgba(3, 105, 161, 0.1);
   }
 
-  // 状态徽章 - prototype风格
+  // 角色标签 - 现代化蓝色主题
+  .role-tag {
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%) !important;
+    color: #1e40af !important;
+    border-color: transparent !important;
+    font-weight: var(--font-weight-medium);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    height: 26px;
+    line-height: 16px;
+    border-radius: var(--radius-full);
+    box-shadow: 0 1px 2px rgba(30, 64, 175, 0.1);
+  }
+
+  // 状态徽章 - 现代化风格
   .el-tag {
-    border-radius: 12px !important;
+    border-radius: var(--radius-full) !important;
     border: none !important;
-    padding: 4px 10px !important;
-    font-weight: 500;
+    padding: var(--spacing-xs) var(--spacing-sm) !important;
+    font-weight: var(--font-weight-medium);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    letter-spacing: 0.25px;
 
     // 成功状态
     &.el-tag--success {
-      background-color: #e3f9e5 !important;
-      color: #51cf66 !important;
+      background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%) !important;
+      color: #166534 !important;
     }
 
     // 警告状态
     &.el-tag--warning {
-      background-color: #fff3e0 !important;
-      color: #ff9f43 !important;
+      background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%) !important;
+      color: #92400e !important;
     }
 
     // 危险状态
     &.el-tag--danger {
-      background-color: #ffebee !important;
-      color: #ff6b6b !important;
+      background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%) !important;
+      color: #991b1b !important;
     }
 
     // 信息状态
     &.el-tag--info {
-      background-color: #e3f2fd !important;
-      color: #2196f3 !important;
+      background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%) !important;
+      color: #1e40af !important;
     }
   }
 
@@ -118,88 +297,115 @@
     white-space: nowrap;
   }
 
-  // ========== 操作按钮统一样式 - prototype风格 ==========
+  // ========== 操作按钮统一样式 - 现代化风格 ==========
   .action-buttons {
     .el-button {
       margin: 0;
-      padding: 8px 16px;
-      font-size: 14px;
-      font-weight: 500;
-      border-radius: 6px;
-      transition: all 0.3s ease;
+      padding: var(--spacing-sm) var(--spacing-md);
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-medium);
+      border-radius: var(--radius-md);
+      transition: all var(--transition-base);
+      letter-spacing: 0.25px;
+      border: none;
 
       .el-icon {
-        margin-right: 5px;
+        margin-right: var(--spacing-xs);
         font-size: 14px;
       }
 
       // Primary 按钮 - 紫色渐变风格
       &.el-button--primary {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-        border: none !important;
-        color: #fff !important;
+        color: #ffffff !important;
+        box-shadow: 0 2px 4px rgba(102, 126, 234, 0.15);
 
         &:hover,
         &:focus {
           background: linear-gradient(135deg, #5568d3 0%, #6a4190 100%) !important;
-          box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+          box-shadow: 0 4px 8px rgba(102, 126, 234, 0.25);
           transform: translateY(-1px);
+        }
+
+        &:active {
+          transform: translateY(0);
+          box-shadow: 0 2px 4px rgba(102, 126, 234, 0.15);
         }
       }
 
-      // Success 按钮 - 绿色风格
+      // Success 按钮 - 绿色渐变风格
       &.el-button--success {
-        background-color: #51cf66 !important;
-        border: none !important;
-        color: #fff !important;
+        background: linear-gradient(135deg, #51cf66 0%, #37d67a 100%) !important;
+        color: #ffffff !important;
+        box-shadow: 0 2px 4px rgba(81, 207, 102, 0.15);
 
         &:hover,
         &:focus {
-          background-color: #40c058 !important;
-          box-shadow: 0 2px 8px rgba(81, 207, 102, 0.3);
+          background: linear-gradient(135deg, #40c058 0%, #32af6a 100%) !important;
+          box-shadow: 0 4px 8px rgba(81, 207, 102, 0.25);
           transform: translateY(-1px);
+        }
+
+        &:active {
+          transform: translateY(0);
+          box-shadow: 0 2px 4px rgba(81, 207, 102, 0.15);
         }
       }
 
-      // Warning 按钮 - 橙色风格
+      // Warning 按钮 - 橙色渐变风格
       &.el-button--warning {
-        background-color: #ff9f43 !important;
-        border: none !important;
-        color: #fff !important;
+        background: linear-gradient(135deg, #ff9f43 0%, #ff8c22 100%) !important;
+        color: #ffffff !important;
+        box-shadow: 0 2px 4px rgba(255, 159, 67, 0.15);
 
         &:hover,
         &:focus {
-          background-color: #ff8c22 !important;
-          box-shadow: 0 2px 8px rgba(255, 159, 67, 0.3);
+          background: linear-gradient(135deg, #ff8c22 0%, #e67a19 100%) !important;
+          box-shadow: 0 4px 8px rgba(255, 159, 67, 0.25);
           transform: translateY(-1px);
+        }
+
+        &:active {
+          transform: translateY(0);
+          box-shadow: 0 2px 4px rgba(255, 159, 67, 0.15);
         }
       }
 
-      // Danger 按钮 - 红色风格
+      // Danger 按钮 - 红色渐变风格
       &.el-button--danger {
-        background-color: #ff6b6b !important;
-        border: none !important;
-        color: #fff !important;
+        background: linear-gradient(135deg, #ff6b6b 0%, #fa5252 100%) !important;
+        color: #ffffff !important;
+        box-shadow: 0 2px 4px rgba(255, 107, 107, 0.15);
 
         &:hover,
         &:focus {
-          background-color: #fa5252 !important;
-          box-shadow: 0 2px 8px rgba(255, 107, 107, 0.3);
+          background: linear-gradient(135deg, #fa5252 0%, #e03131 100%) !important;
+          box-shadow: 0 4px 8px rgba(255, 107, 107, 0.25);
           transform: translateY(-1px);
+        }
+
+        &:active {
+          transform: translateY(0);
+          box-shadow: 0 2px 4px rgba(255, 107, 107, 0.15);
         }
       }
 
-      // Info 按钮 - 青色风格
+      // Info 按钮 - 青色渐变风格
       &.el-button--info {
-        background-color: #4ecdc4 !important;
-        border: none !important;
-        color: #fff !important;
+        background: linear-gradient(135deg, #4ecdc4 0%, #3dbdb5 100%) !important;
+        color: #ffffff !important;
+        box-shadow: 0 2px 4px rgba(78, 205, 196, 0.15);
 
         &:hover,
         &:focus {
-          background-color: #3dbdb5 !important;
-          box-shadow: 0 2px 8px rgba(78, 205, 196, 0.3);
+          background: linear-gradient(135deg, #3dbdb5 0%, #2cb1a4 100%) !important;
+          box-shadow: 0 4px 8px rgba(78, 205, 196, 0.25);
           transform: translateY(-1px);
+        }
+
+        &:active {
+          transform: translateY(0);
+          box-shadow: 0 2px 4px rgba(78, 205, 196, 0.15);
         }
       }
     }

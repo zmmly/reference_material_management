@@ -1,0 +1,308 @@
+// ============================================
+// 现代化表单元素样式
+// ============================================
+
+// ========== 输入框优化 ==========
+.el-input {
+  --el-input-border-radius: var(--radius-md) !important;
+  --el-input-border-color: #d1d5db !important;
+  --el-input-focus-border-color: #667eea !important;
+  --el-input-placeholder-color: #9ca3af !important;
+  --el-input-text-color: #1f2937 !important;
+
+  :deep(.el-input__wrapper) {
+    border-radius: var(--radius-md) !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    transition: all var(--transition-base);
+
+    &:hover {
+      border-color: #9ca3af !important;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+    }
+
+    &.is-focus {
+      border-color: #667eea !important;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1), 0 2px 8px rgba(102, 126, 234, 0.2);
+    }
+  }
+
+  :deep(.el-input__inner) {
+    font-size: var(--font-size-sm);
+    color: #1f2937 !important;
+    padding: var(--spacing-sm) var(--spacing-md) !important;
+  }
+
+  :deep(.el-input__prefix-inner) {
+    color: #9ca3af !important;
+    font-size: var(--font-size-sm);
+  }
+}
+
+// ========== 文本域优化 ==========
+.el-textarea {
+  :deep(.el-textarea__inner) {
+    border-radius: var(--radius-md) !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    font-size: var(--font-size-sm);
+    color: #1f2937 !important;
+    line-height: var(--line-height-base);
+    transition: all var(--transition-base);
+    padding: var(--spacing-sm) var(--spacing-md) !important;
+
+    &:hover {
+      border-color: #9ca3af !important;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+    }
+
+    &:focus {
+      border-color: #667eea !important;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1), 0 2px 8px rgba(102, 126, 234, 0.2);
+    }
+  }
+}
+
+// ========== 选择器优化 ==========
+.el-select {
+  :deep(.el-select__wrapper) {
+    border-radius: var(--radius-md) !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    transition: all var(--transition-base);
+
+    &:hover {
+      border-color: #9ca3af !important;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+    }
+
+    &.is-focus {
+      border-color: #667eea !important;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1), 0 2px 8px rgba(102, 126, 234, 0.2);
+    }
+  }
+
+  :deep(.el-input__inner) {
+    font-size: var(--font-size-sm);
+  }
+
+  :deep(.el-select__placeholder) {
+    color: #9ca3af !important;
+    font-size: var(--font-size-sm);
+  }
+
+  // 下拉菜单
+  :deep(.el-select-dropdown) {
+    border-radius: var(--radius-md) !important;
+    box-shadow: var(--shadow-lg) !important;
+    border: 1px solid rgba(0, 0, 0, 0.1) !important;
+    padding: var(--spacing-xs) 0 !important;
+
+    .el-select-dropdown__item {
+      font-size: var(--font-size-sm);
+      padding: var(--spacing-sm) var(--spacing-md) !important;
+      border-radius: var(--radius-sm);
+      margin: 0 var(--spacing-xs);
+      transition: all var(--transition-fast);
+
+      &:hover {
+        background: linear-gradient(90deg, #f0f9ff 0%, #e0f2fe 100%) !important;
+      }
+
+      &.is-selected {
+        background: linear-gradient(90deg, #dbeafe 0%, #bfdbfe 100%) !important;
+        color: #1e40af !important;
+        font-weight: var(--font-weight-medium);
+      }
+    }
+  }
+}
+
+// ========== 日期选择器优化 ==========
+.el-date-editor {
+  :deep(.el-input__wrapper) {
+    border-radius: var(--radius-md) !important;
+  }
+}
+
+// ========== 数字输入框优化 ==========
+.el-input-number {
+  :deep(.el-input__wrapper) {
+    border-radius: var(--radius-md) !important;
+  }
+
+  :deep(.el-input-number__decrease),
+  :deep(.el-input-number__increase) {
+    background: #f8fafc !important;
+    border-radius: 0 !important;
+    transition: all var(--transition-base);
+
+    &:hover {
+      background: #e2e8f0 !important;
+      color: #667eea !important;
+    }
+  }
+}
+
+// ========== 表单标签优化 ==========
+.el-form {
+  :deep(.el-form-item__label) {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    color: #374151;
+    padding-bottom: var(--spacing-sm) !important;
+  }
+
+  :deep(.el-form-item__error) {
+    font-size: var(--font-size-xs);
+    padding-top: var(--spacing-xs);
+  }
+}
+
+// ========== 单选框优化 ==========
+.el-radio {
+  :deep(.el-radio__label) {
+    font-size: var(--font-size-sm);
+    color: #374151;
+  }
+
+  :deep(.el-radio__input.is-checked .el-radio__inner) {
+    background: #667eea !important;
+    border-color: #667eea !important;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+  }
+
+  :deep(.el-radio__inner:hover) {
+    border-color: #667eea !important;
+  }
+}
+
+// ========== 复选框优化 ==========
+.el-checkbox {
+  :deep(.el-checkbox__label) {
+    font-size: var(--font-size-sm);
+    color: #374151;
+  }
+
+  :deep(.el-checkbox__input.is-checked .el-checkbox__inner) {
+    background: #667eea !important;
+    border-color: #667eea !important;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+  }
+
+  :deep(.el-checkbox__inner:hover) {
+    border-color: #667eea !important;
+  }
+}
+
+// ========== 分页优化 ==========
+.el-pagination {
+  :deep(.el-pager li) {
+    border-radius: var(--radius-sm) !important;
+    font-weight: var(--font-weight-medium);
+    transition: all var(--transition-fast);
+    font-size: var(--font-size-sm);
+
+    &:hover {
+      background: linear-gradient(90deg, #f0f9ff 0%, #e0f2fe 100%) !important;
+      color: #667eea !important;
+    }
+
+    &.is-active {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+      color: #ffffff !important;
+      box-shadow: 0 2px 4px rgba(102, 126, 234, 0.2);
+    }
+  }
+
+  :deep(.btn-prev),
+  :deep(.btn-next) {
+    border-radius: var(--radius-sm) !important;
+    transition: all var(--transition-fast);
+
+    &:hover:not(:disabled) {
+      color: #667eea !important;
+    }
+  }
+}
+
+// ========== 对话框优化 ==========
+.el-dialog {
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-xl) !important;
+
+  :deep(.el-dialog__header) {
+    padding: var(--spacing-lg) var(--spacing-xl) !important;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06) !important;
+    margin: 0 !important;
+  }
+
+  :deep(.el-dialog__body) {
+    padding: var(--spacing-xl) !important;
+    font-size: var(--font-size-sm);
+  }
+
+  :deep(.el-dialog__footer) {
+    padding: var(--spacing-lg) var(--spacing-xl) !important;
+    border-top: 1px solid rgba(0, 0, 0, 0.06) !important;
+    margin: 0 !important;
+  }
+
+  :deep(.el-dialog__title) {
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-semibold);
+    color: #1f2937;
+  }
+}
+
+// ========== 消息提示优化 ==========
+.el-message {
+  border-radius: var(--radius-md) !important;
+  box-shadow: var(--shadow-lg) !important;
+  padding: var(--spacing-sm) var(--spacing-lg) !important;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+
+  &.el-message--success {
+    background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%) !important;
+    border-color: transparent !important;
+  }
+
+  &.el-message--warning {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%) !important;
+    border-color: transparent !important;
+  }
+
+  &.el-message--error {
+    background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%) !important;
+    border-color: transparent !important;
+  }
+
+  &.el-message--info {
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%) !important;
+    border-color: transparent !important;
+  }
+}
+
+// ========== 确认框优化 ==========
+.el-message-box {
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--shadow-xl) !important;
+
+  :deep(.el-message-box__header) {
+    padding: var(--spacing-xl) !important;
+  }
+
+  :deep(.el-message-box__title) {
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-semibold);
+    color: #1f2937;
+  }
+
+  :deep(.el-message-box__content) {
+    font-size: var(--font-size-sm);
+    color: #4b5563;
+    line-height: var(--line-height-base);
+  }
+
+  :deep(.el-message-box__btns) {
+    padding: var(--spacing-lg) var(--spacing-xl) !important;
+  }
+}
