@@ -26,36 +26,36 @@
       </el-form>
 
       <el-table :data="tableData" v-loading="loading" border @selection-change="handleSelectionChange">
-        <el-table-column type="selection" width="55" :selectable="canSelect" />
-        <el-table-column prop="internalCode" label="内部编码" width="120" />
-        <el-table-column prop="materialName" label="标准物质名称" />
-        <el-table-column prop="batchNo" label="批号" width="120" />
-        <el-table-column prop="quantity" label="库存数量" width="100">
+        <el-table-column type="selection" width="60" :selectable="canSelect" />
+        <el-table-column prop="internalCode" label="内部编码" min-width="140" />
+        <el-table-column prop="materialName" label="标准物质名称" min-width="180" show-overflow-tooltip />
+        <el-table-column prop="batchNo" label="批号" min-width="120" />
+        <el-table-column prop="quantity" label="库存数量" min-width="90">
           <template #default="{ row }">
             <span :class="{ 'text-danger': row.quantity <= 0 }">{{ row.quantity }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="expiryDate" label="有效期" width="120">
+        <el-table-column prop="expiryDate" label="有效期" min-width="130">
           <template #default="{ row }">
             <span :class="{ 'text-warning': isWarning(row.expiryDate), 'text-danger': isExpired(row.expiryDate) }">
               {{ row.expiryDate }}
             </span>
           </template>
         </el-table-column>
-        <el-table-column prop="locationName" label="存放位置" width="120" />
-        <el-table-column prop="status" label="状态" width="100">
+        <el-table-column prop="locationName" label="存放位置" min-width="120" show-overflow-tooltip />
+        <el-table-column prop="status" label="状态" min-width="90">
           <template #default="{ row }">
             <el-tag :type="statusType(row.status)">{{ statusText(row.status) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="出库状态" width="100">
+        <el-table-column label="出库状态" min-width="100">
           <template #default="{ row }">
             <el-tag v-if="row.hasApprovedOut" type="success" size="small">已出库</el-tag>
             <el-tag v-else-if="row.hasPendingOut" type="warning" size="small">审批中</el-tag>
             <span v-else class="text-muted">未出库</span>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="80" fixed="right">
+        <el-table-column label="操作" min-width="120" fixed="right">
           <template #default="{ row }">
             <div class="action-buttons">
               <el-tooltip v-if="row.hasPendingOut" content="已有待审批的出库申请" placement="top">

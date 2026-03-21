@@ -5,28 +5,28 @@
         <el-tab-pane label="我的申请" name="my">
           <el-button type="primary" style="margin-bottom: 16px" @click="handleAdd">新建采购申请</el-button>
           <el-table :data="myApplications" v-loading="loading" border>
-            <el-table-column prop="purchaseNo" label="采购单号" min-width="130" />
-            <el-table-column prop="applicantName" label="申请人" min-width="80" />
-            <el-table-column prop="materialName" label="标准物质" />
-            <el-table-column prop="specification" label="规格" min-width="100" />
-            <el-table-column prop="batchNumber" label="批号" min-width="100" />
-            <el-table-column prop="quantity" label="数量" min-width="70" />
-            <el-table-column prop="unit" label="单位" min-width="60" />
-            <el-table-column prop="estimatedPrice" label="单价" min-width="70" />
-            <el-table-column prop="totalAmount" label="金额" min-width="80">
+            <el-table-column prop="purchaseNo" label="采购单号" min-width="140" />
+            <el-table-column prop="applicantName" label="申请人" min-width="100" show-overflow-tooltip />
+            <el-table-column prop="materialName" label="标准物质" min-width="160" show-overflow-tooltip />
+            <el-table-column prop="specification" label="规格" min-width="110" show-overflow-tooltip />
+            <el-table-column prop="batchNumber" label="批号" min-width="110" />
+            <el-table-column prop="quantity" label="数量" min-width="80" />
+            <el-table-column prop="unit" label="单位" min-width="70" />
+            <el-table-column prop="estimatedPrice" label="单价" min-width="90" />
+            <el-table-column prop="totalAmount" label="金额" min-width="100">
               <template #default="{ row }">
                 {{ row.totalAmount ? row.totalAmount.toFixed(2) : '' }}
               </template>
             </el-table-column>
-            <el-table-column prop="supplierName" label="供应商" min-width="120" />
-            <el-table-column prop="estimatedArrivalDate" label="预计到货" min-width="100" />
-            <el-table-column prop="status" label="状态" min-width="80">
+            <el-table-column prop="supplierName" label="供应商" min-width="130" show-overflow-tooltip />
+            <el-table-column prop="estimatedArrivalDate" label="预计到货" min-width="110" />
+            <el-table-column prop="status" label="状态" min-width="90">
               <template #default="{ row }">
                 <el-tag :type="statusType(row.status)">{{ statusText(row.status) }}</el-tag>
               </template>
             </el-table-column>
-            <el-table-column prop="applyTime" label="申请时间" min-width="140" />
-            <el-table-column label="操作" min-width="120" fixed="right">
+            <el-table-column prop="applyTime" label="申请时间" min-width="150" />
+            <el-table-column label="操作" min-width="130" fixed="right">
               <template #default="{ row }">
                 <div class="action-buttons">
                   <template v-if="row.status === 0">
@@ -42,22 +42,22 @@
         </el-tab-pane>
         <el-tab-pane label="待审批" name="pending" v-if="canApprove">
           <el-table :data="pendingList" v-loading="loading" border>
-            <el-table-column prop="applicantName" label="申请人" min-width="80" />
-            <el-table-column prop="materialName" label="标准物质" />
-            <el-table-column prop="specification" label="规格" min-width="100" />
-            <el-table-column prop="batchNumber" label="批号" min-width="100" />
-            <el-table-column prop="quantity" label="数量" min-width="70" />
-            <el-table-column prop="unit" label="单位" min-width="60" />
-            <el-table-column prop="estimatedPrice" label="单价" min-width="70" />
-            <el-table-column prop="totalAmount" label="金额" min-width="80">
+            <el-table-column prop="applicantName" label="申请人" min-width="100" show-overflow-tooltip />
+            <el-table-column prop="materialName" label="标准物质" min-width="160" show-overflow-tooltip />
+            <el-table-column prop="specification" label="规格" min-width="110" show-overflow-tooltip />
+            <el-table-column prop="batchNumber" label="批号" min-width="110" />
+            <el-table-column prop="quantity" label="数量" min-width="80" />
+            <el-table-column prop="unit" label="单位" min-width="70" />
+            <el-table-column prop="estimatedPrice" label="单价" min-width="90" />
+            <el-table-column prop="totalAmount" label="金额" min-width="100">
               <template #default="{ row }">
                 {{ row.totalAmount ? row.totalAmount.toFixed(2) : '' }}
               </template>
             </el-table-column>
-            <el-table-column prop="supplierName" label="供应商" min-width="120" />
-            <el-table-column prop="reason" label="采购原因" />
-            <el-table-column prop="applyTime" label="申请时间" min-width="140" />
-            <el-table-column label="操作" min-width="150" fixed="right">
+            <el-table-column prop="supplierName" label="供应商" min-width="130" show-overflow-tooltip />
+            <el-table-column prop="reason" label="采购原因" min-width="120" show-overflow-tooltip />
+            <el-table-column prop="applyTime" label="申请时间" min-width="150" />
+            <el-table-column label="操作" min-width="140" fixed="right">
               <template #default="{ row }">
                 <div class="action-buttons">
                   <el-button link type="success" size="small" @click="handleApprove(row, true)">通过</el-button>

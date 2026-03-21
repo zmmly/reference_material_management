@@ -42,24 +42,24 @@
       </el-form>
 
       <el-table :data="tableData" v-loading="loading" border>
-        <el-table-column prop="materialName" label="标准物质" min-width="150" />
-        <el-table-column prop="batchNo" label="批号" min-width="100" />
-        <el-table-column prop="internalCode" label="内部编码" min-width="160">
+        <el-table-column prop="materialName" label="标准物质" min-width="160" show-overflow-tooltip />
+        <el-table-column prop="batchNo" label="批号" min-width="110" />
+        <el-table-column prop="internalCode" label="内部编码" min-width="180" show-overflow-tooltip>
           <template #default="{ row }">
             <el-tag v-if="row.internalCode">{{ row.internalCode }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="quantity" label="入库数量" min-width="80" />
-        <el-table-column prop="supplierName" label="供应商" min-width="120" />
-        <el-table-column prop="expiryDate" label="有效期" min-width="100" />
-        <el-table-column prop="locationName" label="存放位置" min-width="100" />
-        <el-table-column prop="reason" label="入库原因" min-width="80">
+        <el-table-column prop="quantity" label="入库数量" min-width="90" />
+        <el-table-column prop="supplierName" label="供应商" min-width="130" show-overflow-tooltip />
+        <el-table-column prop="expiryDate" label="有效期" min-width="110" />
+        <el-table-column prop="locationName" label="存放位置" min-width="110" show-overflow-tooltip />
+        <el-table-column prop="reason" label="入库原因" min-width="90">
           <template #default="{ row }">
             {{ reasonText(row.reason) }}
           </template>
         </el-table-column>
-        <el-table-column prop="operatorName" label="操作人" width="100" />
-        <el-table-column label="证书" width="80">
+        <el-table-column prop="operatorName" label="操作人" min-width="100" show-overflow-tooltip />
+        <el-table-column label="证书" min-width="90" fixed="right">
           <template #default="{ row }">
             <div class="action-buttons">
               <el-button v-if="row.productCertificate" type="primary" size="small" @click="viewCertificate(row.productCertificate)">查看</el-button>
@@ -67,7 +67,7 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column prop="createTime" label="入库时间" width="160" />
+        <el-table-column prop="createTime" label="入库时间" min-width="140" />
       </el-table>
 
       <el-pagination
