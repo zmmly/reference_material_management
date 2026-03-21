@@ -177,19 +177,21 @@ const fetchTodos = async () => {
     console.log('已通过数量:', allPurchases.filter(p => p.status === 1).length)
 
     // 待办事项配置
+    const pendingPurchases = allPurchases.filter(p => p.status === 0)
+
     todoList.value = [
       {
         id: 1,
-        title: `待审批采购申请：${allPurchases.filter(p => p.status === 0).length}项`,
+        title: `待审批采购申请：${pendingPurchases.length}项`,
         type: 'warning',
-        time: null,
+        time: pendingPurchases.length > 0 ? pendingPurchases[0]?.applyTime : null,
         route: '/purchase'
       },
       {
         id: 2,
-        title: `待审批采购请求：${allPurchases.filter(p => p.status === 1).length}项`,
+        title: `待确认到货：${pendingPurchases.length}项`,
         type: 'primary',
-        time: null,
+        time: pendingPurchases.length > 0 ? pendingPurchases[0]?.applyTime : null,
         route: '/purchase'
       },
       {
