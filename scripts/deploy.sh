@@ -450,11 +450,27 @@ build_frontend() {
 
     if [ ! -d "node_modules" ]; then
         echo -e "${YELLOW}安装前端依赖...${NC}"
-        npm install
+        # 静默安装依赖
+        npm install --silent --no-audit --no-fund
     fi
 
     echo -e "${YELLOW}构建前端...${NC}"
-    npm run build
+    # 静默构建前端，抑制所有输出，只在失败时显示错误
+    BUILD_OUTPUT=$(npm run build 2>&1)
+    BUILD_EXIT_CODE=$?
+
+    # 只显示错误信息，忽略警告
+    if [ $BUILD_EXIT_CODE -ne 0 ]; then
+        echo -e "${RED}✗ 前端构建失败${NC}"
+        echo "$BUILD_OUTPUT" | grep -i error | head -10
+        exit 1
+    fi
+
+    # 验证构建结果
+    if [ ! -d "dist" ] || [ ! -f "dist/index.html" ]; then
+        echo -e "${RED}✗ 前端构建失败 - dist目录未生成${NC}"
+        exit 1
+    fi
 
     echo -e "${GREEN}✓ 前端构建完成${NC}"
 }
