@@ -401,7 +401,7 @@ configure_nginx() {
     echo -e "${BLUE}[12/10] 配置nginx...${NC}"
 
     # 创建nginx配置文件
-    cat > /etc/nginx/conf.d/${PROJECT_NAME}.conf <<EOF
+    cat > /etc/nginx/conf.d/${PROJECT_NAME}.conf <<'EOF'
 server {
     listen ${NGINX_PORT};
     server_name _;
@@ -452,7 +452,7 @@ create_systemd_services() {
     echo -e "${BLUE}[13/10] 创建systemd服务...${NC}"
 
     # 创建后端服务文件
-    cat > /etc/systemd/system/${PROJECT_NAME}-backend.service <<EOF
+    cat > /etc/systemd/system/${PROJECT_NAME}-backend.service <<'EOF'
 [Unit]
 Description=Reference Material Management Backend
 After=network.target
@@ -471,7 +471,7 @@ WantedBy=multi-user.target
 EOF
 
     # 创建前端服务文件
-    cat > /etc/systemd/system/${PROJECT_NAME}-frontend.service <<EOF
+    cat > /etc/systemd/system/${PROJECT_NAME}-frontend.service <<'EOF'
 [Unit]
 Description=Reference Material Management Frontend
 After=network.target
