@@ -380,9 +380,15 @@ install_dependencies() {
     fi
 
     # 安装nginx（静默模式）
-    if ! command -v nginx &> /dev/null; then
+    if ! command -v nginx &> /dev/null || ! which nginx &> /dev/null; then
         echo -e "${YELLOW}安装nginx...${NC}"
         ${PKG_INSTALL} nginx 2>&1 | grep -v "metadata expiration check" | grep -v "Dependencies resolved" | grep -v "Complete" | grep -v "Nothing to do" | grep -v "SKIPPED" | grep -v "Downloading" | grep -v "Transaction Summary" | grep -v "Total size" | grep -v "Installing" | grep -v "Upgrading" || error_exit "安装nginx失败"
+
+        # 安装后立即更新PATH
+        if [ -x /usr/sbin/nginx ]; then
+            export PATH="/usr/sbin:$PATH"
+            echo -e "${GREEN}✓ nginx已安装并添加到PATH${NC}"
+        fi
     fi
 
     # 安装Node.js和npm（静默模式）
@@ -695,14 +701,36 @@ configure_nginx() {
 
     # 测试nginx配置
     echo -e "${YELLOW}测试nginx配置...${NC}"
-    if ! nginx -t; then
+
+    # 使用多种方法检测nginx命令
+    NGINX_CMD=""
+    if command -v nginx &> /dev/null; then
+        NGINX_CMD="nginx"
+    elif which nginx &> /dev/null; then
+        NGINX_CMD=$(which nginx)
+    elif [ -x /usr/sbin/nginx ]; then
+        NGINX_CMD="/usr/sbin/nginx"
+    elif [ -x /usr/local/sbin/nginx ]; then
+        NGINX_CMD="/usr/local/sbin/nginx"
+    fi
+
+    if [ -z "$NGINX_CMD" ]; then
+        echo -e "${RED}✗ nginx命令未找到${NC}"
+        echo -e "${YELLOW}请手动安装nginx或检查安装状态${NC}"
+        echo -e "${YELLOW}查找nginx命令位置...${NC}"
+        find / -name nginx -type f 2>/dev/null | head -5
+        exit 1
+    fi
+
+    # 使用找到的nginx命令测试配置
+    if ! $NGINX_CMD -t; then
         echo -e "${RED}✗ nginx配置测试失败${NC}"
         exit 1
     fi
 
     # 重启nginx
     echo -e "${YELLOW}重启nginx服务...${NC}"
-    systemctl restart nginx || systemctl start nginx
+    systemctl restart nginx 2>&1 | grep -v "Redirecting" || systemctl start nginx
     systemctl enable nginx
 
     echo -e "${GREEN}✓ nginx配置完成${NC}"
