@@ -65,17 +65,19 @@ public class BackupService {
         Path backupFile = backupDir.resolve(filename);
 
         String database = extractDatabaseName(datasourceUrl);
+        String mysqldumpPath = "C:\\\\Program Files\\MySQL\\MySQL Shell 8.0\\bin\\mysqldump.exe";
 
         try {
             ProcessBuilder pb = new ProcessBuilder(
-                "docker", "exec", "mysql-dev",
-                "mysqldump",
+                mysqldumpPath,
+                "-h", "localhost",
+                "-P", "3306",
                 "-u", datasourceUsername,
                 "-p" + datasourcePassword,
+                database,
                 "--single-transaction",
                 "--routines",
-                "--triggers",
-                database
+                "--triggers"
             );
             pb.redirectOutput(backupFile.toFile());
             pb.redirectErrorStream(false);
