@@ -23,6 +23,7 @@
         <el-table-column prop="categoryName" label="分类" min-width="100" />
         <el-table-column prop="specification" label="规格" min-width="80" />
         <el-table-column prop="purityConcentration" label="纯度/浓度" min-width="80" />
+        <el-table-column prop="supplierName" label="供应商" min-width="120" show-overflow-tooltip />
         <el-table-column label="操作" min-width="150" fixed="right">
           <template #default="{ row }">
             <div class="action-buttons">
