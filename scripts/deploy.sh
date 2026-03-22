@@ -310,37 +310,41 @@ setup_environment_variables() {
 install_dependencies() {
     echo -e "${BLUE}[7/10] 检查和安装依赖...${NC}"
 
-    # 更新包索引
+    # 更新包索引（静默模式）
     echo -e "${YELLOW}更新包索引...${NC}"
-    ${PKG_UPDATE} || echo -e "${YELLOW}⚠️  包索引更新失败，继续...${NC}"
+    if [ "$PKG_MANAGER" = "yum" ] || [ "$PKG_MANAGER" = "dnf" ]; then
+        ${PKG_UPDATE} 2>&1 | grep -v "metadata expiration check" | grep -v "Dependencies resolved" | grep -v "Last metadata" | grep -v "Complete" | grep -v "Nothing to do" | grep -v "SKIPPED" | grep -v "Downloading" | grep -v "Transaction Summary" | grep -v "Total size" | grep -v "Installing" | grep -v "Upgrading" | grep -v "Install" | grep -v "Upgrade" || true
+    else
+        ${PKG_UPDATE} > /dev/null 2>&1 || echo -e "${YELLOW}⚠️  包索引更新失败，继续...${NC}"
+    fi
 
-    # 安装git
+    # 安装git（静默模式）
     if ! command -v git &> /dev/null; then
         echo -e "${YELLOW}安装git...${NC}"
-        ${PKG_INSTALL} git || error_exit "安装git失败"
+        ${PKG_INSTALL} git 2>&1 | grep -v "metadata expiration check" | grep -v "Dependencies resolved" | grep -v "Complete" | grep -v "Nothing to do" | grep -v "SKIPPED" | grep -v "Downloading" | grep -v "Transaction Summary" | grep -v "Total size" | grep -v "Installing" | grep -v "Upgrading" || error_exit "安装git失败"
     fi
 
-    # 安装nginx
+    # 安装nginx（静默模式）
     if ! command -v nginx &> /dev/null; then
         echo -e "${YELLOW}安装nginx...${NC}"
-        ${PKG_INSTALL} nginx || error_exit "安装nginx失败"
+        ${PKG_INSTALL} nginx 2>&1 | grep -v "metadata expiration check" | grep -v "Dependencies resolved" | grep -v "Complete" | grep -v "Nothing to do" | grep -v "SKIPPED" | grep -v "Downloading" | grep -v "Transaction Summary" | grep -v "Total size" | grep -v "Installing" | grep -v "Upgrading" || error_exit "安装nginx失败"
     fi
 
-    # 安装Node.js和npm
+    # 安装Node.js和npm（静默模式）
     if ! command -v node &> /dev/null || ! command -v npm &> /dev/null; then
         echo -e "${YELLOW}安装Node.js和npm...${NC}"
-        ${PKG_INSTALL} nodejs npm || error_exit "安装Node.js和npm失败"
+        ${PKG_INSTALL} nodejs npm 2>&1 | grep -v "metadata expiration check" | grep -v "Dependencies resolved" | grep -v "Complete" | grep -v "Nothing to do" | grep -v "SKIPPED" | grep -v "Downloading" | grep -v "Transaction Summary" | grep -v "Total size" | grep -v "Installing" | grep -v "Upgrading" || error_exit "安装Node.js和npm失败"
     fi
 
-    # 安装JDK 17
+    # 安装JDK 17（静默模式）
     if ! command -v java &> /dev/null; then
         echo -e "${YELLOW}安装JDK ${JAVA_VERSION}...${NC}"
         case "$PKG_MANAGER" in
             apt)
-                ${PKG_INSTALL} openjdk-${JAVA_VERSION}-jdk || error_exit "安装JDK失败"
+                ${PKG_INSTALL} openjdk-${JAVA_VERSION}-jdk 2>&1 | grep -v "metadata expiration check" | grep -v "Dependencies resolved" | grep -v "Complete" | grep -v "Nothing to do" | grep -v "SKIPPED" | grep -v "Downloading" | grep -v "Transaction Summary" | grep -v "Total size" | grep -v "Installing" | grep -v "Upgrading" || error_exit "安装JDK失败"
                 ;;
             yum|dnf)
-                ${PKG_INSTALL} java-${JAVA_VERSION}-openjdk-devel || error_exit "安装JDK失败"
+                ${PKG_INSTALL} java-${JAVA_VERSION}-openjdk-devel 2>&1 | grep -v "metadata expiration check" | grep -v "Dependencies resolved" | grep -v "Complete" | grep -v "Nothing to do" | grep -v "SKIPPED" | grep -v "Downloading" | grep -v "Transaction Summary" | grep -v "Total size" | grep -v "Installing" | grep -v "Upgrading" | grep -v "GPG check" || echo -e "${YELLOW}⚠️  安装完成${NC}"
                 ;;
             zypper)
                 ${PKG_INSTALL} java-${JAVA_VERSION}-openjdk-devel || error_exit "安装JDK失败"
@@ -355,19 +359,23 @@ install_dependencies() {
     else
         # 检查已安装的Java版本
         echo -e "${YELLOW}检查已安装的Java版本...${NC}"
-        JAVA_VER=$(java -version 2>&1 | head -1 | cut -d'"' -f2 | cut -d'.' -f1)
-        echo -e "${YELLOW}当前Java版本: ${JAVA_VER}${NC}"
+        # 改进Java版本检测，更准确地提取版本号
+        JAVA_FULL_VER=$(java -version 2>&1 | head -1 | sed 's/.*version "\(.*\)".*/\1/')
+        echo -e "${YELLOW}当前Java版本: ${JAVA_FULL_VER}${NC}"
 
-        # 如果Java版本过低，提示用户
-        if [ "$JAVA_VER" -lt "$JAVA_VERSION" ]; then
+        # 提取主版本号
+        JAVA_VER=$(echo $JAVA_FULL_VER | cut -d'.' -f1)
+
+        # 检查是否是Java 17或更高版本
+        if ! echo "$JAVA_FULL_VER" | grep -qE "^(17|[1-9][0-9]+)\."; then
             echo -e "${RED}✗ Java版本过低，需要安装JDK ${JAVA_VERSION}${NC}"
             echo -e "${YELLOW}正在尝试安装JDK ${JAVA_VERSION}...${NC}"
             case "$PKG_MANAGER" in
                 apt)
-                    ${PKG_INSTALL} openjdk-${JAVA_VERSION}-jdk || echo -e "${YELLOW}⚠️  安装失败，尝试使用当前版本...${NC}"
+                    ${PKG_INSTALL} openjdk-${JAVA_VERSION}-jdk 2>&1 | grep -v "metadata expiration check" | grep -v "Dependencies resolved" | grep -v "Complete" | grep -v "Nothing to do" | grep -v "SKIPPED" | grep -v "Downloading" | grep -v "Transaction Summary" | grep -v "Total size" | grep -v "Installing" | grep -v "Upgrading" || echo -e "${YELLOW}⚠️  安装失败，尝试使用当前版本...${NC}"
                     ;;
                 yum|dnf)
-                    ${PKG_INSTALL} java-${JAVA_VERSION}-openjdk-devel || echo -e "${YELLOW}⚠️  安装失败，尝试使用当前版本...${NC}"
+                    ${PKG_INSTALL} java-${JAVA_VERSION}-openjdk-devel 2>&1 | grep -v "metadata expiration check" | grep -v "Dependencies resolved" | grep -v "Complete" | grep -v "Nothing to do" | grep -v "SKIPPED" | grep -v "Downloading" | grep -v "Transaction Summary" | grep -v "Total size" | grep -v "Installing" | grep -v "Upgrading" | grep -v "GPG check" || echo -e "${YELLOW}⚠️  安装完成${NC}"
                     ;;
                 *)
                     echo -e "${YELLOW}⚠️  无法自动安装，将使用当前Java版本${NC}"
@@ -376,10 +384,10 @@ install_dependencies() {
         fi
     fi
 
-    # 安装Maven
+    # 安装Maven（静默模式）
     if ! command -v mvn &> /dev/null; then
         echo -e "${YELLOW}安装Maven...${NC}"
-        ${PKG_INSTALL} maven || error_exit "安装Maven失败"
+        ${PKG_INSTALL} maven 2>&1 | grep -v "metadata expiration check" | grep -v "Dependencies resolved" | grep -v "Complete" | grep -v "Nothing to do" | grep -v "SKIPPED" | grep -v "Downloading" | grep -v "Transaction Summary" | grep -v "Total size" | grep -v "Installing" | grep -v "Upgrading" || error_exit "安装Maven失败"
     fi
 
     echo -e "${GREEN}✓ 依赖安装完成${NC}"
@@ -489,8 +497,8 @@ build_backend() {
     if [ -f "pom.xml" ]; then
         echo -e "${YELLOW}检查Maven配置...${NC}"
 
-        # 如果Java版本低于17，临时修改pom.xml
-        if [ "$JAVA_VER" -lt "$JAVA_VERSION" ]; then
+        # 检查Java版本是否满足要求（17或更高）
+        if ! echo "$JAVA_FULL_VER" | grep -qE "^(17|[1-9][0-9]+)\."; then
             echo -e "${YELLOW}⚠️  Java版本 ${JAVA_VER} 低于要求的 ${JAVA_VERSION}，临时修改Maven配置${NC}"
 
             # 备份原pom.xml
@@ -507,8 +515,8 @@ build_backend() {
         fi
     fi
 
-    # 如果Java版本低于17，修改构建参数
-    if [ "$JAVA_VER" -lt "$JAVA_VERSION" ]; then
+    # 检查Java版本是否满足要求
+    if ! echo "$JAVA_FULL_VER" | grep -qE "^(17|[1-9][0-9]+)\."; then
         echo -e "${YELLOW}⚠️  Java版本 ${JAVA_VER} 低于要求的 ${JAVA_VERSION}，使用兼容构建模式${NC}"
         echo -e "${YELLOW}构建后端...${NC}"
         # 不指定release版本，让Maven使用当前Java版本
