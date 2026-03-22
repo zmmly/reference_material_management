@@ -64,7 +64,7 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="CAS号">
+            <el-form-item label="CAS号" prop="casNumber">
               <el-input v-model="form.casNumber" placeholder="请输入CAS号" />
             </el-form-item>
           </el-col>
@@ -134,6 +134,34 @@ const dialogVisible = ref(false)
 const editId = ref(null)
 const formRef = ref()
 
+// 自定义验证器：验证CAS号和供应商的关系
+const checkCasSupplier = (rule, value, callback) => {
+  if (!value) {
+    callback()
+    return
+  }
+  // 如果填写了CAS号，必须选择供应商
+  if (!form.supplierId) {
+    callback(new Error('请选择供应商'))
+    return
+  }
+  callback()
+}
+
+// 自定义验证器：验证供应商和CAS号的关系
+const checkSupplier = (rule, value, callback) => {
+  if (!value) {
+    callback()
+    return
+  }
+  // 如果选择了供应商，必须填写CAS号
+  if (!form.casNumber) {
+    callback(new Error('请输入CAS号'))
+    return
+  }
+  callback()
+}
+
 const queryParams = reactive({ current: 1, size: 10, name: '', categoryId: null })
 const form = reactive({
   code: '',
@@ -150,9 +178,11 @@ const form = reactive({
 const rules = {
   code: [{ required: true, message: '请输入编号', trigger: 'blur' }],
   name: [{ required: true, message: '请输入名称', trigger: 'blur' }],
+  casNumber: [{ required: true, message: '请输入CAS号', trigger: 'blur', validator: checkCasSupplier }],
   categoryId: [{ required: true, message: '请选择分类', trigger: 'change' }],
   specification: [{ required: true, message: '请输入规格', trigger: 'blur' }],
-  purityConcentration: [{ required: true, message: '请输入纯度/浓度', trigger: 'blur' }]
+  purityConcentration: [{ required: true, message: '请输入纯度/浓度', trigger: 'blur' }],
+  supplierId: [{ required: true, message: '请选择供应商', trigger: 'change', validator: checkSupplier }]
 }
 
 const fetchData = async () => {

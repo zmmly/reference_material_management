@@ -14,6 +14,18 @@
         </el-form-item>
         <el-row :gutter="20">
           <el-col :span="12">
+            <el-form-item label="CAS号">
+              <el-input :value="stockInfo.casNumber" disabled />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="供应商">
+              <el-input :value="stockInfo.supplierName" disabled />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="20">
+          <el-col :span="12">
             <el-form-item label="内部编码">
               <el-input :value="stockInfo.internalCode" disabled />
             </el-form-item>
@@ -78,6 +90,8 @@ const formRef = ref()
 
 const stockInfo = ref({
   materialName: '',
+  casNumber: '',
+  supplierName: '',
   internalCode: '',
   batchNo: '',
   expiryDate: '',

@@ -28,6 +28,10 @@ public class StockOut {
     @TableField(exist = false)
     private String materialName;
     @TableField(exist = false)
+    private String casNumber;
+    @TableField(exist = false)
+    private String supplierName;
+    @TableField(exist = false)
     private String applicantName;
     @TableField(exist = false)
     private String approverName;

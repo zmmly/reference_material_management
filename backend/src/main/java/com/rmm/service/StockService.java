@@ -23,6 +23,7 @@ public class StockService {
     private final ReferenceMaterialMapper materialMapper;
     private final LocationMapper locationMapper;
     private final StockOutMapper stockOutMapper;
+    private final SupplierMapper supplierMapper;
 
     public PageResult<Stock> list(Integer current, Integer size, String keyword, Long locationId, Integer status) {
         Page<Stock> page = new Page<>(current, size);
@@ -107,6 +108,15 @@ public class StockService {
             if (material != null) {
                 stock.setMaterialName(material.getName());
                 stock.setMaterialCode(material.getCode());
+                stock.setCasNumber(material.getCasNumber());
+
+                // 填充供应商名称
+                if (material.getSupplierId() != null) {
+                    Supplier supplier = supplierMapper.selectById(material.getSupplierId());
+                    if (supplier != null) {
+                        stock.setSupplierName(supplier.getName());
+                    }
+                }
             }
         }
         if (stock.getLocationId() != null) {

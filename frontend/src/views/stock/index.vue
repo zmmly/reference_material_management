@@ -27,9 +27,12 @@
 
       <el-table :data="tableData" v-loading="loading" border @selection-change="handleSelectionChange">
         <el-table-column type="selection" width="60" :selectable="canSelect" />
-        <el-table-column prop="internalCode" label="内部编码" min-width="140" />
+        <el-table-column prop="materialCode" label="标准物质编码" min-width="130" show-overflow-tooltip />
         <el-table-column prop="materialName" label="标准物质名称" min-width="180" show-overflow-tooltip />
+        <el-table-column prop="casNumber" label="CAS号" min-width="110" show-overflow-tooltip />
+        <el-table-column prop="supplierName" label="供应商" min-width="130" show-overflow-tooltip />
         <el-table-column prop="batchNo" label="批号" min-width="120" />
+        <el-table-column prop="internalCode" label="内部编码" min-width="140" show-overflow-tooltip />
         <el-table-column prop="quantity" label="库存数量" min-width="90">
           <template #default="{ row }">
             <span :class="{ 'text-danger': row.quantity <= 0 }">{{ row.quantity }}</span>

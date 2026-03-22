@@ -6,8 +6,10 @@ import com.rmm.common.BusinessException;
 import com.rmm.common.PageResult;
 import com.rmm.entity.Category;
 import com.rmm.entity.ReferenceMaterial;
+import com.rmm.entity.Supplier;
 import com.rmm.mapper.CategoryMapper;
 import com.rmm.mapper.ReferenceMaterialMapper;
+import com.rmm.mapper.SupplierMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -20,6 +22,7 @@ public class ReferenceMaterialService {
 
     private final ReferenceMaterialMapper materialMapper;
     private final CategoryMapper categoryMapper;
+    private final SupplierMapper supplierMapper;
 
     public PageResult<ReferenceMaterial> list(Integer current, Integer size, String name, Long categoryId, Integer status) {
         Page<ReferenceMaterial> page = new Page<>(current, size);
@@ -31,8 +34,11 @@ public class ReferenceMaterialService {
 
         Page<ReferenceMaterial> result = materialMapper.selectPage(page, wrapper);
 
-        // 填充分类名称
-        result.getRecords().forEach(this::fillCategoryName);
+        // 填充分类名称和供应商名称
+        result.getRecords().forEach(material -> {
+            fillCategoryName(material);
+            fillSupplierName(material);
+        });
 
         PageResult<ReferenceMaterial> pageResult = new PageResult<>();
         pageResult.setRecords(result.getRecords());
@@ -49,7 +55,10 @@ public class ReferenceMaterialService {
                 .eq(ReferenceMaterial::getStatus, 1)
                 .orderByAsc(ReferenceMaterial::getName)
         );
-        list.forEach(this::fillCategoryName);
+        list.forEach(material -> {
+            fillCategoryName(material);
+            fillSupplierName(material);
+        });
         return list;
     }
 
@@ -57,6 +66,7 @@ public class ReferenceMaterialService {
         ReferenceMaterial material = materialMapper.selectById(id);
         if (material != null) {
             fillCategoryName(material);
+            fillSupplierName(material);
         }
         return material;
     }
@@ -93,6 +103,15 @@ public class ReferenceMaterialService {
             Category category = categoryMapper.selectById(material.getCategoryId());
             if (category != null) {
                 material.setCategoryName(category.getName());
+            }
+        }
+    }
+
+    private void fillSupplierName(ReferenceMaterial material) {
+        if (material.getSupplierId() != null) {
+            Supplier supplier = supplierMapper.selectById(material.getSupplierId());
+            if (supplier != null) {
+                material.setSupplierName(supplier.getName());
             }
         }
     }

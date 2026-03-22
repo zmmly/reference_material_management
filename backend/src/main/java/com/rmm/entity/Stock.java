@@ -29,6 +29,10 @@ public class Stock {
     @TableField(exist = false)
     private String materialCode;
     @TableField(exist = false)
+    private String casNumber;
+    @TableField(exist = false)
+    private String supplierName;
+    @TableField(exist = false)
     private String locationName;
     @TableField(exist = false)
     private Boolean hasPendingOut;

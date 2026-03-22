@@ -5,7 +5,9 @@
         <el-tab-pane label="我的申请" name="my">
           <el-table :data="myApplications" v-loading="loading" border>
             <el-table-column prop="materialName" label="标准物质" min-width="160" show-overflow-tooltip />
-            <el-table-column prop="stockInternalCode" label="内部编码" min-width="110" show-overflow-tooltip />
+            <el-table-column prop="casNumber" label="CAS号" min-width="110" show-overflow-tooltip />
+            <el-table-column prop="supplierName" label="供应商" min-width="130" show-overflow-tooltip />
+            <el-table-column prop="internalCode" label="内部编码" min-width="110" show-overflow-tooltip />
             <el-table-column prop="quantity" label="申请数量" min-width="90" />
             <el-table-column prop="reason" label="出库原因" min-width="90">
               <template #default="{ row }">{{ reasonText(row.reason) }}</template>
@@ -30,7 +32,9 @@
           <el-table :data="pendingList" v-loading="loading" border>
             <el-table-column prop="applicantName" label="申请人" min-width="100" show-overflow-tooltip />
             <el-table-column prop="materialName" label="标准物质" min-width="160" show-overflow-tooltip />
-            <el-table-column prop="stockInternalCode" label="内部编码" min-width="110" show-overflow-tooltip />
+            <el-table-column prop="casNumber" label="CAS号" min-width="110" show-overflow-tooltip />
+            <el-table-column prop="supplierName" label="供应商" min-width="130" show-overflow-tooltip />
+            <el-table-column prop="internalCode" label="内部编码" min-width="110" show-overflow-tooltip />
             <el-table-column prop="quantity" label="申请数量" min-width="90" />
             <el-table-column prop="reason" label="出库原因" min-width="90">
               <template #default="{ row }">{{ reasonText(row.reason) }}</template>

@@ -23,6 +23,7 @@ public class StockOutService {
     private final StockMapper stockMapper;
     private final ReferenceMaterialMapper materialMapper;
     private final UserMapper userMapper;
+    private final SupplierMapper supplierMapper;
 
     public PageResult<StockOut> list(Integer current, Integer size, Integer status, Long applicantId) {
         Page<StockOut> page = new Page<>(current, size);
@@ -179,6 +180,15 @@ public class StockOutService {
             ReferenceMaterial material = materialMapper.selectById(stockOut.getMaterialId());
             if (material != null) {
                 stockOut.setMaterialName(material.getName());
+                stockOut.setCasNumber(material.getCasNumber());
+
+                // 填充供应商名称
+                if (material.getSupplierId() != null) {
+                    Supplier supplier = supplierMapper.selectById(material.getSupplierId());
+                    if (supplier != null) {
+                        stockOut.setSupplierName(supplier.getName());
+                    }
+                }
             }
         }
         if (stockOut.getApplicantId() != null) {

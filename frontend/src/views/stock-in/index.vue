@@ -83,7 +83,7 @@
       <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
         <el-form-item label="标准物质" prop="materialId">
           <el-select v-model="form.materialId" placeholder="请选择标准物质" filterable style="width: 100%">
-            <el-option v-for="item in materialList" :key="item.id" :label="`${item.code} - ${item.name}`" :value="item.id" />
+            <el-option v-for="item in materialList" :key="item.id" :label="`${item.code} - ${item.name} - ${item.supplierName || '无供应商'}`" :value="item.id" />
           </el-select>
         </el-form-item>
         <el-row :gutter="20">
@@ -108,7 +108,7 @@
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="供应商" prop="supplierId">
-              <el-select v-model="form.supplierId" placeholder="请选择供应商" filterable style="width: 100%">
+              <el-select v-model="form.supplierId" placeholder="自动根据标准物质填充" filterable disabled style="width: 100%">
                 <el-option v-for="item in supplierList" :key="item.id" :label="item.name" :value="item.id" />
               </el-select>
             </el-form-item>
@@ -211,6 +211,20 @@ watch(dateRange, (val) => {
 const form = reactive({
   materialId: null, batchNo: '', quantity: 1, supplierId: null,
   expiryDate: null, locationId: null, reason: 'PURCHASE', remarks: '', productCertificate: ''
+})
+
+// 监听标准物质选择，自动填充供应商
+watch(() => form.materialId, (newMaterialId) => {
+  if (newMaterialId) {
+    const selectedMaterial = materialList.value.find(item => item.id === newMaterialId)
+    if (selectedMaterial && selectedMaterial.supplierId) {
+      form.supplierId = selectedMaterial.supplierId
+    } else {
+      form.supplierId = null
+    }
+  } else {
+    form.supplierId = null
+  }
 })
 const rules = {
   materialId: [{ required: true, message: '请选择标准物质', trigger: 'change' }],
