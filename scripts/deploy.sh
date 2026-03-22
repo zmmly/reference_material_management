@@ -456,10 +456,18 @@ build_frontend() {
 
     cd ${FRONTEND_DIR}
 
+    # 检查依赖安装
     if [ ! -d "node_modules" ]; then
-        echo -e "${YELLOW}安装前端依赖...${NC}"
-        # 静默安装依赖
-        npm install --silent --no-audit --no-fund
+        echo -e "${YELLOW}安装前端依赖（可能需要几分钟）...${NC}"
+        echo -e "${YELLOW}正在下载依赖包，请耐心等待...${NC}"
+
+        # 使用npm install，不过滤输出，让用户看到进度
+        npm install --no-audit --no-fund --legacy-peer-deps
+
+        if [ $? -ne 0 ]; then
+            echo -e "${RED}✗ 依赖安装失败${NC}"
+            exit 1
+        fi
     fi
 
     echo -e "${YELLOW}构建前端...${NC}"
@@ -745,8 +753,10 @@ show_help() {
     echo -e "${YELLOW}  JAVA_OPTS=${NC} - 指定JVM参数"
     echo ""
     echo ""
-    echo -e "${GREEN}调试选项:${NC}"
-    echo -e "${YELLOW}  ./deploy.sh --debug    ${NC}  - 调试包管理器检测"
+    echo -e "${GREEN}选项:${NC}"
+    echo -e "${YELLOW}  --debug              ${NC}  - 调试包管理器检测"
+    echo -e "${YELLOW}  --cn-mirror          ${NC}  - 配置国内npm镜像加速下载"
+    echo -e "${YELLOW}  --skip-deps          ${NC}  - 跳过依赖安装，直接构建"
     echo -e "${GREEN}示例配置文件:${NC}"
     echo -e "${YELLOW}# 数据库配置${NC}"
     echo -e "${YELLOW}DB_HOST=your-mysql-host${NC}"
@@ -771,6 +781,21 @@ main() {
         exit 0
     fi
 
+    # 检查是否使用国内镜像
+    if [ "$1" = "--cn-mirror" ]; then
+        echo -e "${YELLOW}配置国内npm镜像...${NC}"
+        npm config set registry https://registry.npmmirror.com
+        echo -e "${GREEN}✓ npm镜像已配置${NC}"
+    fi
+
+    # 检查是否跳过依赖安装
+    if [ "$1" = "--skip-deps" ]; then
+        SKIP_DEPS=true
+        echo -e "${YELLOW}跳过依赖安装模式${NC}"
+    else
+        SKIP_DEPS=false
+    fi
+
     check_root
     check_os
     load_config
@@ -778,7 +803,16 @@ main() {
     install_dependencies
     setup_code
     setup_database
-    build_frontend
+
+    # 根据选项决定是否安装依赖
+    if [ "$SKIP_DEPS" = false ]; then
+        build_frontend
+    else
+        echo -e "${YELLOW}跳过前端依赖安装，直接构建...${NC}"
+        cd ${FRONTEND_DIR}
+        npm run build
+    fi
+
     build_backend
     configure_nginx
     create_systemd_services
