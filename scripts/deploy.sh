@@ -221,11 +221,30 @@ check_os() {
     if command -v apt &> /dev/null; then
         PKG_MANAGER="apt"
         PKG_UPDATE="apt update"
+        PKG_INSTALL="apt install -y"
     elif command -v yum &> /dev/null; then
         PKG_MANAGER="yum"
         PKG_UPDATE="yum update -y"
+        PKG_INSTALL="yum install -y"
+    elif command -v dnf &> /dev/null; then
+        PKG_MANAGER="dnf"
+        PKG_UPDATE="dnf update -y"
+        PKG_INSTALL="dnf install -y"
+    elif command -v zypper &> /dev/null; then
+        PKG_MANAGER="zypper"
+        PKG_UPDATE="zypper refresh"
+        PKG_INSTALL="zypper install -y"
+    elif command -v apk &> /dev/null; then
+        PKG_MANAGER="apk"
+        PKG_UPDATE="apk update"
+        PKG_INSTALL="apk add"
+    elif command -v pacman &> /dev/null; then
+        PKG_MANAGER="pacman"
+        PKG_UPDATE="pacman -Sy"
+        PKG_INSTALL="pacman -S --noconfirm"
     else
         echo -e "${RED}无法检测包管理器，请手动安装所需依赖${NC}"
+        echo -e "${YELLOW}支持的包管理器: apt, yum, dnf, zypper, apk, pacman${NC}"
         exit 1
     fi
 
@@ -236,6 +255,10 @@ check_os() {
         OS="debian"
     elif [ -f /etc/lsb-release ]; then
         OS="ubuntu"
+    elif [ -f /etc/alpine-release ]; then
+        OS="alpine"
+    elif [ -f /etc/arch-release ]; then
+        OS="arch"
     else
         OS="unknown"
     fi
@@ -276,60 +299,54 @@ setup_environment_variables() {
 install_dependencies() {
     echo -e "${BLUE}[7/10] 检查和安装依赖...${NC}"
 
-    # 更新包索引（仅针对apt）
-    if [ "$PKG_MANAGER" = "apt" ]; then
-        echo -e "${YELLOW}更新包索引...${NC}"
-        ${PKG_MANAGER} update -qq
-    fi
+    # 更新包索引
+    echo -e "${YELLOW}更新包索引...${NC}"
+    ${PKG_UPDATE} || echo -e "${YELLOW}⚠️  包索引更新失败，继续...${NC}"
 
     # 安装git
     if ! command -v git &> /dev/null; then
         echo -e "${YELLOW}安装git...${NC}"
-        if [ "$PKG_MANAGER" = "apt" ]; then
-            ${PKG_MANAGER} install -y git
-        else
-            ${PKG_MANAGER} install -y git
-        fi
+        ${PKG_INSTALL} git || error_exit "安装git失败"
     fi
 
     # 安装nginx
     if ! command -v nginx &> /dev/null; then
         echo -e "${YELLOW}安装nginx...${NC}"
-        if [ "$PKG_MANAGER" = "apt" ]; then
-            ${PKG_MANAGER} install -y nginx
-        else
-            ${PKG_MANAGER} install -y nginx
-        fi
+        ${PKG_INSTALL} nginx || error_exit "安装nginx失败"
     fi
 
     # 安装Node.js和npm
     if ! command -v node &> /dev/null || ! command -v npm &> /dev/null; then
         echo -e "${YELLOW}安装Node.js和npm...${NC}"
-        if [ "$PKG_MANAGER" = "apt" ]; then
-            ${PKG_MANAGER} install -y nodejs npm
-        else
-            ${PKG_MANAGER} install -y nodejs npm
-        fi
+        ${PKG_INSTALL} nodejs npm || error_exit "安装Node.js和npm失败"
     fi
 
     # 安装JDK 17
     if ! command -v java &> /dev/null; then
         echo -e "${YELLOW}安装JDK ${JAVA_VERSION}...${NC}"
-        if [ "$PKG_MANAGER" = "apt" ]; then
-            ${PKG_MANAGER} install -y openjdk-${JAVA_VERSION}-jdk
-        else
-            ${PKG_MANAGER} install -y java-${JAVA_VERSION}-openjdk-devel
-        fi
+        case "$PKG_MANAGER" in
+            apt)
+                ${PKG_INSTALL} openjdk-${JAVA_VERSION}-jdk || error_exit "安装JDK失败"
+                ;;
+            yum|dnf)
+                ${PKG_INSTALL} java-${JAVA_VERSION}-openjdk-devel || error_exit "安装JDK失败"
+                ;;
+            zypper)
+                ${PKG_INSTALL} java-${JAVA_VERSION}-openjdk-devel || error_exit "安装JDK失败"
+                ;;
+            apk)
+                ${PKG_INSTALL} openjdk${JAVA_VERSION} || error_exit "安装JDK失败"
+                ;;
+            pacman)
+                ${PKG_INSTALL} jdk${JAVA_VERSION}-openjdk || error_exit "安装JDK失败"
+                ;;
+        esac
     fi
 
     # 安装Maven
     if ! command -v mvn &> /dev/null; then
         echo -e "${YELLOW}安装Maven...${NC}"
-        if [ "$PKG_MANAGER" = "apt" ]; then
-            ${PKG_MANAGER} install -y maven
-        else
-            ${PKG_MANAGER} install -y maven
-        fi
+        ${PKG_INSTALL} maven || error_exit "安装Maven失败"
     fi
 
     echo -e "${GREEN}✓ 依赖安装完成${NC}"
@@ -580,6 +597,7 @@ show_deployment_info() {
 }
 
 # 显示使用帮助
+# 调试包管理器debug_package_manager() {    echo -e "${YELLOW}调试信息: 检测可用包管理器${NC}"    echo ""    echo -e "${YELLOW}检查常见包管理器...${NC}"    for pkg in apt yum dnf zypper apk pacman; do        if command -v $pkg &> /dev/null; then            echo -e "  ${GREEN}✓${NC} $pkg 可用"        else            echo -e "  ${RED}✗${NC} $pkg 不可用"        fi    done    echo ""    echo -e "${YELLOW}操作系统信息:${NC}"    if [ -f /etc/os-release ]; then        cat /etc/os-release    elif [ -f /etc/redhat-release ]; then        cat /etc/redhat-release    elif [ -f /etc/debian_version ]; then        cat /etc/debian_version    fi    echo ""    echo -e "${YELLOW}PATH环境变量:${NC}"    echo "  $PATH"}
 show_help() {
     echo -e "${GREEN}使用方法${NC}"
     echo ""
@@ -593,6 +611,7 @@ show_help() {
     echo -e "${YELLOW}  JAVA_HOME=${NC}  - 指定JDK安装路径"
     echo -e "${YELLOW}  JAVA_OPTS=${NC} - 指定JVM参数"
     echo ""
+    echo ""    echo -e "${GREEN}调试选项:${NC}"    echo -e "${YELLOW}  ./deploy.sh --debug    ${NC}  - 调试包管理器检测"
     echo -e "${GREEN}示例配置文件:${NC}"
     echo -e "${YELLOW}# 数据库配置${NC}"
     echo -e "${YELLOW}DB_HOST=your-mysql-host${NC}"
@@ -608,6 +627,12 @@ main() {
     # 检查是否显示帮助
     if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
         show_help
+        exit 0
+    fi
+
+    # 检查是否需要调试包管理器
+    if [ "$1" = "--debug" ]; then
+        debug_package_manager
         exit 0
     fi
 
