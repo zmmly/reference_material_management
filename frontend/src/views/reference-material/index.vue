@@ -77,6 +77,13 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
+            <el-form-item label="供应商" prop="supplierId">
+              <el-select v-model="form.supplierId" placeholder="请选择供应商" filterable style="width: 100%">
+                <el-option v-for="item in supplierList" :key="item.id" :label="item.name" :value="item.id" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
             <el-form-item label="规格" prop="specification">
               <el-input v-model="form.specification" placeholder="请输入规格" />
             </el-form-item>
@@ -115,11 +122,13 @@ import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getMaterialList, createMaterial, updateMaterial, deleteMaterial } from '@/api/material'
 import { getCategoryTree } from '@/api/category'
+import { getSupplierList } from '@/api/supplier'
 
 const loading = ref(false)
 const tableData = ref([])
 const total = ref(0)
 const categoryList = ref([])
+const supplierList = ref([])
 const dialogVisible = ref(false)
 const editId = ref(null)
 const formRef = ref()
@@ -134,7 +143,8 @@ const form = reactive({
   specification: '',
   purityConcentration: '',
   matrix: '',
-  packageForm: ''
+  packageForm: '',
+  supplierId: null
 })
 const rules = {
   code: [{ required: true, message: '请输入编号', trigger: 'blur' }],
@@ -159,6 +169,13 @@ const fetchCategories = async () => {
   try {
     const res = await getCategoryTree()
     categoryList.value = flattenTree(res.data || [])
+  } catch (e) {}
+}
+
+const fetchSuppliers = async () => {
+  try {
+    const res = await getAllSuppliers()
+    supplierList.value = res.data || []
   } catch (e) {}
 }
 
@@ -214,6 +231,7 @@ const handleDelete = async (row) => {
 onMounted(() => {
   fetchData()
   fetchCategories()
+  fetchSuppliers()
 })
 </script>
 

@@ -27,6 +27,8 @@ public class ReferenceMaterial {
     private String packageForm;
     /** 分类ID */
     private Long categoryId;
+    /** 供应商ID */
+    private Long supplierId;
     /** 状态 */
     private Integer status;
     @TableField(fill = FieldFill.INSERT)
