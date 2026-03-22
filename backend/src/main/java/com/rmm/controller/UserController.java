@@ -109,4 +109,22 @@ public class UserController {
     public Result<List<User>> listAll() {
         return Result.success(userService.listAll());
     }
+
+    @PutMapping("/{id}/status")
+    public Result<Void> updateStatus(@PathVariable Long id, @RequestParam Integer status, HttpServletRequest request) {
+        userService.updateStatus(id, status);
+
+        // 记录操作日志
+        String token = request.getHeader("Authorization");
+        if (token != null && token.startsWith("Bearer ")) {
+            token = token.substring(7);
+            Long userId = jwtUtil.getUserId(token);
+            String username = jwtUtil.getUsername(token);
+            String statusText = status == 1 ? "启用" : "禁用";
+            operationLogUtil.log(request, userId, username, "user", "状态更新",
+                "用户", "更新用户ID: " + id + " 状态为: " + statusText);
+        }
+
+        return Result.success();
+    }
 }

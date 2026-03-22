@@ -115,6 +115,15 @@ public class UserService {
         return users;
     }
 
+    public void updateStatus(Long id, Integer status) {
+        User user = userMapper.selectById(id);
+        if (user == null) {
+            throw new BusinessException("用户不存在");
+        }
+        user.setStatus(status);
+        userMapper.updateById(user);
+    }
+
     private void fillRole(User user) {
         if (user.getRoleId() != null) {
             Role role = roleMapper.selectById(user.getRoleId());
