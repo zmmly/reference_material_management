@@ -33,7 +33,10 @@ NC='\033[0m'
 
 # 脚本目录
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-CONFIG_FILE="${SCRIPT_DIR}/deploy-config.env"
+# 项目根目录（脚本所在目录的父目录）
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+# 配置文件在项目根目录下
+CONFIG_FILE="${PROJECT_ROOT}/deploy-config.env"
 
 # 默认配置
 DEFAULT_GIT_REPO="https://github.com/zmmly/reference_material_management.git"
@@ -79,8 +82,18 @@ load_config() {
     echo -e "${BLUE}[2/10] 加载配置文件...${NC}"
 
     if [ ! -f "$CONFIG_FILE" ]; then
-        echo -e "${YELLOW}配置文件不存在，使用默认配置${NC}"
+        echo -e "${YELLOW}⚠️  配置文件不存在: ${CONFIG_FILE}${NC}"
+        echo -e "${YELLOW}使用默认配置值...${NC}"
         use_default_config
+
+        # 询问是否需要创建配置文件
+        echo -e "${YELLOW}是否需要创建配置文件？(y/n)${NC}"
+        read -t 30 -n CREATE_CONFIG || CREATE_CONFIG="n"
+
+        if [ "$CREATE_CONFIG" = "y" ] || [ "$CREATE_CONFIG" = "Y" ]; then
+            echo -e "${YELLOW}创建配置文件: ${CONFIG_FILE}${NC}"
+            create_default_config_file
+        fi
         return 0
     fi
 
@@ -114,6 +127,48 @@ load_config() {
 
     # 验证必需的配置
     validate_config
+}
+
+# 创建默认配置文件
+create_default_config_file() {
+    cat > "$CONFIG_FILE" << 'EOF'
+# ============================================
+# 标准物质管理系统 - 部署配置文件
+# ============================================
+
+# Git配置
+GIT_REPO=https://github.com/zmmly/reference_material_management.git
+GIT_BRANCH=main
+
+# 部署目录配置
+DEPLOY_DIR=/opt/reference_material_management
+BACKEND_DIR=/opt/reference_material_management/backend
+FRONTEND_DIR=/opt/reference_material_management/frontend
+BACKUP_DIR=/opt/reference_material_management_backups
+PROJECT_NAME=reference-material_management
+
+# 数据库配置
+DB_NAME=reference_material_management
+DB_USER=root
+DB_PASS=xjYY3687!
+DB_HOST=localhost
+DB_PORT=3306
+
+# 服务端口配置
+NGINX_PORT=80
+FRONTEND_PORT=3002
+BACKEND_PORT=8080
+
+# Java配置
+JAVA_VERSION=17
+JAVA_OPTS=-Xms512m -Xmx1024m -XX:+UseG1GC
+SERVICE_USER=root
+
+# 备份配置
+BACKUP_RETENTION_DAYS=7
+AUTO_BACKUP_ENABLED=true
+EOF
+    echo -e "${GREEN}✓ 配置文件已创建: ${CONFIG_FILE}${NC}"
 }
 
 # 使用默认配置
