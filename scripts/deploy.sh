@@ -6,6 +6,24 @@
 
 set -e
 
+# 错误处理函数
+error_exit() {
+    echo -e "${RED}错误: $1${NC}"
+    exit 1
+}
+
+# 命令执行函数
+run_command() {
+    local description=$1
+    shift
+    local command=$@
+
+    echo -e "${YELLOW}执行: ${description}${NC}"
+    if ! $command; then
+        error_exit "${description} 失败"
+    fi
+}
+
 # 颜色定义
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -198,20 +216,31 @@ show_current_config() {
 # 检查操作系统
 check_os() {
     echo -e "${BLUE}[5/10] 检查操作系统...${NC}"
-    if [ -f /etc/redhat-release ]; then
-        OS="centos"
+
+    # 先检测包管理器
+    if command -v apt &> /dev/null; then
+        PKG_MANAGER="apt"
+        PKG_UPDATE="apt update"
+    elif command -v yum &> /dev/null; then
         PKG_MANAGER="yum"
-    elif [ -f /etc/debian_version ]; then
-        OS="debian"
-        PKG_MANAGER="apt"
-    elif [ -f /etc/lsb-release ]; then
-        OS="ubuntu"
-        PKG_MANAGER="apt"
+        PKG_UPDATE="yum update -y"
     else
-        echo -e "${RED}不支持的操作系统${NC}"
+        echo -e "${RED}无法检测包管理器，请手动安装所需依赖${NC}"
         exit 1
     fi
-    echo -e "${GREEN}✓ 操作系统: ${OS}${NC}"
+
+    # 检测操作系统类型
+    if [ -f /etc/redhat-release ]; then
+        OS="centos"
+    elif [ -f /etc/debian_version ]; then
+        OS="debian"
+    elif [ -f /etc/lsb-release ]; then
+        OS="ubuntu"
+    else
+        OS="unknown"
+    fi
+
+    echo -e "${GREEN}✓ 操作系统: ${OS} | 包管理器: ${PKG_MANAGER}${NC}"
 }
 
 # 设置全局环境变量
@@ -247,37 +276,60 @@ setup_environment_variables() {
 install_dependencies() {
     echo -e "${BLUE}[7/10] 检查和安装依赖...${NC}"
 
+    # 更新包索引（仅针对apt）
+    if [ "$PKG_MANAGER" = "apt" ]; then
+        echo -e "${YELLOW}更新包索引...${NC}"
+        ${PKG_MANAGER} update -qq
+    fi
+
+    # 安装git
     if ! command -v git &> /dev/null; then
         echo -e "${YELLOW}安装git...${NC}"
-        ${PKG_MANAGER} install -y git
+        if [ "$PKG_MANAGER" = "apt" ]; then
+            ${PKG_MANAGER} install -y git
+        else
+            ${PKG_MANAGER} install -y git
+        fi
     fi
 
+    # 安装nginx
     if ! command -v nginx &> /dev/null; then
         echo -e "${YELLOW}安装nginx...${NC}"
-        ${PKG_MANAGER} install -y nginx
+        if [ "$PKG_MANAGER" = "apt" ]; then
+            ${PKG_MANAGER} install -y nginx
+        else
+            ${PKG_MANAGER} install -y nginx
+        fi
     fi
 
+    # 安装Node.js和npm
     if ! command -v node &> /dev/null || ! command -v npm &> /dev/null; then
         echo -e "${YELLOW}安装Node.js和npm...${NC}"
-        if [ "$OS" = "centos" ]; then
+        if [ "$PKG_MANAGER" = "apt" ]; then
             ${PKG_MANAGER} install -y nodejs npm
         else
             ${PKG_MANAGER} install -y nodejs npm
         fi
     fi
 
-    if ! command -v java &> /dev/null || [ "$(java -version 2>&1 | grep -oP 'version "?[0-9]+\.[0-9]+\.[0-9]+' | head -1)" != "1.${JAVA_VERSION}.0" ]; then
+    # 安装JDK 17
+    if ! command -v java &> /dev/null; then
         echo -e "${YELLOW}安装JDK ${JAVA_VERSION}...${NC}"
-        if [ "$OS" = "centos" ]; then
-            ${PKG_MANAGER} install -y java-${JAVA_VERSION}-openjdk-devel
-        else
+        if [ "$PKG_MANAGER" = "apt" ]; then
             ${PKG_MANAGER} install -y openjdk-${JAVA_VERSION}-jdk
+        else
+            ${PKG_MANAGER} install -y java-${JAVA_VERSION}-openjdk-devel
         fi
     fi
 
+    # 安装Maven
     if ! command -v mvn &> /dev/null; then
         echo -e "${YELLOW}安装Maven...${NC}"
-        ${PKG_MANAGER} install -y maven
+        if [ "$PKG_MANAGER" = "apt" ]; then
+            ${PKG_MANAGER} install -y maven
+        else
+            ${PKG_MANAGER} install -y maven
+        fi
     fi
 
     echo -e "${GREEN}✓ 依赖安装完成${NC}"
@@ -287,16 +339,35 @@ install_dependencies() {
 setup_database() {
     echo -e "${BLUE}[8/10] 配置MySQL数据库...${NC}"
 
-    mysql -h${DB_HOST} -P${DB_PORT} -u${DB_USER} -p${DB_PASS} -e "CREATE DATABASE IF NOT EXISTS ${DB_NAME} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+    # 测试MySQL连接
+    echo -e "${YELLOW}测试MySQL连接...${NC}"
+    if ! mysql -h${DB_HOST} -P${DB_PORT} -u${DB_USER} -p${DB_PASS} -e "SELECT 1;" &> /dev/null; then
+        echo -e "${RED}✗ MySQL连接失败${NC}"
+        echo -e "${RED}请检查数据库配置: 主机:${DB_HOST}, 用户:${DB_USER}, 端口:${DB_PORT}${NC}"
+        exit 1
+    fi
+    echo -e "${GREEN}✓ MySQL连接正常${NC}"
 
-    if [ -f "${DEPLOY_DIR}/database/schema.sql" ]; then
-        echo -e "${YELLOW}导入数据库结构...${NC}"
-        mysql -h${DB_HOST} -P${DB_PORT} -u${DB_USER} -p${DB_PASS} ${DB_NAME} < "${DEPLOY_DIR}/database/schema.sql"
+    # 创建数据库
+    echo -e "${YELLOW}创建数据库...${NC}"
+    if ! mysql -h${DB_HOST} -P${DB_PORT} -u${DB_USER} -p${DB_PASS} -e "CREATE DATABASE IF NOT EXISTS ${DB_NAME} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"; then
+        error_exit "创建数据库失败"
     fi
 
+    # 导入数据库结构
+    if [ -f "${DEPLOY_DIR}/database/schema.sql" ]; then
+        echo -e "${YELLOW}导入数据库结构...${NC}"
+        if ! mysql -h${DB_HOST} -P${DB_PORT} -u${DB_USER} -p${DB_PASS} ${DB_NAME} < "${DEPLOY_DIR}/database/schema.sql"; then
+            error_exit "导入数据库结构失败"
+        fi
+    fi
+
+    # 导入数据库数据
     if [ -f "${DEPLOY_DIR}/database/data.sql" ]; then
         echo -e "${YELLOW}导入数据库数据...${NC}"
-        mysql -h${DB_HOST} -P${DB_PORT} -u${DB_USER} -p${DB_PASS} ${DB_NAME} < "${DEPLOY_DIR}/database/data.sql"
+        if ! mysql -h${DB_HOST} -P${DB_PORT} -u${DB_USER} -p${DB_PASS} ${DB_NAME} < "${DEPLOY_DIR}/database/data.sql"; then
+            echo -e "${YELLOW}⚠️  导入数据库数据失败（可能是数据已存在）${NC}"
+        fi
     fi
 
     echo -e "${GREEN}✓ 数据库配置完成${NC}"
@@ -364,7 +435,7 @@ configure_nginx() {
         echo ""
         echo "  location / {"
         echo "    root ${FRONTEND_DIR}/dist;"
-        echo "    try_files \${FRONTEND_DIR}/dist/index.html;"
+        echo "    try_files \$uri \$uri/ /index.html;"
         echo "    index index.html;"
         echo ""
         echo "    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot) {"
@@ -374,10 +445,10 @@ configure_nginx() {
         echo ""
         echo "  location /api {"
         echo "    proxy_pass http://localhost:${BACKEND_PORT};"
-        echo "    proxy_set_header Host \${HOST};"
-        echo "    proxy_set_header X-Real-IP \${REMOTE_ADDR};"
-        echo "    proxy_set_header X-Forwarded-For \${PROXY_ADD};"
-        echo "    proxy_set_header X-Forwarded-Proto \${SCHEME};"
+        echo "    proxy_set_header Host \$host;"
+        echo "    proxy_set_header X-Real-IP \$remote_addr;"
+        echo "    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;"
+        echo "    proxy_set_header X-Forwarded-Proto \$scheme;"
         echo ""
         echo "    proxy_connect_timeout 60s;"
         echo "    proxy_send_timeout 60s;"
@@ -387,10 +458,15 @@ configure_nginx() {
     } > ${NGINX_CONF}
 
     # 测试nginx配置
-    nginx -t
+    echo -e "${YELLOW}测试nginx配置...${NC}"
+    if ! nginx -t; then
+        echo -e "${RED}✗ nginx配置测试失败${NC}"
+        exit 1
+    fi
 
     # 重启nginx
-    systemctl restart nginx
+    echo -e "${YELLOW}重启nginx服务...${NC}"
+    systemctl restart nginx || systemctl start nginx
     systemctl enable nginx
 
     echo -e "${GREEN}✓ nginx配置完成${NC}"
