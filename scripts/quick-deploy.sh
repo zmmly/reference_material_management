@@ -108,6 +108,18 @@ echo -e "${GREEN}✓ 数据库初始化完成${NC}"
 
 # 构建前端
 echo -e "${YELLOW}构建前端...${NC}"
+
+# 检查Node.js和npm
+if ! command -v node &> /dev/null || ! command -v npm &> /dev/null; then
+    echo -e "${RED}✗ Node.js或npm未安装${NC}"
+    echo -e "${YELLOW}正在安装Node.js和npm...${NC}"
+    if [ -f /etc/redhat-release ]; then
+        yum install -y nodejs npm
+    else
+        apt update && apt install -y nodejs npm
+    fi
+fi
+
 cd ${FRONTEND_DIR}
 npm install
 npm run build

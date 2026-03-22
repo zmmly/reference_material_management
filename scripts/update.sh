@@ -97,6 +97,17 @@ rebuild_frontend() {
 
     cd ${FRONTEND_DIR}
 
+    # 检查Node.js和npm
+    if ! command -v node &> /dev/null || ! command -v npm &> /dev/null; then
+        echo -e "${RED}✗ Node.js或npm未安装${NC}"
+        echo -e "${YELLOW}正在安装Node.js和npm...${NC}"
+        if [ -f /etc/redhat-release ]; then
+            yum install -y nodejs npm
+        else
+            apt update && apt install -y nodejs npm
+        fi
+    fi
+
     # 安装新依赖
     echo -e "${YELLOW}检查前端依赖...${NC}"
     npm install

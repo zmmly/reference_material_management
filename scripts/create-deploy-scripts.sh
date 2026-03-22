@@ -1,6 +1,19 @@
 #!/bin/bash
 
 # ============================================
+# 在服务器上直接创建部署脚本
+# ============================================
+
+echo "======================================"
+echo "  创建标准物质管理系统部署脚本"
+echo "======================================"
+echo ""
+
+# 创建主部署脚本
+cat > /root/deploy.sh <<'DEPLOY_SCRIPT_EOF'
+#!/bin/bash
+
+# ============================================
 # 标准物质管理系统 - 云服务器一键部署脚本
 # ============================================
 
@@ -65,19 +78,16 @@ check_os() {
 install_dependencies() {
     echo -e "${BLUE}[2/10] 检查和安装依赖...${NC}"
 
-    # 检查git
     if ! command -v git &> /dev/null; then
         echo -e "${YELLOW}安装git...${NC}"
         ${PKG_MANAGER} install -y git
     fi
 
-    # 检查nginx
     if ! command -v nginx &> /dev/null; then
         echo -e "${YELLOW}安装nginx...${NC}"
         ${PKG_MANAGER} install -y nginx
     fi
 
-    # 检查JDK 17
     if ! command -v java &> /dev/null || [ "$(java -version 2>&1 | grep -oP 'version "?[0-9]+\.[0-9]+\.[0-9]+' | head -1)" != "1.${JAVA_VERSION}.0" ]; then
         echo -e "${YELLOW}安装JDK ${JAVA_VERSION}...${NC}"
         if [ "$OS" = "centos" ]; then
@@ -85,12 +95,8 @@ install_dependencies() {
         else
             ${PKG_MANAGER} install -y openjdk-${JAVA_VERSION}-jdk
         fi
-
-        # 设置JAVA_HOME
         export JAVA_HOME="/usr/lib/jvm/java-${JAVA_VERSION}-openjdk"
         export PATH="$JAVA_HOME/bin:$PATH"
-
-        # 永久设置环境变量
         echo "export JAVA_HOME=$JAVA_HOME" >> /etc/profile
         echo "export PATH=\$JAVA_HOME/bin:\$PATH" >> /etc/profile
         source /etc/profile
@@ -99,13 +105,7 @@ install_dependencies() {
     # 检查Node.js和npm
     if ! command -v node &> /dev/null || ! command -v npm &> /dev/null; then
         echo -e "${YELLOW}安装Node.js和npm...${NC}"
-        if [ "$OS" = "centos" ]; then
-            ${PKG_MANAGER} install -y nodejs npm
-        else
-            ${PKG_MANAGER} install -y nodejs npm
-        fi
-
-        # 设置Node.js环境变量
+        ${PKG_MANAGER} install -y nodejs npm
         if [ "$OS" = "centos" ]; then
             export PATH="/usr/bin:$PATH"
         else
@@ -127,130 +127,91 @@ install_dependencies() {
 # 配置MySQL数据库
 setup_database() {
     echo -e "${BLUE}[3/10] 配置MySQL数据库...${NC}"
-
-    # 创建数据库
     mysql -u${DB_USER} -p${DB_PASS} -e "CREATE DATABASE IF NOT EXISTS ${DB_NAME} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-
-    # 导入数据库结构
     if [ -f "${DEPLOY_DIR}/database/schema.sql" ]; then
         echo -e "${YELLOW}导入数据库结构...${NC}"
         mysql -u${DB_USER} -p${DB_PASS} ${DB_NAME} < "${DEPLOY_DIR}/database/schema.sql"
     fi
-
-    # 导入数据库数据
     if [ -f "${DEPLOY_DIR}/database/data.sql" ]; then
         echo -e "${YELLOW}导入数据库数据...${NC}"
         mysql -u${DB_USER} -p${DB_PASS} ${DB_NAME} < "${DEPLOY_DIR}/database/data.sql"
     fi
-
     echo -e "${GREEN}✓ 数据库配置完成${NC}"
 }
 
 # 克隆或更新代码
 setup_code() {
     echo -e "${BLUE}[4/10] 部署代码...${NC}"
-
     if [ -d "${DEPLOY_DIR}" ]; then
         echo -e "${YELLOW}项目目录已存在，正在备份...${NC}"
         mv "${DEPLOY_DIR}" "${DEPLOY_DIR}_backup_$(date +%Y%m%d_%H%M%S)" || true
     fi
-
-    # 克隆代码
     echo -e "${YELLOW}克隆代码仓库...${NC}"
     git clone ${GIT_REPO} ${DEPLOY_DIR}
-
     echo -e "${GREEN}✓ 代码部署完成${NC}"
 }
 
 # 构建前端
 build_frontend() {
     echo -e "${BLUE}[5/10] 构建前端...${NC}"
-
     cd ${FRONTEND_DIR}
-
-    # 安装依赖
     if [ ! -d "node_modules" ]; then
         echo -e "${YELLOW}安装前端依赖...${NC}"
         npm install
     fi
-
-    # 构建
     echo -e "${YELLOW}构建前端...${NC}"
     npm run build
-
     echo -e "${GREEN}✓ 前端构建完成${NC}"
 }
 
 # 构建后端
 build_backend() {
     echo -e "${BLUE}[6/10] 构建后端...${NC}"
-
     cd ${BACKEND_DIR}
-
-    # 使用Maven打包
     echo -e "${YELLOW}构建后端...${NC}"
     mvn clean package -DskipTests
-
     echo -e "${GREEN}✓ 后端构建完成${NC}"
 }
 
 # 配置nginx
 configure_nginx() {
     echo -e "${BLUE}[7/10] 配置nginx...${NC}"
-
-    # 创建nginx配置文件
-    cat > /etc/nginx/conf.d/${PROJECT_NAME}.conf <<EOF
+    cat > /etc/nginx/conf.d/${PROJECT_NAME}.conf <<'NGINX_CONF'
 server {
     listen ${NGINX_PORT};
     server_name _;
 
-    # 前端静态文件
     location / {
         root ${FRONTEND_DIR}/dist;
-        try_files \$uri \$uri/ /index.html;
+        try_files $uri $uri/ /index.html;
         index index.html;
-
-        # 缓存静态资源
         location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
             expires 30d;
             add_header Cache-Control "public, immutable";
         }
     }
 
-    # 后端API代理
     location /api {
         proxy_pass http://localhost:${BACKEND_PORT};
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-
-        # 超时设置
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
         proxy_connect_timeout 60s;
         proxy_send_timeout 60s;
         proxy_read_timeout 60s;
     }
 }
-EOF
-
-    # 测试nginx配置
-    nginx -t
-
-    # 重启nginx
-    systemctl restart nginx
-
-    # 设置nginx开机自启
+NGINX_CONF
+    nginx -t && systemctl restart nginx
     systemctl enable nginx
-
     echo -e "${GREEN}✓ nginx配置完成${NC}"
 }
 
 # 创建systemd服务文件
 create_systemd_services() {
     echo -e "${BLUE}[8/10] 创建systemd服务...${NC}"
-
-    # 创建后端服务文件
-    cat > /etc/systemd/system/${PROJECT_NAME}-backend.service <<EOF
+    cat > /etc/systemd/system/${PROJECT_NAME}-backend.service <<'BACKEND_SERVICE'
 [Unit]
 Description=Reference Material Management Backend
 After=network.target
@@ -266,10 +227,8 @@ RestartSec=10
 
 [Install]
 WantedBy=multi-user.target
-EOF
-
-    # 创建前端服务文件
-    cat > /etc/systemd/system/${PROJECT_NAME}-frontend.service <<EOF
+BACKEND_SERVICE
+    cat > /etc/systemd/system/${PROJECT_NAME}-frontend.service <<'FRONTEND_SERVICE'
 [Unit]
 Description=Reference Material Management Frontend
 After=network.target
@@ -284,27 +243,18 @@ RestartSec=10
 
 [Install]
 WantedBy=multi-user.target
-EOF
-
-    # 重载systemd
+FRONTEND_SERVICE
     systemctl daemon-reload
-
     echo -e "${GREEN}✓ systemd服务创建完成${NC}"
 }
 
 # 启动服务
 start_services() {
     echo -e "${BLUE}[9/10] 启动服务...${NC}"
-
-    # 启动后端服务
     systemctl start ${PROJECT_NAME}-backend
     systemctl enable ${PROJECT_NAME}-backend
-
-    # 启动前端服务（开发模式，生产环境建议使用nginx）
     systemctl start ${PROJECT_NAME}-frontend
     systemctl enable ${PROJECT_NAME}-frontend
-
-    # 开放防火墙端口
     if command -v firewall-cmd &> /dev/null; then
         firewall-cmd --permanent --add-port=${BACKEND_PORT}/tcp
         firewall-cmd --permanent --add-port=${FRONTEND_PORT}/tcp
@@ -315,7 +265,6 @@ start_services() {
         ufw allow ${FRONTEND_PORT}/tcp
         ufw allow ${NGINX_PORT}/tcp
     fi
-
     echo -e "${GREEN}✓ 服务启动完成${NC}"
 }
 
@@ -323,9 +272,9 @@ start_services() {
 show_deployment_info() {
     echo -e "${BLUE}[10/10] 部署完成${NC}"
     echo ""
-    echo -e "${GREEN}╔══════════════════════════════════════╗${NC}"
+    echo -e "${GREEN}╔════════════════════════════════════╗${NC}"
     echo -e "${GREEN}║     部署成功！                             ║${NC}"
-    echo -e "${GREEN}╚══════════════════════════════════════╝${NC}"
+    echo -e "${GREEN}╚════════════════════════════════════╝${NC}"
     echo ""
     echo -e "📱 访问地址:"
     echo -e "  前端: ${YELLOW}http://$(curl -s ifconfig.me):${NGINX_PORT}/${NC}"
@@ -362,3 +311,168 @@ main() {
 
 # 执行主函数
 main
+DEPLOY_SCRIPT_EOF
+
+# 创建更新脚本
+cat > /root/update.sh <<'UPDATE_SCRIPT_EOF'
+#!/bin/bash
+
+set -e
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+PROJECT_NAME="reference-material-management"
+DEPLOY_DIR="/opt/${PROJECT_NAME}"
+BACKUP_DIR="/opt/${PROJECT_NAME}_backups"
+BACKUP_FILE="${BACKUP_DIR}/backup_$(date +%Y%m%d_%H%M%S).sql"
+BACKEND_DIR="${DEPLOY_DIR}/backend"
+FRONTEND_DIR="${DEPLOY_DIR}/frontend"
+DB_NAME="reference_material_management"
+DB_USER="root"
+DB_PASS="xjYY3687!"
+
+echo -e "${BLUE}"
+echo "======================================"
+echo "  标准物质管理系统 - 云服务器更新"
+echo "======================================"
+echo -e "${NC}"
+
+check_root() {
+    if [ "$EUID" -ne 0 ]; then
+        echo -e "${RED}请使用root用户运行此脚本${NC}"
+        exit 1
+    fi
+}
+
+backup_database() {
+    echo -e "${BLUE}[1/7] 备份数据库...${NC}"
+    mkdir -p ${BACKUP_DIR}
+    echo -e "${YELLOW}正在备份数据库...${NC}"
+    mysqldump -u${DB_USER} -p${DB_PASS} ${DB_NAME} > ${BACKUP_FILE}
+    gzip ${BACKUP_FILE}
+    find ${BACKUP_DIR} -name "*.sql.gz" -mtime +7 -delete
+    echo -e "${GREEN}✓ 数据库备份完成: ${BACKUP_FILE}.gz${NC}"
+}
+
+update_code() {
+    echo -e "${BLUE}[2/7] 更新代码...${NC}"
+    cd ${DEPLOY_DIR}
+    echo -e "${YELLOW}备份当前代码...${NC}"
+    git stash
+    echo -e "${YELLOW}拉取最新代码...${NC}"
+    git fetch origin
+    git checkout main
+    git pull origin main
+    echo -e "${GREEN}✓ 代码更新完成${NC}"
+}
+
+update_database() {
+    echo -e "${BLUE}[3/7] 更新数据库...${NC}"
+    if [ -f "${DEPLOY_DIR}/database/schema.sql" ]; then
+        echo -e "${YELLOW}更新数据库结构...${NC}"
+        mysql -u${DB_USER} -p${DB_PASS} ${DB_NAME} < "${DEPLOY_DIR}/database/schema.sql}" 2>/dev/null || true
+        echo -e "${GREEN}✓ 数据库结构更新完成${NC}"
+    fi
+}
+
+rebuild_frontend() {
+    echo -e "${BLUE}[4/7] 重新构建前端...${NC}"
+    cd ${FRONTEND_DIR}
+
+    # 检查Node.js和npm
+    if ! command -v node &> /dev/null || ! command -v npm &> /dev/null; then
+        echo -e "${RED}✗ Node.js或npm未安装${NC}"
+        echo -e "${YELLOW}正在安装Node.js和npm...${NC}"
+        if [ -f /etc/redhat-release ]; then
+            yum install -y nodejs npm
+        else
+            apt update && apt install -y nodejs npm
+        fi
+    fi
+
+    echo -e "${YELLOW}检查前端依赖...${NC}"
+    npm install
+    echo -e "${YELLOW}构建前端...${NC}"
+    npm run build
+    echo -e "${GREEN}✓ 前端构建完成${NC}"
+}
+
+rebuild_backend() {
+    echo -e "${BLUE}[5/7] 重新构建后端...${NC}"
+    cd ${BACKEND_DIR}
+    echo -e "${YELLOW}构建后端...${NC}"
+    mvn clean package -DskipTests
+    echo -e "${GREEN}✓ 后端构建完成${NC}"
+}
+
+restart_services() {
+    echo -e "${BLUE}[6/7] 重启服务...${NC}"
+    systemctl restart ${PROJECT_NAME}-backend
+    sleep 10
+    systemctl restart ${PROJECT_NAME}-frontend
+    systemctl reload nginx
+    echo -e "${GREEN}✓ 服务重启完成${NC}"
+}
+
+health_check() {
+    echo -e "${BLUE}[7/7] 健康检查...${NC}"
+    if systemctl is-active --quiet ${PROJECT_NAME}-backend; then
+        echo -e "${GREEN}✓ 后端服务运行正常${NC}"
+    else
+        echo -e "${RED}✗ 后端服务未运行${NC}"
+        systemctl status ${PROJECT_NAME}-backend
+    fi
+    if systemctl is-active --quiet ${PROJECT_NAME}-frontend; then
+        echo -e "${GREEN}✓ 前端服务运行正常${NC}"
+    else
+        echo -e "${RED}✗ 前端服务未运行${NC}"
+        systemctl status ${PROJECT_NAME}-frontend
+    fi
+}
+
+show_update_info() {
+    echo -e "${BLUE}[8/7] 更新完成${NC}"
+    echo ""
+    echo -e "${GREEN}╔════════════════════════════════════╗${NC}"
+    echo -e "${GREEN}║     更新成功！                          ║${NC}"
+    echo -e "${GREEN}╚══════════════════════════════════╝${NC}"
+    echo ""
+    echo -e "💾 数据库备份: ${YELLOW}${BACKUP_FILE}.gz${NC}"
+    echo -e "🔄 代码已更新到: ${YELLOW}$(cd ${DEPLOY_DIR} && git log -1 --pretty=format:'%h - %s')${NC}"
+    echo ""
+}
+
+main() {
+    check_root
+    backup_database
+    update_code
+    update_database
+    rebuild_frontend
+    rebuild_backend
+    restart_services
+    health_check
+    show_update_info
+}
+
+main
+UPDATE_SCRIPT_EOF
+
+# 添加执行权限
+chmod +x /root/deploy.sh
+chmod +x /root/update.sh
+
+echo "======================================"
+echo "  部署脚本创建完成！"
+echo "======================================"
+echo ""
+echo "已创建的脚本："
+echo "  /root/deploy.sh      - 主部署脚本"
+echo "  /root/update.sh      - 更新脚本"
+echo ""
+echo "现在可以运行："
+echo "  ./deploy.sh  （完整部署）"
+echo "  ./update.sh  （更新应用）"
+echo ""
