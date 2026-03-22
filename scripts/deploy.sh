@@ -201,7 +201,7 @@ show_current_config() {
     echo -e "  主机: ${YELLOW}${DB_HOST}:${DB_PORT}${NC}"
     echo -e "  数据库: ${YELLOW}${DB_NAME}${NC}"
     echo -e "  用户: ${YELLOW}${DB_USER}${NC}"
-    echo -e "  密码: ${YELLOW}*** (已配置)${NC}"
+    echo -e "  密码: ${YELLOW}***${NC}"
     echo ""
     echo -e "${YELLOW}部署配置:"
     echo -e "  目录: ${YELLOW}${DEPLOY_DIR}${NC}"
