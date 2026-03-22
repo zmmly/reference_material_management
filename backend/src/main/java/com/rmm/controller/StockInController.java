@@ -8,6 +8,7 @@ import com.rmm.common.Result;
 import com.rmm.entity.StockIn;
 import com.rmm.service.StockInService;
 import com.rmm.util.JwtUtil;
+import com.rmm.util.OperationLogUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.Data;
@@ -27,6 +28,7 @@ public class StockInController {
 
     private final StockInService stockInService;
     private final JwtUtil jwtUtil;
+    private final OperationLogUtil operationLogUtil;
 
     @GetMapping
     public Result<PageResult<StockIn>> list(
@@ -46,7 +48,13 @@ public class StockInController {
     public Result<Void> create(@RequestBody StockIn stockIn, HttpServletRequest request) {
         String token = request.getHeader("Authorization").substring(7);
         Long userId = jwtUtil.getUserId(token);
+        String username = jwtUtil.getUsername(token);
         stockInService.create(stockIn, userId);
+
+        // 记录操作日志
+        operationLogUtil.log(request, userId, username, "stock", "入库",
+            "库存入库", "入库登记: " + stockIn.getMaterialName());
+
         return Result.success();
     }
 

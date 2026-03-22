@@ -76,9 +76,9 @@ docker exec -i mysql-dev mysql -u root -p123456 --default-character-set=utf8mb4 
 docker exec -i mysql-dev mysql -u root -p123456 --default-character-set=utf8mb4 reference_material_management < database/phase3-tables.sql
 docker exec -i mysql-dev mysql -u root -p123456 --default-character-set=utf8mb4 reference_material_management < database/phase4-tables.sql
 
-# Test data for e2e tests
-docker exec -i mysql-dev mysql -u root -p123456 --default-character-set=utf8mb4 reference_material_management < scripts/init-test-data.sql
-
+# 数据库cli
+macos环境: docker exec -i mysql-dev mysql -u root -p123456 --default-character-set=utf8mb4 reference_material_management < scripts/init-test-data.sql
+WINDOW环境: c/Program Files/MySQL/MySQL Shell 8.0/bin/mysqlsh.exe
 # Check container status
 docker ps | grep mysql-dev
 ```
