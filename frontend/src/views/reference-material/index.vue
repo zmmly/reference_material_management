@@ -174,9 +174,12 @@ const fetchCategories = async () => {
 
 const fetchSuppliers = async () => {
   try {
-    const res = await getAllSuppliers()
-    supplierList.value = res.data || []
-  } catch (e) {}
+    const res = await getSupplierList({ current: 1, size: 1000 })
+    console.log('供应商列表:', res)
+    supplierList.value = res.data?.records || []
+  } catch (e) {
+    console.error('获取供应商列表失败:', e)
+  }
 }
 
 const flattenTree = (tree, result = []) => {
