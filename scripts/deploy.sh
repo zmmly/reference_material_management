@@ -487,25 +487,38 @@ install_dependencies() {
 setup_database() {
     echo -e "${BLUE}[8/10] 配置MySQL数据库...${NC}"
 
-    # 测试MySQL连接
+    # 创建临时MySQL配置文件，避免在命令行中使用密码
+    MYSQL_CNF="/tmp/mysql_deploy_${RANDOM}.cnf"
+    cat > ${MYSQL_CNF} << EOF
+[client]
+user=${DB_USER}
+password=${DB_PASS}
+host=${DB_HOST}
+port=${DB_PORT}
+EOF
+
+    # 测试MySQL连接（使用配置文件）
     echo -e "${YELLOW}测试MySQL连接...${NC}"
-    if ! mysql -h${DB_HOST} -P${DB_PORT} -u${DB_USER} -p${DB_PASS} -e "SELECT 1;" &> /dev/null; then
+    if ! mysql --defaults-extra-file=${MYSQL_CNF} -e "SELECT 1;" &> /dev/null; then
         echo -e "${RED}✗ MySQL连接失败${NC}"
         echo -e "${RED}请检查数据库配置: 主机:${DB_HOST}, 用户:${DB_USER}, 端口:${DB_PORT}${NC}"
+        rm -f ${MYSQL_CNF}
         exit 1
     fi
     echo -e "${GREEN}✓ MySQL连接正常${NC}"
 
     # 创建数据库
     echo -e "${YELLOW}创建数据库...${NC}"
-    if ! mysql -h${DB_HOST} -P${DB_PORT} -u${DB_USER} -p${DB_PASS} -e "CREATE DATABASE IF NOT EXISTS ${DB_NAME} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"; then
+    if ! mysql --defaults-extra-file=${MYSQL_CNF} -e "CREATE DATABASE IF NOT EXISTS ${DB_NAME} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"; then
+        rm -f ${MYSQL_CNF}
         error_exit "创建数据库失败"
     fi
 
     # 导入数据库结构
     if [ -f "${DEPLOY_DIR}/database/schema.sql" ]; then
         echo -e "${YELLOW}导入数据库结构...${NC}"
-        if ! mysql -h${DB_HOST} -P${DB_PORT} -u${DB_USER} -p${DB_PASS} ${DB_NAME} < "${DEPLOY_DIR}/database/schema.sql"; then
+        if ! mysql --defaults-extra-file=${MYSQL_CNF} ${DB_NAME} < "${DEPLOY_DIR}/database/schema.sql"; then
+            rm -f ${MYSQL_CNF}
             error_exit "导入数据库结构失败"
         fi
     fi
@@ -513,11 +526,13 @@ setup_database() {
     # 导入数据库数据
     if [ -f "${DEPLOY_DIR}/database/data.sql" ]; then
         echo -e "${YELLOW}导入数据库数据...${NC}"
-        if ! mysql -h${DB_HOST} -P${DB_PORT} -u${DB_USER} -p${DB_PASS} ${DB_NAME} < "${DEPLOY_DIR}/database/data.sql"; then
+        if ! mysql --defaults-extra-file=${MYSQL_CNF} ${DB_NAME} < "${DEPLOY_DIR}/database/data.sql"; then
             echo -e "${YELLOW}⚠️  导入数据库数据失败（可能是数据已存在）${NC}"
         fi
     fi
 
+    # 清理临时配置文件
+    rm -f ${MYSQL_CNF}
     echo -e "${GREEN}✓ 数据库配置完成${NC}"
 }
 
@@ -596,7 +611,10 @@ build_backend() {
         echo -e "${YELLOW}检查Maven配置...${NC}"
 
         # 检查Java版本是否满足要求（17或更高）
-        if ! echo "$JAVA_FULL_VER" | grep -qE "^(17|[1-9][0-9]+)\."; then
+        # 提取Java主版本号进行比较
+        JAVA_MAIN_VER=$(echo "$JAVA_FULL_VER" | cut -d'.' -f1)
+
+        if [ "$JAVA_MAIN_VER" -lt "$JAVA_VERSION" ]; then
             echo -e "${YELLOW}⚠️  Java版本 ${JAVA_VER} 低于要求的 ${JAVA_VERSION}，临时修改Maven配置${NC}"
 
             # 备份原pom.xml
@@ -610,17 +628,23 @@ build_backend() {
 
                 echo -e "${GREEN}✓ Maven配置已调整为Java ${JAVA_VER} 兼容模式${NC}"
             fi
+        else
+            echo -e "${GREEN}✓ Java版本 ${JAVA_VER} 满足要求${NC}"
         fi
     fi
 
-    # 检查Java版本是否满足要求
-    if ! echo "$JAVA_FULL_VER" | grep -qE "^(17|[1-9][0-9]+)\."; then
-        echo -e "${YELLOW}⚠️  Java版本 ${JAVA_VER} 低于要求的 ${JAVA_VERSION}，使用兼容构建模式${NC}"
-        echo -e "${YELLOW}构建后端...${NC}"
+    # 检查Java版本是否满足要求（移除重复检查）
+    # 之前的检查逻辑已经在上面的build_backend中处理
+    # 这里不再重复检查
+    echo -e "${YELLOW}构建后端...${NC}"
+
+    # 根据Java版本选择构建方式
+    JAVA_MAIN_VER=$(echo "$JAVA_FULL_VER" | cut -d'.' -f1)
+    if [ "$JAVA_MAIN_VER" -lt "$JAVA_VERSION" ]; then
         # 不指定release版本，让Maven使用当前Java版本
         JAVA_OPTS="$JAVA_OPTS" mvn clean package -DskipTests -Dmaven.compiler.release=
     else
-        echo -e "${YELLOW}构建后端...${NC}"
+        # Java版本满足要求，使用标准构建
         JAVA_OPTS="$JAVA_OPTS" mvn clean package -DskipTests
     fi
 
