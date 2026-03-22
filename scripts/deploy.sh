@@ -401,7 +401,7 @@ configure_nginx() {
     echo -e "${BLUE}[12/10] 配置nginx...${NC}"
 
     # 创建nginx配置文件
-    cat > /etc/nginx/conf.d/${PROJECT_NAME}.conf <<'EOF'
+    cat > /etc/nginx/conf.d/${PROJECT_NAME}.conf <<EOF
 server {
     listen ${NGINX_PORT};
     server_name _;
@@ -409,7 +409,7 @@ server {
     # 前端静态文件
     location / {
         root ${FRONTEND_DIR}/dist;
-        try_files $uri $uri/ /index.html;
+        try_files \$uri \$uri/ /index.html;
         index index.html;
 
         # 缓存静态资源
@@ -422,10 +422,10 @@ server {
     # 后端API代理
     location /api {
         proxy_pass http://localhost:${BACKEND_PORT};
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
 
         # 超时设置
         proxy_connect_timeout 60s;
@@ -452,7 +452,7 @@ create_systemd_services() {
     echo -e "${BLUE}[13/10] 创建systemd服务...${NC}"
 
     # 创建后端服务文件
-    cat > /etc/systemd/system/${PROJECT_NAME}-backend.service <<'EOF'
+    cat > /etc/systemd/system/${PROJECT_NAME}-backend.service <<EOF
 [Unit]
 Description=Reference Material Management Backend
 After=network.target
@@ -461,8 +461,8 @@ After=network.target
 Type=simple
 User=${SERVICE_USER}
 WorkingDirectory=${BACKEND_DIR}
-Environment="JAVA_HOME=$JAVA_HOME" "JAVA_OPTS=$JAVA_OPTS" "PATH=$PATH"
-ExecStart=$JAVA_HOME/bin/java $JAVA_OPTS -jar ${BACKEND_DIR}/target/reference-material-management-1.0.0.jar
+Environment="JAVA_HOME=${JAVA_HOME}" "JAVA_OPTS=${JAVA_OPTS}" "PATH=${PATH}"
+ExecStart=${JAVA_HOME}/bin/java ${JAVA_OPTS} -jar ${BACKEND_DIR}/target/reference-material-management-1.0.0.jar
 Restart=on-failure
 RestartSec=10
 
@@ -471,7 +471,7 @@ WantedBy=multi-user.target
 EOF
 
     # 创建前端服务文件
-    cat > /etc/systemd/system/${PROJECT_NAME}-frontend.service <<'EOF'
+    cat > /etc/systemd/system/${PROJECT_NAME}-frontend.service <<EOF
 [Unit]
 Description=Reference Material Management Frontend
 After=network.target
@@ -480,7 +480,7 @@ After=network.target
 Type=simple
 User=${SERVICE_USER}
 WorkingDirectory=${FRONTEND_DIR}
-Environment="PATH=$PATH"
+Environment="PATH=${PATH}"
 ExecStart=/usr/bin/node ${FRONTEND_DIR}/node_modules/.bin/vite --port ${FRONTEND_PORT} --host
 Restart=on-failure
 RestartSec=10
