@@ -359,17 +359,52 @@ install_dependencies() {
     else
         # 检查已安装的Java版本
         echo -e "${YELLOW}检查已安装的Java版本...${NC}"
-        # 改进Java版本检测，更准确地提取版本号
-        JAVA_FULL_VER=$(java -version 2>&1 | head -1 | sed 's/.*version "\(.*\)".*/\1/')
-        echo -e "${YELLOW}当前Java版本: ${JAVA_FULL_VER}${NC}"
 
-        # 提取主版本号
-        JAVA_VER=$(echo $JAVA_FULL_VER | cut -d'.' -f1)
+        # 检测所有已安装的Java版本
+        echo -e "${YELLOW}检测Java ${JAVA_VERSION}安装情况...${NC}"
+        if [ -d "/usr/lib/jvm/java-${JAVA_VERSION}-openjdk" ]; then
+            JAVA_17_PATH="/usr/lib/jvm/java-${JAVA_VERSION}-openjdk/bin/java"
+            echo -e "${GREEN}✓ 找到JDK ${JAVA_VERSION}: ${JAVA_17_PATH}${NC}"
 
-        # 检查是否是Java 17或更高版本
-        if ! echo "$JAVA_FULL_VER" | grep -qE "^(17|[1-9][0-9]+)\."; then
-            echo -e "${RED}✗ Java版本过低，需要安装JDK ${JAVA_VERSION}${NC}"
-            echo -e "${YELLOW}正在尝试安装JDK ${JAVA_VERSION}...${NC}"
+            # 检查当前默认Java版本
+            CURRENT_JAVA_VER=$(java -version 2>&1 | head -1 | sed 's/.*version "\(.*\)".*/\1/')
+            echo -e "${YELLOW}当前默认Java版本: ${CURRENT_JAVA_VER}${NC}"
+
+            # 检查是否需要设置Java ${JAVA_VERSION}为默认版本
+            if [ "$CURRENT_JAVA_VER" != "${JAVA_VERSION}"* ]; then
+                echo -e "${YELLOW}⚠️  当前默认Java不是${JAVA_VERSION}，正在配置...${NC}"
+
+                # 使用alternatives系统设置默认Java
+                if command -v alternatives &> /dev/null; then
+                    echo -e "${YELLOW}使用alternatives配置默认Java...${NC}"
+                    alternatives --install /usr/bin/java java ${JAVA_17_PATH} 2>&1 | grep -v "There is" || true
+                    alternatives --set java ${JAVA_17_PATH} 2>&1 | grep -v "There is" || true
+                    echo -e "${GREEN}✓ Java ${JAVA_VERSION}已设置为默认版本${NC}"
+                else
+                    echo -e "${YELLOW}更新PATH环境变量...${NC}"
+                    # 临时更新PATH让Java ${JAVA_VERSION}优先
+                    export PATH="${JAVA_17_PATH%/*java}:$PATH"
+                    export JAVA_HOME="/usr/lib/jvm/java-${JAVA_VERSION}-openjdk"
+
+                    # 写入profile文件永久生效
+                    echo "export JAVA_HOME=/usr/lib/jvm/java-${JAVA_VERSION}-openjdk" >> /etc/profile.d/${PROJECT_NAME}.sh
+                    echo "export PATH=${JAVA_17_PATH%/*java}:\$PATH" >> /etc/profile.d/${PROJECT_NAME}.sh
+                    source /etc/profile.d/${PROJECT_NAME}.sh
+
+                    echo -e "${GREEN}✓ Java ${JAVA_VERSION}环境变量已配置${NC}"
+                fi
+
+                # 验证新的默认Java版本
+                JAVA_VER=$(java -version 2>&1 | head -1 | sed 's/.*version "\(.*\)".*/\1/')
+                echo -e "${GREEN}✓ 当前Java版本: ${JAVA_VER}${NC}"
+            else
+                echo -e "${GREEN}✓ Java ${JAVA_VERSION}已是默认版本${NC}"
+            fi
+        else
+            # 没有找到Java ${JAVA_VERSION}，尝试安装
+            echo -e "${YELLOW}当前Java版本: $(java -version 2>&1 | head -1 | sed 's/.*version "\(.*\)".*/\1/')${NC}"
+            echo -e "${RED}✗ JDK ${JAVA_VERSION}未找到，尝试安装...${NC}"
+
             case "$PKG_MANAGER" in
                 apt)
                     ${PKG_INSTALL} openjdk-${JAVA_VERSION}-jdk 2>&1 | grep -v "metadata expiration check" | grep -v "Dependencies resolved" | grep -v "Complete" | grep -v "Nothing to do" | grep -v "SKIPPED" | grep -v "Downloading" | grep -v "Transaction Summary" | grep -v "Total size" | grep -v "Installing" | grep -v "Upgrading" || echo -e "${YELLOW}⚠️  安装失败，尝试使用当前版本...${NC}"
