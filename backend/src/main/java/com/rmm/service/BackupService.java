@@ -65,7 +65,7 @@ public class BackupService {
         Path backupFile = backupDir.resolve(filename);
 
         String database = extractDatabaseName(datasourceUrl);
-        String mysqldumpPath = "C:\\\\Program Files\\MySQL\\MySQL Shell 8.0\\bin\\mysqldump.exe";
+        String mysqldumpPath = "C:\\\\Program Files\\MySQL\\MySQL Server 8.0\\bin\\mysqldump.exe";
 
         try {
             ProcessBuilder pb = new ProcessBuilder(
