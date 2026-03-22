@@ -3,6 +3,18 @@
     <el-card>
       <el-tabs v-model="activeTab">
         <el-tab-pane label="待验收" name="pending">
+          <el-form :inline="true" :model="pendingQueryParams" class="search-form">
+            <el-form-item label="采购单号">
+              <el-input v-model="pendingQueryParams.purchaseNo" placeholder="采购单号" clearable style="width: 150px" />
+            </el-form-item>
+            <el-form-item label="标准物质">
+              <el-input v-model="pendingQueryParams.materialName" placeholder="标准物质名称" clearable style="width: 150px" />
+            </el-form-item>
+            <el-form-item>
+              <el-button type="primary" @click="handlePendingSearch">查询</el-button>
+              <el-button @click="handlePendingReset">重置</el-button>
+            </el-form-item>
+          </el-form>
           <el-table :data="pendingList" v-loading="loading" border>
             <el-table-column prop="purchaseNo" label="采购单号" min-width="130" />
             <el-table-column prop="materialName" label="标准物质" />
@@ -25,9 +37,36 @@
               </template>
             </el-table-column>
           </el-table>
+
+          <el-pagination
+            v-model:current-page="pendingQueryParams.current"
+            v-model:page-size="pendingQueryParams.size"
+            :total="pendingTotal"
+            layout="total, sizes, prev, pager, next"
+            @change="handlePendingPageChange"
+          />
         </el-tab-pane>
 
         <el-tab-pane label="验收记录" name="history">
+          <el-form :inline="true" :model="historyQueryParams" class="search-form">
+            <el-form-item label="采购单号">
+              <el-input v-model="historyQueryParams.purchaseNo" placeholder="采购单号" clearable style="width: 150px" />
+            </el-form-item>
+            <el-form-item label="标准物质">
+              <el-input v-model="historyQueryParams.materialName" placeholder="标准物质名称" clearable style="width: 150px" />
+            </el-form-item>
+            <el-form-item label="验收结果">
+              <el-select v-model="historyQueryParams.result" placeholder="全部" clearable style="width: 120px">
+                <el-option label="通过" :value="1" />
+                <el-option label="拒绝" :value="2" />
+              </el-select>
+            </el-form-item>
+            <el-form-item>
+              <el-button type="primary" @click="handleHistorySearch">查询</el-button>
+              <el-button @click="handleHistoryReset">重置</el-button>
+              <el-button type="warning" @click="handleExport" :loading="exporting">导出Excel</el-button>
+            </el-form-item>
+          </el-form>
           <el-table :data="historyList" v-loading="loading" border>
             <el-table-column prop="purchaseNo" label="采购单号" min-width="130" />
             <el-table-column prop="materialName" label="标准物质" />
@@ -51,6 +90,14 @@
               </template>
             </el-table-column>
           </el-table>
+
+          <el-pagination
+            v-model:current-page="historyQueryParams.current"
+            v-model:page-size="historyQueryParams.size"
+            :total="historyTotal"
+            layout="total, sizes, prev, pager, next"
+            @change="handleHistoryPageChange"
+          />
         </el-tab-pane>
       </el-tabs>
     </el-card>
@@ -186,21 +233,36 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getAcceptanceList, getAcceptance, startAcceptance, submitAcceptance } from '@/api/purchaseAcceptance'
+import { getAcceptanceList, getAcceptance, startAcceptance, submitAcceptance, exportAcceptance } from '@/api/purchaseAcceptance'
 import { getAllLocations } from '@/api/location'
 import { useUserStore } from '@/store/modules/user'
 
 const userStore = useUserStore()
 const loading = ref(false)
+const exporting = ref(false)
 const activeTab = ref('pending')
 const allAcceptances = ref([])
+const pendingList = ref([])
+const historyList = ref([])
+const pendingTotal = ref(0)
+const historyTotal = ref(0)
 const acceptDialogVisible = ref(false)
 const viewDialogVisible = ref(false)
 const currentAcceptance = ref(null)
 const acceptFormRef = ref()
 const locationList = ref([])
+
+// 待验收查询参数
+const pendingQueryParams = reactive({
+  current: 1, size: 10, purchaseNo: '', materialName: ''
+})
+
+// 验收记录查询参数
+const historyQueryParams = reactive({
+  current: 1, size: 10, purchaseNo: '', materialName: '', result: null
+})
 
 const userName = computed(() => userStore.userInfo?.realName || userStore.userInfo?.username || '')
 const todayDate = computed(() => {
@@ -208,13 +270,6 @@ const todayDate = computed(() => {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
 })
 
-const pendingList = computed(() => {
-  return allAcceptances.value.filter(item => item.acceptanceResult === 0)
-})
-
-const historyList = computed(() => {
-  return allAcceptances.value.filter(item => item.acceptanceResult !== 0)
-})
 
 const acceptForm = reactive({
   packageIntact: null,
@@ -237,12 +292,93 @@ const acceptRules = {
 }
 
 const fetchData = async () => {
+  // 根据当前标签页加载对应数据
+  if (activeTab.value === 'pending') {
+    await fetchPendingAcceptances()
+  } else {
+    await fetchHistoryAcceptances()
+  }
+}
+
+const fetchPendingAcceptances = async () => {
   loading.value = true
   try {
-    const res = await getAcceptanceList({ current: 1, size: 100 })
-    allAcceptances.value = res.data?.records || []
+    const res = await getAcceptanceList({
+      ...pendingQueryParams,
+      result: 0
+    })
+    pendingList.value = res.data?.records || []
+    pendingTotal.value = res.data?.total || 0
   } finally {
     loading.value = false
+  }
+}
+
+const fetchHistoryAcceptances = async () => {
+  loading.value = true
+  try {
+    const res = await getAcceptanceList({
+      ...historyQueryParams,
+      result: historyQueryParams.result || undefined
+    })
+    historyList.value = res.data?.records || []
+    historyTotal.value = res.data?.total || 0
+  } finally {
+    loading.value = false
+  }
+}
+
+const handlePendingSearch = () => {
+  pendingQueryParams.current = 1
+  fetchPendingAcceptances()
+}
+
+const handlePendingReset = () => {
+  Object.assign(pendingQueryParams, {
+    current: 1, size: 10, purchaseNo: '', materialName: ''
+  })
+  fetchPendingAcceptances()
+}
+
+const handlePendingPageChange = () => {
+  fetchPendingAcceptances()
+}
+
+const handleHistorySearch = () => {
+  historyQueryParams.current = 1
+  fetchHistoryAcceptances()
+}
+
+const handleHistoryReset = () => {
+  Object.assign(historyQueryParams, {
+    current: 1, size: 10, purchaseNo: '', materialName: '', result: null
+  })
+  fetchHistoryAcceptances()
+}
+
+const handleHistoryPageChange = () => {
+  fetchHistoryAcceptances()
+}
+
+const handleExport = async () => {
+  exporting.value = true
+  try {
+    const blob = await exportAcceptance({
+      purchaseNo: historyQueryParams.purchaseNo,
+      materialName: historyQueryParams.materialName,
+      result: historyQueryParams.result
+    })
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `采购验收记录_${new Date().toISOString().slice(0, 10)}.xlsx`
+    link.click()
+    window.URL.revokeObjectURL(url)
+    ElMessage.success('导出成功')
+  } catch (e) {
+    ElMessage.error('导出失败')
+  } finally {
+    exporting.value = false
   }
 }
 
@@ -309,6 +445,11 @@ const formatDate = (date) => {
   return date.substring(0, 16).replace('T', ' ')
 }
 
+// 监听tab切换，重新加载数据
+watch(activeTab, () => {
+  fetchData()
+})
+
 onMounted(() => {
   fetchData()
   fetchLocations()
@@ -318,6 +459,10 @@ onMounted(() => {
 <style scoped>
 .page-container {
   padding: 20px;
+}
+
+.search-form {
+  margin-bottom: 16px;
 }
 
 .acceptance-form {

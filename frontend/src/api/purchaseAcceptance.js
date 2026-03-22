@@ -15,3 +15,10 @@ export function startAcceptance(id) {
 export function submitAcceptance(id, data) {
   return request.post(`/purchase-acceptance/${id}/submit`, data)
 }
+
+export function exportAcceptance(params) {
+  return request.get('/purchase-acceptance/export', {
+    params,
+    responseType: 'blob'
+  })
+}

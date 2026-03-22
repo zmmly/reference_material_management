@@ -3,10 +3,34 @@
     <el-card>
       <el-tabs v-model="activeTab">
         <el-tab-pane label="我的申请" name="my">
-          <el-button type="primary" style="margin-bottom: 16px" @click="handleAdd">新建采购申请</el-button>
+          <el-form :inline="true" :model="myQueryParams" class="search-form">
+            <el-form-item label="采购单号">
+              <el-input v-model="myQueryParams.purchaseNo" placeholder="采购单号" clearable style="width: 150px" />
+            </el-form-item>
+            <el-form-item label="标准物质">
+              <el-input v-model="myQueryParams.materialName" placeholder="标准物质名称" clearable style="width: 150px" />
+            </el-form-item>
+            <el-form-item label="状态">
+              <el-select v-model="myQueryParams.status" placeholder="全部" clearable style="width: 120px">
+                <el-option label="待审批" :value="0" />
+                <el-option label="已通过" :value="1" />
+                <el-option label="已拒绝" :value="2" />
+                <el-option label="已撤回" :value="3" />
+                <el-option label="待验收" :value="4" />
+                <el-option label="验收通过" :value="6" />
+                <el-option label="验收拒绝" :value="7" />
+              </el-select>
+            </el-form-item>
+            <el-form-item>
+              <el-button type="primary" @click="handleMySearch">查询</el-button>
+              <el-button @click="handleMyReset">重置</el-button>
+              <el-button type="success" @click="handleAdd">新建采购申请</el-button>
+            </el-form-item>
+          </el-form>
           <el-table :data="myApplications" v-loading="loading" border>
             <el-table-column prop="purchaseNo" label="采购单号" min-width="140" />
             <el-table-column prop="applicantName" label="申请人" min-width="100" show-overflow-tooltip />
+            <el-table-column prop="materialCode" label="标准物质编码" min-width="130" show-overflow-tooltip />
             <el-table-column prop="materialName" label="标准物质" min-width="160" show-overflow-tooltip />
             <el-table-column prop="specification" label="规格" min-width="110" show-overflow-tooltip />
             <el-table-column prop="batchNumber" label="批号" min-width="110" />
@@ -39,10 +63,32 @@
               </template>
             </el-table-column>
           </el-table>
+
+          <el-pagination
+            v-model:current-page="myQueryParams.current"
+            v-model:page-size="myQueryParams.size"
+            :total="myTotal"
+            layout="total, sizes, prev, pager, next"
+            @change="handleMyPageChange"
+          />
         </el-tab-pane>
         <el-tab-pane label="待审批" name="pending" v-if="canApprove">
+          <el-form :inline="true" :model="pendingQueryParams" class="search-form">
+            <el-form-item label="采购单号">
+              <el-input v-model="pendingQueryParams.purchaseNo" placeholder="采购单号" clearable style="width: 150px" />
+            </el-form-item>
+            <el-form-item label="标准物质">
+              <el-input v-model="pendingQueryParams.materialName" placeholder="标准物质名称" clearable style="width: 150px" />
+            </el-form-item>
+            <el-form-item>
+              <el-button type="primary" @click="handlePendingSearch">查询</el-button>
+              <el-button @click="handlePendingReset">重置</el-button>
+              <el-button type="warning" @click="handleExport" :loading="exporting">导出Excel</el-button>
+            </el-form-item>
+          </el-form>
           <el-table :data="pendingList" v-loading="loading" border>
             <el-table-column prop="applicantName" label="申请人" min-width="100" show-overflow-tooltip />
+            <el-table-column prop="materialCode" label="标准物质编码" min-width="130" show-overflow-tooltip />
             <el-table-column prop="materialName" label="标准物质" min-width="160" show-overflow-tooltip />
             <el-table-column prop="specification" label="规格" min-width="110" show-overflow-tooltip />
             <el-table-column prop="batchNumber" label="批号" min-width="110" />
@@ -66,6 +112,14 @@
               </template>
             </el-table-column>
           </el-table>
+
+          <el-pagination
+            v-model:current-page="pendingQueryParams.current"
+            v-model:page-size="pendingQueryParams.size"
+            :total="pendingTotal"
+            layout="total, sizes, prev, pager, next"
+            @change="handlePendingPageChange"
+          />
         </el-tab-pane>
       </el-tabs>
     </el-card>
@@ -76,7 +130,7 @@
           <el-col :span="24">
             <el-form-item label="标准物质" prop="materialId">
               <el-select v-model="form.materialId" placeholder="请选择" filterable style="width: 100%" @change="handleMaterialChange">
-                <el-option v-for="item in materialList" :key="item.id" :label="`${item.code} - ${item.name}`" :value="item.id" />
+                <el-option v-for="item in materialList" :key="item.id" :label="`${item.code} - ${item.name} - ${item.supplierName || '无供应商'}`" :value="item.id" />
               </el-select>
             </el-form-item>
           </el-col>
@@ -125,7 +179,7 @@
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="供应商" prop="supplierId">
-              <el-select v-model="form.supplierId" placeholder="请选择" filterable style="width: 100%">
+              <el-select v-model="form.supplierId" placeholder="自动根据标准物质填充" filterable disabled style="width: 100%">
                 <el-option v-for="item in supplierList" :key="item.id" :label="item.name" :value="item.id" />
               </el-select>
             </el-form-item>
@@ -161,17 +215,21 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue'
+import { ref, reactive, onMounted, computed, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getPurchaseList, getAllPurchaseList, applyPurchase, approvePurchase, cancelPurchase, receivePurchase } from '@/api/purchase'
+import { getPurchaseList, getAllPurchaseList, applyPurchase, approvePurchase, cancelPurchase, receivePurchase, exportPurchase } from '@/api/purchase'
 import { getAllMaterials } from '@/api/material'
 import { getAllSuppliers } from '@/api/supplier'
 import { useUserStore } from '@/store/modules/user'
 
 const userStore = useUserStore()
 const loading = ref(false)
+const exporting = ref(false)
 const activeTab = ref('my')
-const allApplications = ref([])
+const myApplications = ref([])
+const pendingList = ref([])
+const myTotal = ref(0)
+const pendingTotal = ref(0)
 const dialogVisible = ref(false)
 const rejectDialogVisible = ref(false)
 const rejectReason = ref('')
@@ -180,17 +238,19 @@ const materialList = ref([])
 const supplierList = ref([])
 const formRef = ref()
 
+// 我的申请查询参数
+const myQueryParams = reactive({
+  current: 1, size: 10, purchaseNo: '', materialName: '', status: null
+})
+
+// 待审批查询参数
+const pendingQueryParams = reactive({
+  current: 1, size: 10, purchaseNo: '', materialName: ''
+})
+
 const canApprove = computed(() => {
   const roleCode = userStore.userInfo?.roleCode
   return roleCode === 'ADMIN' || roleCode === 'MANAGER'
-})
-
-const myApplications = computed(() => {
-  return allApplications.value.filter(item => item.applicantId === userStore.userInfo?.id)
-})
-
-const pendingList = computed(() => {
-  return allApplications.value.filter(item => item.status === 0)
 })
 
 const form = reactive({
@@ -204,7 +264,7 @@ const rules = {
   batchNumber: [{ required: true, message: '请输入批号', trigger: 'blur' }],
   unit: [{ required: true, message: '请选择单位', trigger: 'change' }],
   quantity: [{ required: true, message: '请输入采购数量', trigger: 'blur' }],
-  estimatedPrice: [{ required: true, message: '请输入预估单价', trigger: 'blur' }],
+  estimatedPrice: [],
   supplierId: [{ required: true, message: '请选择供应商', trigger: 'change' }],
   reason: [{ required: true, message: '请输入采购原因', trigger: 'blur' }]
 }
@@ -225,16 +285,102 @@ const handleMaterialChange = (materialId) => {
   if (material) {
     // 可根据标准物质信息自动填充规格等
     form.specification = material.specification || ''
+    // 自动填充供应商
+    if (material.supplierId) {
+      form.supplierId = material.supplierId
+    } else {
+      form.supplierId = null
+    }
   }
 }
 
 const fetchData = async () => {
+  // 根据当前标签页加载对应数据
+  if (activeTab.value === 'my') {
+    await fetchMyApplications()
+  } else {
+    await fetchPendingApplications()
+  }
+}
+
+const fetchMyApplications = async () => {
   loading.value = true
   try {
-    const res = await getAllPurchaseList({ current: 1, size: 100 })
-    allApplications.value = res.data?.records || []
+    const res = await getPurchaseList({
+      ...myQueryParams,
+      applicantId: userStore.userInfo?.id
+    })
+    myApplications.value = res.data?.records || []
+    myTotal.value = res.data?.total || 0
   } finally {
     loading.value = false
+  }
+}
+
+const fetchPendingApplications = async () => {
+  loading.value = true
+  try {
+    const res = await getPurchaseList({
+      ...pendingQueryParams,
+      status: 0
+    })
+    pendingList.value = res.data?.records || []
+    pendingTotal.value = res.data?.total || 0
+  } finally {
+    loading.value = false
+  }
+}
+
+const handleMySearch = () => {
+  myQueryParams.current = 1
+  fetchMyApplications()
+}
+
+const handleMyReset = () => {
+  Object.assign(myQueryParams, {
+    current: 1, size: 10, purchaseNo: '', materialName: '', status: null
+  })
+  fetchMyApplications()
+}
+
+const handleMyPageChange = () => {
+  fetchMyApplications()
+}
+
+const handlePendingSearch = () => {
+  pendingQueryParams.current = 1
+  fetchPendingApplications()
+}
+
+const handlePendingReset = () => {
+  Object.assign(pendingQueryParams, {
+    current: 1, size: 10, purchaseNo: '', materialName: ''
+  })
+  fetchPendingApplications()
+}
+
+const handlePendingPageChange = () => {
+  fetchPendingApplications()
+}
+
+const handleExport = async () => {
+  exporting.value = true
+  try {
+    const blob = await exportPurchase({
+      purchaseNo: pendingQueryParams.purchaseNo,
+      materialName: pendingQueryParams.materialName
+    })
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `采购申请待审批_${new Date().toISOString().slice(0, 10)}.xlsx`
+    link.click()
+    window.URL.revokeObjectURL(url)
+    ElMessage.success('导出成功')
+  } catch (e) {
+    ElMessage.error('导出失败')
+  } finally {
+    exporting.value = false
   }
 }
 
@@ -310,6 +456,11 @@ const handleReceive = async (row) => {
 const statusType = (s) => ({ 0: 'warning', 1: 'success', 2: 'danger', 3: 'info', 4: 'primary', 6: 'success', 7: 'danger' }[s] || 'info')
 const statusText = (s) => ({ 0: '待审批', 1: '已通过', 2: '已拒绝', 3: '已撤回', 4: '待验收', 6: '验收通过', 7: '验收拒绝' }[s] || '未知')
 
+// 监听tab切换，重新加载数据
+watch(activeTab, () => {
+  fetchData()
+})
+
 onMounted(() => {
   fetchData()
   fetchMaterials()
@@ -319,4 +470,5 @@ onMounted(() => {
 
 <style scoped>
 .page-container { padding: 20px; }
+.search-form { margin-bottom: 16px; }
 </style>

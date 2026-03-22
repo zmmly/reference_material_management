@@ -27,3 +27,10 @@ export function cancelPurchase(id) {
 export function receivePurchase(id) {
   return request.put(`/purchase/${id}/arrive`)
 }
+
+export function exportPurchase(params) {
+  return request.get('/purchase/export', {
+    params,
+    responseType: 'blob'
+  })
+}
