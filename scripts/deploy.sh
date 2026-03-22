@@ -23,9 +23,15 @@ DB_NAME="reference_material_management"
 DB_USER="root"
 DB_PASS="xjYY3687!"
 JAVA_VERSION="17"
+JAVA_OPTS="-Xms512m -Xmx1024m"
 NGINX_PORT="80"
 FRONTEND_PORT="3002"
 BACKEND_PORT="8080"
+
+# 环境变量（全局设置）
+export JAVA_HOME=""
+export PATH=""
+export JAVA_OPTS="-Xms512m -Xmx1024m"
 
 echo -e "${BLUE}"
 echo "======================================"
@@ -61,9 +67,42 @@ check_os() {
     echo -e "${GREEN}✓ 操作系统: ${OS}${NC}"
 }
 
+# 设置全局环境变量
+setup_environment_variables() {
+    echo -e "${BLUE}[2/10] 设置环境变量...${NC}"
+
+    # 设置JAVA_HOME
+    if [ -d "/usr/lib/jvm/java-${JAVA_VERSION}-openjdk" ]; then
+        export JAVA_HOME="/usr/lib/jvm/java-${JAVA_VERSION}-openjdk"
+    elif [ -d "/usr/lib/jvm/java-${JAVA_VERSION}" ]; then
+        export JAVA_HOME="/usr/lib/jvm/java-${JAVA_VERSION}"
+    elif command -v java &> /dev/null; then
+        JAVA_PATH=$(which java)
+        JAVA_DIR=$(dirname $(dirname $(dirname "$JAVA_PATH")))
+        export JAVA_HOME="$JAVA_DIR"
+    fi
+
+    # 设置PATH
+    export PATH="$JAVA_HOME/bin:$PATH"
+
+    # 永久设置环境变量到profile
+    {
+        echo "export JAVA_HOME=$JAVA_HOME"
+        echo "export PATH=$PATH"
+        echo "export JAVA_OPTS=\"$JAVA_OPTS\""
+    } | tee /etc/profile.d/${PROJECT_NAME}.sh > /dev/null
+
+    # 源环境变量文件
+    source /etc/profile.d/${PROJECT_NAME}.sh
+
+    echo -e "${GREEN}✓ 环境变量设置完成${NC}"
+    echo -e "  JAVA_HOME: ${YELLOW}$JAVA_HOME${NC}"
+    echo -e "  PATH: ${YELLOW}$PATH${NC}"
+}
+
 # 检查和安装依赖
 install_dependencies() {
-    echo -e "${BLUE}[2/10] 检查和安装依赖...${NC}"
+    echo -e "${BLUE}[3/10] 检查和安装依赖...${NC}"
 
     # 检查git
     if ! command -v git &> /dev/null; then
@@ -77,25 +116,6 @@ install_dependencies() {
         ${PKG_MANAGER} install -y nginx
     fi
 
-    # 检查JDK 17
-    if ! command -v java &> /dev/null || [ "$(java -version 2>&1 | grep -oP 'version "?[0-9]+\.[0-9]+\.[0-9]+' | head -1)" != "1.${JAVA_VERSION}.0" ]; then
-        echo -e "${YELLOW}安装JDK ${JAVA_VERSION}...${NC}"
-        if [ "$OS" = "centos" ]; then
-            ${PKG_MANAGER} install -y java-${JAVA_VERSION}-openjdk-devel
-        else
-            ${PKG_MANAGER} install -y openjdk-${JAVA_VERSION}-jdk
-        fi
-
-        # 设置JAVA_HOME
-        export JAVA_HOME="/usr/lib/jvm/java-${JAVA_VERSION}-openjdk"
-        export PATH="$JAVA_HOME/bin:$PATH"
-
-        # 永久设置环境变量
-        echo "export JAVA_HOME=$JAVA_HOME" >> /etc/profile
-        echo "export PATH=\$JAVA_HOME/bin:\$PATH" >> /etc/profile
-        source /etc/profile
-    fi
-
     # 检查Node.js和npm
     if ! command -v node &> /dev/null || ! command -v npm &> /dev/null; then
         echo -e "${YELLOW}安装Node.js和npm...${NC}"
@@ -104,15 +124,16 @@ install_dependencies() {
         else
             ${PKG_MANAGER} install -y nodejs npm
         fi
+    fi
 
-        # 设置Node.js环境变量
+    # 检查JDK 17
+    if ! command -v java &> /dev/null || [ "$(java -version 2>&1 | grep -oP 'version "?[0-9]+\.[0-9]+\.[0-9]+' | head -1)" != "1.${JAVA_VERSION}.0" ]; then
+        echo -e "${YELLOW}安装JDK ${JAVA_VERSION}...${NC}"
         if [ "$OS" = "centos" ]; then
-            export PATH="/usr/bin:$PATH"
+            ${PKG_MANAGER} install -y java-${JAVA_VERSION}-openjdk-devel
         else
-            export PATH="/usr/bin:$PATH"
+            ${PKG_MANAGER} install -y openjdk-${JAVA_VERSION}-jdk
         fi
-        echo "export PATH=$PATH" >> /etc/profile
-        source /etc/profile
     fi
 
     # 检查Maven
@@ -126,7 +147,7 @@ install_dependencies() {
 
 # 配置MySQL数据库
 setup_database() {
-    echo -e "${BLUE}[3/10] 配置MySQL数据库...${NC}"
+    echo -e "${BLUE}[4/10] 配置MySQL数据库...${NC}"
 
     # 创建数据库
     mysql -u${DB_USER} -p${DB_PASS} -e "CREATE DATABASE IF NOT EXISTS ${DB_NAME} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
@@ -148,7 +169,7 @@ setup_database() {
 
 # 克隆或更新代码
 setup_code() {
-    echo -e "${BLUE}[4/10] 部署代码...${NC}"
+    echo -e "${BLUE}[5/10] 部署代码...${NC}"
 
     if [ -d "${DEPLOY_DIR}" ]; then
         echo -e "${YELLOW}项目目录已存在，正在备份...${NC}"
@@ -164,7 +185,7 @@ setup_code() {
 
 # 构建前端
 build_frontend() {
-    echo -e "${BLUE}[5/10] 构建前端...${NC}"
+    echo -e "${BLUE}[6/10] 构建前端...${NC}"
 
     cd ${FRONTEND_DIR}
 
@@ -183,23 +204,23 @@ build_frontend() {
 
 # 构建后端
 build_backend() {
-    echo -e "${BLUE}[6/10] 构建后端...${NC}"
+    echo -e "${BLUE}[7/10] 构建后端...${NC}"
 
     cd ${BACKEND_DIR}
 
     # 使用Maven打包
     echo -e "${YELLOW}构建后端...${NC}"
-    mvn clean package -DskipTests
+    JAVA_OPTS="$JAVA_OPTS" mvn clean package -DskipTests
 
     echo -e "${GREEN}✓ 后端构建完成${NC}"
 }
 
 # 配置nginx
 configure_nginx() {
-    echo -e "${BLUE}[7/10] 配置nginx...${NC}"
+    echo -e "${BLUE}[8/10] 配置nginx...${NC}"
 
     # 创建nginx配置文件
-    cat > /etc/nginx/conf.d/${PROJECT_NAME}.conf <<EOF
+    cat > /etc/nginx/conf.d/${PROJECT_NAME}.conf <<'EOF'
 server {
     listen ${NGINX_PORT};
     server_name _;
@@ -207,7 +228,7 @@ server {
     # 前端静态文件
     location / {
         root ${FRONTEND_DIR}/dist;
-        try_files \$uri \$uri/ /index.html;
+        try_files $uri $uri/ /index.html;
         index index.html;
 
         # 缓存静态资源
@@ -220,10 +241,10 @@ server {
     # 后端API代理
     location /api {
         proxy_pass http://localhost:${BACKEND_PORT};
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
 
         # 超时设置
         proxy_connect_timeout 60s;
@@ -247,10 +268,10 @@ EOF
 
 # 创建systemd服务文件
 create_systemd_services() {
-    echo -e "${BLUE}[8/10] 创建systemd服务...${NC}"
+    echo -e "${BLUE}[9/10] 创建systemd服务...${NC}"
 
     # 创建后端服务文件
-    cat > /etc/systemd/system/${PROJECT_NAME}-backend.service <<EOF
+    cat > /etc/systemd/system/${PROJECT_NAME}-backend.service <<'EOF'
 [Unit]
 Description=Reference Material Management Backend
 After=network.target
@@ -259,8 +280,8 @@ After=network.target
 Type=simple
 User=root
 WorkingDirectory=${BACKEND_DIR}
-Environment="JAVA_HOME=/usr/lib/jvm/java-${JAVA_VERSION}-openjdk"
-ExecStart=/usr/lib/jvm/java-${JAVA_VERSION}-openjdk/bin/java -jar ${BACKEND_DIR}/target/reference-material-management-1.0.0.jar
+Environment="JAVA_HOME=$JAVA_HOME" "JAVA_OPTS=$JAVA_OPTS" "PATH=$PATH"
+ExecStart=$JAVA_HOME/bin/java $JAVA_OPTS -jar ${BACKEND_DIR}/target/reference-material-management-1.0.0.jar
 Restart=on-failure
 RestartSec=10
 
@@ -269,7 +290,7 @@ WantedBy=multi-user.target
 EOF
 
     # 创建前端服务文件
-    cat > /etc/systemd/system/${PROJECT_NAME}-frontend.service <<EOF
+    cat > /etc/systemd/system/${PROJECT_NAME}-frontend.service <<'EOF'
 [Unit]
 Description=Reference Material Management Frontend
 After=network.target
@@ -278,6 +299,7 @@ After=network.target
 Type=simple
 User=root
 WorkingDirectory=${FRONTEND_DIR}
+Environment="PATH=$PATH"
 ExecStart=/usr/bin/node ${FRONTEND_DIR}/node_modules/.bin/vite --port ${FRONTEND_PORT} --host
 Restart=on-failure
 RestartSec=10
@@ -294,38 +316,26 @@ EOF
 
 # 启动服务
 start_services() {
-    echo -e "${BLUE}[9/10] 启动服务...${NC}"
+    echo -e "${BLUE}[10/10] 启动服务...${NC}"
 
     # 启动后端服务
     systemctl start ${PROJECT_NAME}-backend
     systemctl enable ${PROJECT_NAME}-backend
 
-    # 启动前端服务（开发模式，生产环境建议使用nginx）
+    # 启动前端服务
     systemctl start ${PROJECT_NAME}-frontend
     systemctl enable ${PROJECT_NAME}-frontend
-
-    # 开放防火墙端口
-    if command -v firewall-cmd &> /dev/null; then
-        firewall-cmd --permanent --add-port=${BACKEND_PORT}/tcp
-        firewall-cmd --permanent --add-port=${FRONTEND_PORT}/tcp
-        firewall-cmd --permanent --add-port=${NGINX_PORT}/tcp
-        firewall-cmd --reload
-    elif command -v ufw &> /dev/null; then
-        ufw allow ${BACKEND_PORT}/tcp
-        ufw allow ${FRONTEND_PORT}/tcp
-        ufw allow ${NGINX_PORT}/tcp
-    fi
 
     echo -e "${GREEN}✓ 服务启动完成${NC}"
 }
 
 # 显示部署信息
 show_deployment_info() {
-    echo -e "${BLUE}[10/10] 部署完成${NC}"
+    echo -e "${BLUE}[11/10] 部署完成${NC}"
     echo ""
-    echo -e "${GREEN}╔══════════════════════════════════════╗${NC}"
+    echo -e "${GREEN}╔════════════════════════════════╗${NC}"
     echo -e "${GREEN}║     部署成功！                             ║${NC}"
-    echo -e "${GREEN}╚══════════════════════════════════════╝${NC}"
+    echo -e "${GREEN}╚══════════════════════════════════╝${NC}"
     echo ""
     echo -e "📱 访问地址:"
     echo -e "  前端: ${YELLOW}http://$(curl -s ifconfig.me):${NGINX_PORT}/${NC}"
@@ -336,6 +346,10 @@ show_deployment_info() {
     echo ""
     echo -e "📂 部署目录: ${YELLOW}${DEPLOY_DIR}${NC}"
     echo ""
+    echo -e "⚙️  环境变量:"
+    echo -e "  JAVA_HOME: ${YELLOW}$JAVA_HOME${NC}"
+    echo -e "  PATH: ${YELLOW}$PATH${NC}"
+    echo ""
     echo -e "🛠️  管理命令:"
     echo -e "  查看后端日志: ${YELLOW}journalctl -u ${PROJECT_NAME}-backend -f${NC}"
     echo -e "  查看前端日志: ${YELLOW}journalctl -u ${PROJECT_NAME}-frontend -f${NC}"
@@ -343,12 +357,19 @@ show_deployment_info() {
     echo -e "  重启前端: ${YELLOW}systemctl restart ${PROJECT_NAME}-frontend${NC}"
     echo -e "  重启nginx: ${YELLOW}systemctl restart nginx${NC}"
     echo ""
+    echo -e "📋 查看日志命令:"
+    echo -e "  后端实时日志: ${YELLOW}sudo journalctl -u ${PROJECT_NAME}-backend -f${NC}"
+    echo -e "  前端实时日志: ${YELLOW}sudo journalctl -u ${PROJECT_NAME}-frontend -f${NC}"
+    echo -e "  nginx访问日志: ${YELLOW}sudo tail -f /var/log/nginx/access.log${NC}"
+    echo -e "  nginx错误日志: ${YELLOW}sudo tail -f /var/log/nginx/error.log${NC}"
+    echo ""
 }
 
 # 主函数
 main() {
     check_root
     check_os
+    setup_environment_variables
     install_dependencies
     setup_code
     setup_database
