@@ -13,25 +13,55 @@ YELLOW='\033[0;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-# 配置
-PROJECT_NAME="reference-material-management"
-GIT_REPO="https://github.com/zmmly/reference_material_management.git"
-DEPLOY_DIR="/opt/${PROJECT_NAME}"
-BACKEND_DIR="${DEPLOY_DIR}/backend"
-FRONTEND_DIR="${DEPLOY_DIR}/frontend"
-DB_NAME="reference_material_management"
-DB_USER="root"
-DB_PASS="xjYY3687!"
-JAVA_VERSION="17"
-JAVA_OPTS="-Xms512m -Xmx1024m"
-NGINX_PORT="80"
-FRONTEND_PORT="3002"
-BACKEND_PORT="8080"
+# 脚本目录
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+CONFIG_FILE="${SCRIPT_DIR}/deploy-config.env"
+
+# 默认配置（如果配置文件不存在或配置项缺失）
+DEFAULT_GIT_REPO="https://github.com/zmmly/reference_material_management.git"
+DEFAULT_GIT_BRANCH="main"
+DEFAULT_DB_NAME="reference_material_management"
+DEFAULT_DB_USER="root"
+DEFAULT_DB_PASS="xjYY3687!"
+DEFAULT_DB_HOST="localhost"
+DEFAULT_DB_PORT="3306"
+DEFAULT_DEPLOY_DIR="/opt/reference_material_management"
+DEFAULT_BACKUP_DIR="/opt/reference_material_management_backups"
+DEFAULT_PROJECT_NAME="reference-material_management"
+DEFAULT_NGINX_PORT="80"
+DEFAULT_FRONTEND_PORT="3002"
+DEFAULT_BACKEND_PORT="8080"
+DEFAULT_JAVA_VERSION="17"
+DEFAULT_JAVA_OPTS="-Xms512m -Xmx1024m -XX:+UseG1GC"
+DEFAULT_SERVICE_USER="root"
+DEFAULT_BACKUP_RETENTION_DAYS=7"
+DEFAULT_AUTO_BACKUP_ENABLED=true
+
+# 全局变量（将从配置文件加载）
+GIT_REPO=""
+GIT_BRANCH=""
+DEPLOY_DIR=""
+BACKUP_DIR=""
+BACKEND_DIR=""
+FRONTEND_DIR=""
+DB_NAME=""
+DB_USER=""
+DB_PASS=""
+DB_HOST=""
+DB_PORT=""
+PROJECT_NAME=""
+NGINX_PORT=""
+FRONTEND_PORT=""
+BACKEND_PORT=""
+JAVA_VERSION=""
+JAVA_OPTS=""
+SERVICE_USER=""
+BACKUP_RETENTION_DAYS=""
+AUTO_BACKUP_ENABLED=""
 
 # 环境变量（全局设置）
 export JAVA_HOME=""
 export PATH=""
-export JAVA_OPTS="-Xms512m -Xmx1024m"
 
 echo -e "${BLUE}"
 echo "======================================"
@@ -48,9 +78,154 @@ check_root() {
     fi
 }
 
+# 加载配置文件
+load_config() {
+    echo -e "${BLUE}[2/10] 加载配置文件...${NC}"
+
+    if [ ! -f "$CONFIG_FILE" ]; then
+        echo -e "${YELLOW}配置文件不存在，使用默认配置${NC}"
+        use_default_config
+        return 0
+    fi
+
+    # 读取配置文件，忽略注释和空行
+    while IFS='=' read -r key value || [ -z "$key" ]; do
+        # 跳过注释和空行
+        [[ "$key" =~ ^#.*$ ]] && continue
+        [[ -z "$key" ]] && continue
+
+        # 动态设置变量
+        case "$key" in
+            GIT_REPO) GIT_REPO="$value" ;;
+            GIT_BRANCH) GIT_BRANCH="$value" ;;
+            DEPLOY_DIR) DEPLOY_DIR="$value" ;;
+            BACKUP_DIR) BACKUP_DIR="$value" ;;
+            BACKEND_DIR) BACKEND_DIR="${DEPLOY_DIR}/backend" ;;
+            FRONTEND_DIR) FRONTEND_DIR="${DEPLOY_DIR}/frontend" ;;
+            DB_NAME) DB_NAME="$value" ;;
+            DB_USER) DB_USER="$value" ;;
+            DB_PASS) DB_PASS="$value" ;;
+            DB_HOST) DB_HOST="$value" ;;
+            DB_PORT) DB_PORT="$value" ;;
+            PROJECT_NAME) PROJECT_NAME="$value" ;;
+            NGINX_PORT) NGINX_PORT="$value" ;;
+            FRONTEND_PORT) FRONTEND_PORT="$value" ;;
+            BACKEND_PORT) BACKEND_PORT="$value" ;;
+            JAVA_VERSION) JAVA_VERSION="$value" ;;
+            JAVA_OPTS) JAVA_OPTS="$value" ;;
+            SERVICE_USER) SERVICE_USER="$value" ;;
+            BACKUP_RETENTION_DAYS) BACKUP_RETENTION_DAYS="$value" ;;
+            AUTO_BACKUP_ENABLED) AUTO_BACKUP_ENABLED="$value" ;;
+        esac
+    done < "$CONFIG_FILE"
+
+    # 验证必需的配置
+    validate_config
+
+    echo -e "${GREEN}✓ 配置文件加载完成${NC}"
+}
+
+# 使用默认配置
+use_default_config() {
+    echo -e "${YELLOW}使用默认配置值...${NC}"
+    GIT_REPO="$DEFAULT_GIT_REPO"
+    GIT_BRANCH="$DEFAULT_GIT_BRANCH"
+    DEPLOY_DIR="$DEFAULT_DEPLOY_DIR"
+    BACKUP_DIR="$DEFAULT_BACKUP_DIR"
+    BACKEND_DIR="${DEFAULT_DEPLOY_DIR}/backend"
+    FRONTEND_DIR="${DEFAULT_DEPLOY_DIR}/frontend"
+    DB_NAME="$DEFAULT_DB_NAME"
+    DB_USER="$DEFAULT_DB_USER"
+    DB_PASS="$DEFAULT_DB_PASS"
+    DB_HOST="$DEFAULT_DB_HOST"
+    DB_PORT="$DEFAULT_DB_PORT"
+    PROJECT_NAME="$DEFAULT_PROJECT_NAME"
+    NGINX_PORT="$DEFAULT_NGINX_PORT"
+    FRONTEND_PORT="$DEFAULT_FRONTEND_PORT"
+    BACKEND_PORT="$DEFAULT_BACKEND_PORT"
+    JAVA_VERSION="$DEFAULT_JAVA_VERSION"
+    JAVA_OPTS="$DEFAULT_JAVA_OPTS"
+    SERVICE_USER="$DEFAULT_SERVICE_USER"
+    BACKUP_RETENTION_DAYS="$DEFAULT_BACKUP_RETENTION_DAYS"
+    AUTO_BACKUP_ENABLED="$DEFAULT_AUTO_BACKUP_ENABLED"
+}
+
+# 验证配置
+validate_config() {
+    echo -e "${BLUE}[3/10] 验证配置...${NC}"
+
+    local missing_config=false
+
+    # 检查必需的配置项
+    if [ -z "$DB_PASS" ]; then
+        echo -e "${YELLOW}⚠️  数据库密码未配置，将使用默认值${NC}"
+        DB_PASS="$DEFAULT_DB_PASS"
+    fi
+
+    if [ -z "$DEPLOY_DIR" ]; then
+        echo -e "${RED}❌ 部署目录未配置${NC}"
+        missing_config=true
+    fi
+
+    if [ -z "$DB_NAME" ]; then
+        echo -e "${RED}❌ 数据库名称未配置${NC}"
+        missing_config=true
+    fi
+
+    if [ -z "$PROJECT_NAME" ]; then
+        echo -e "${RED}❌ 项目名称未配置${NC}"
+        missing_config=true
+    fi
+
+    if [ "$missing_config" = true ]; then
+        echo -e "${RED}✗ 配置验证失败${NC}"
+        exit 1
+    fi
+
+    echo -e "${GREEN}✓ 配置验证完成${NC}"
+}
+
+# 显示当前配置
+show_current_config() {
+    echo -e "${BLUE}[4/10] 当前配置${NC}"
+    echo ""
+    echo -e "${GREEN}╔════════════════════════════════╗${NC}"
+    echo -e "${GREEN}║              部署配置                  ║${NC}"
+    echo -e "${GREEN}╚════════════════════════════════════╝${NC}"
+    echo ""
+    echo -e "${YELLOW}Git配置:"
+    echo -e "  仓库: ${YELLOW}${GIT_REPO}${NC}"
+    echo -e "  分支: ${YELLOW}${GIT_BRANCH}${NC}"
+    echo ""
+    echo -e "${YELLOW}数据库配置:"
+    echo -e "  主机: ${YELLOW}${DB_HOST}:${DB_PORT}${NC}"
+    echo -e "  数据库: ${YELLOW}${DB_NAME}${NC}"
+    echo -e "  用户: ${YELLOW}${DB_USER}${NC}"
+    echo -e "  密码: ${YELLOW}*** (已配置)${NC}"
+    echo ""
+    echo -e "${YELLOW}部署配置:"
+    echo -e "  目录: ${YELLOW}${DEPLOY_DIR}${NC}"
+    echo -e "  备份: ${YELLOW}${BACKUP_DIR}${NC}"
+    echo -e "  项目名: ${YELLOW}${PROJECT_NAME}${NC}"
+    echo ""
+    echo -e "${YELLOW}服务配置:"
+    echo -e "  Nginx端口: ${YELLOW}${NGINX_PORT}${NC}"
+    echo -e "  前端端口: ${YELLOW}${FRONTEND_PORT}${NC}"
+    echo -e "  后端端口: ${YELLOW}${BACKEND_PORT}${NC}"
+    echo ""
+    echo -e "${YELLOW}Java配置:"
+    echo -e "  版本: ${YELLOW}${JAVA_VERSION}${NC}"
+    echo -e "  选项: ${YELLOW}${JAVA_OPTS}${NC}"
+    echo ""
+    echo -e "${YELLOW}备份配置:"
+    echo -e "  保留天数: ${YELLOW}${BACKUP_RETENTION_DAYS}天${NC}"
+    echo -e "  自动备份: ${YELLOW}${AUTO_BACKUP_ENABLED}${NC}"
+    echo ""
+}
+
 # 检查操作系统
 check_os() {
-    echo -e "${BLUE}[1/10] 检查操作系统...${NC}"
+    echo -e "${BLUE}[5/10] 检查操作系统...${NC}"
     if [ -f /etc/redhat-release ]; then
         OS="centos"
         PKG_MANAGER="yum"
@@ -69,7 +244,7 @@ check_os() {
 
 # 设置全局环境变量
 setup_environment_variables() {
-    echo -e "${BLUE}[2/10] 设置环境变量...${NC}"
+    echo -e "${BLUE}[6/10] 设置环境变量...${NC}"
 
     # 设置JAVA_HOME
     if [ -d "/usr/lib/jvm/java-${JAVA_VERSION}-openjdk" ]; then
@@ -80,6 +255,8 @@ setup_environment_variables() {
         JAVA_PATH=$(which java)
         JAVA_DIR=$(dirname $(dirname $(dirname "$JAVA_PATH")))
         export JAVA_HOME="$JAVA_DIR"
+    else
+        echo -e "${YELLOW}⚠️  未找到JDK ${JAVA_VERSION}，环境变量可能未正确设置${NC}"
     fi
 
     # 设置PATH
@@ -102,7 +279,7 @@ setup_environment_variables() {
 
 # 检查和安装依赖
 install_dependencies() {
-    echo -e "${BLUE}[3/10] 检查和安装依赖...${NC}"
+    echo -e "${BLUE}[7/10] 检查和安装依赖...${NC}"
 
     # 检查git
     if ! command -v git &> /dev/null; then
@@ -147,21 +324,21 @@ install_dependencies() {
 
 # 配置MySQL数据库
 setup_database() {
-    echo -e "${BLUE}[4/10] 配置MySQL数据库...${NC}"
+    echo -e "${BLUE}[8/10] 配置MySQL数据库...${NC}"
 
     # 创建数据库
-    mysql -u${DB_USER} -p${DB_PASS} -e "CREATE DATABASE IF NOT EXISTS ${DB_NAME} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+    mysql -h${DB_HOST} -P${DB_PORT} -u${DB_USER} -p${DB_PASS} -e "CREATE DATABASE IF NOT EXISTS ${DB_NAME} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
 
     # 导入数据库结构
     if [ -f "${DEPLOY_DIR}/database/schema.sql" ]; then
         echo -e "${YELLOW}导入数据库结构...${NC}"
-        mysql -u${DB_USER} -p${DB_PASS} ${DB_NAME} < "${DEPLOY_DIR}/database/schema.sql"
+        mysql -h${DB_HOST} -P${DB_PORT} -u${DB_USER} -p${DB_PASS} ${DB_NAME} < "${DEPLOY_DIR}/database/schema.sql"
     fi
 
     # 导入数据库数据
     if [ -f "${DEPLOY_DIR}/database/data.sql" ]; then
         echo -e "${YELLOW}导入数据库数据...${NC}"
-        mysql -u${DB_USER} -p${DB_PASS} ${DB_NAME} < "${DEPLOY_DIR}/database/data.sql"
+        mysql -h${DB_HOST} -P${DB_PORT} -u${DB_USER} -p${DB_PASS} ${DB_NAME} < "${DEPLOY_DIR}/database/data.sql"
     fi
 
     echo -e "${GREEN}✓ 数据库配置完成${NC}"
@@ -169,23 +346,27 @@ setup_database() {
 
 # 克隆或更新代码
 setup_code() {
-    echo -e "${BLUE}[5/10] 部署代码...${NC}"
+    echo -e "${BLUE}[9/10] 部署代码...${NC}"
 
     if [ -d "${DEPLOY_DIR}" ]; then
         echo -e "${YELLOW}项目目录已存在，正在备份...${NC}"
         mv "${DEPLOY_DIR}" "${DEPLOY_DIR}_backup_$(date +%Y%m%d_%H%M%S)" || true
     fi
 
-    # 克隆代码
+    # 克隆代码（使用配置的分支）
     echo -e "${YELLOW}克隆代码仓库...${NC}"
-    git clone ${GIT_REPO} ${DEPLOY_DIR}
+    if [ -n "$GIT_BRANCH" ]; then
+        git clone -b ${GIT_BRANCH} ${GIT_REPO} ${DEPLOY_DIR}
+    else
+        git clone ${GIT_REPO} ${DEPLOY_DIR}
+    fi
 
     echo -e "${GREEN}✓ 代码部署完成${NC}"
 }
 
 # 构建前端
 build_frontend() {
-    echo -e "${BLUE}[6/10] 构建前端...${NC}"
+    echo -e "${BLUE}[10/10] 构建前端...${NC}"
 
     cd ${FRONTEND_DIR}
 
@@ -204,7 +385,7 @@ build_frontend() {
 
 # 构建后端
 build_backend() {
-    echo -e "${BLUE}[7/10] 构建后端...${NC}"
+    echo -e "${BLUE}[11/10] 构建后端...${NC}"
 
     cd ${BACKEND_DIR}
 
@@ -217,7 +398,7 @@ build_backend() {
 
 # 配置nginx
 configure_nginx() {
-    echo -e "${BLUE}[8/10] 配置nginx...${NC}"
+    echo -e "${BLUE}[12/10] 配置nginx...${NC}"
 
     # 创建nginx配置文件
     cat > /etc/nginx/conf.d/${PROJECT_NAME}.conf <<'EOF'
@@ -268,7 +449,7 @@ EOF
 
 # 创建systemd服务文件
 create_systemd_services() {
-    echo -e "${BLUE}[9/10] 创建systemd服务...${NC}"
+    echo -e "${BLUE}[13/10] 创建systemd服务...${NC}"
 
     # 创建后端服务文件
     cat > /etc/systemd/system/${PROJECT_NAME}-backend.service <<'EOF'
@@ -278,7 +459,7 @@ After=network.target
 
 [Service]
 Type=simple
-User=root
+User=${SERVICE_USER}
 WorkingDirectory=${BACKEND_DIR}
 Environment="JAVA_HOME=$JAVA_HOME" "JAVA_OPTS=$JAVA_OPTS" "PATH=$PATH"
 ExecStart=$JAVA_HOME/bin/java $JAVA_OPTS -jar ${BACKEND_DIR}/target/reference-material-management-1.0.0.jar
@@ -297,7 +478,7 @@ After=network.target
 
 [Service]
 Type=simple
-User=root
+User=${SERVICE_USER}
 WorkingDirectory=${FRONTEND_DIR}
 Environment="PATH=$PATH"
 ExecStart=/usr/bin/node ${FRONTEND_DIR}/node_modules/.bin/vite --port ${FRONTEND_PORT} --host
@@ -316,7 +497,7 @@ EOF
 
 # 启动服务
 start_services() {
-    echo -e "${BLUE}[10/10] 启动服务...${NC}"
+    echo -e "${BLUE}[14/10] 启动服务...${NC}"
 
     # 启动后端服务
     systemctl start ${PROJECT_NAME}-backend
@@ -326,16 +507,28 @@ start_services() {
     systemctl start ${PROJECT_NAME}-frontend
     systemctl enable ${PROJECT_NAME}-frontend
 
+    # 开放防火墙端口
+    if command -v firewall-cmd &> /dev/null; then
+        firewall-cmd --permanent --add-port=${BACKEND_PORT}/tcp
+        firewall-cmd --permanent --add-port=${FRONTEND_PORT}/tcp
+        firewall-cmd --permanent --add-port=${NGINX_PORT}/tcp
+        firewall-cmd --reload
+    elif command -v ufw &> /dev/null; then
+        ufw allow ${BACKEND_PORT}/tcp
+        ufw allow ${FRONTEND_PORT}/tcp
+        ufw allow ${NGINX_PORT}/tcp
+    fi
+
     echo -e "${GREEN}✓ 服务启动完成${NC}"
 }
 
 # 显示部署信息
 show_deployment_info() {
-    echo -e "${BLUE}[11/10] 部署完成${NC}"
+    echo -e "${BLUE}[15/10] 部署完成${NC}"
     echo ""
     echo -e "${GREEN}╔════════════════════════════════╗${NC}"
     echo -e "${GREEN}║     部署成功！                             ║${NC}"
-    echo -e "${GREEN}╚══════════════════════════════════╝${NC}"
+    echo -e "${GREEN}╚════════════════════════════════════╝${NC}"
     echo ""
     echo -e "📱 访问地址:"
     echo -e "  前端: ${YELLOW}http://$(curl -s ifconfig.me):${NGINX_PORT}/${NC}"
@@ -346,7 +539,7 @@ show_deployment_info() {
     echo ""
     echo -e "📂 部署目录: ${YELLOW}${DEPLOY_DIR}${NC}"
     echo ""
-    echo -e "⚙️  环境变量:"
+    echo -e "📋 环境变量:"
     echo -e "  JAVA_HOME: ${YELLOW}$JAVA_HOME${NC}"
     echo -e "  PATH: ${YELLOW}$PATH${NC}"
     echo ""
@@ -357,19 +550,52 @@ show_deployment_info() {
     echo -e "  重启前端: ${YELLOW}systemctl restart ${PROJECT_NAME}-frontend${NC}"
     echo -e "  重启nginx: ${YELLOW}systemctl restart nginx${NC}"
     echo ""
-    echo -e "📋 查看日志命令:"
-    echo -e "  后端实时日志: ${YELLOW}sudo journalctl -u ${PROJECT_NAME}-backend -f${NC}"
-    echo -e "  前端实时日志: ${YELLOW}sudo journalctl -u ${PROJECT_NAME}-frontend -f${NC}"
-    echo -e "  nginx访问日志: ${YELLOW}sudo tail -f /var/log/nginx/access.log${NC}"
-    echo -e "  nginx错误日志: ${YELLOW}sudo tail -f /var/log/nginx/error.log${NC}"
+    echo -e "📋 配置文件位置: ${YELLOW}${CONFIG_FILE}${NC}"
+    echo -e "  修改配置: ${YELLOW}vi ${CONFIG_FILE}${NC} && source deploy.sh${NC}"
+    echo ""
+}
+
+# 显示使用帮助
+show_help() {
+    echo -e "${BLUE}使用方法${NC}"
+    echo ""
+    echo -e "${GREEN}基本用法:${NC}"
+    echo -e "${YELLOW}  sudo ./deploy.sh${NC}"
+    echo ""
+    echo -e "${GREEN}配置文件选项:${NC}"
+    echo -e "${YELLOW}  deploy-config.env${NC}  - 部署配置文件（必须创建）"
+    echo ""
+    echo -e "${GREEN}环境变量:${NC}"
+    echo -e "${YELLOW}  JAVA_HOME=${NC} - 指定JDK安装路径（跳过自动检测）"
+    echo -e "${YELLOW}  JAVA_OPTS=${NC} - 指定JVM参数（跳过配置文件）"
+    echo ""
+    echo -e "${GREEN}示例配置文件:${NC}"
+    echo ""
+    echo -e "${YELLOW}# 数据库配置${NC}"
+    echo -e "${YELLOW}DB_HOST=your-mysql-host${NC}"
+    echo -e "${YELLOW}DB_PASS=your_password${NC}"
+    echo ""
+    echo -e "${YELLOW}# 端口配置${NC}"
+    echo -e "${YELLOW}NGINX_PORT=80${NC}"
+    echo -e "${YELLOW}FRONTEND_PORT=3002${NC}"
+    echo -e "${YELLOW}BACKEND_PORT=8080${NC}"
+    echo ""
+    echo -e "${GREEN}更多信息请查看: DEPLOYMENT.md${NC}"
     echo ""
 }
 
 # 主函数
 main() {
+    # 检查是否显示帮助
+    if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+        show_help
+        exit 0
+    fi
+
     check_root
     check_os
-    setup_environment_variables
+    load_config
+    show_current_config
     install_dependencies
     setup_code
     setup_database
