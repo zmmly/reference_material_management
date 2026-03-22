@@ -352,6 +352,28 @@ install_dependencies() {
                 ${PKG_INSTALL} jdk${JAVA_VERSION}-openjdk || error_exit "安装JDK失败"
                 ;;
         esac
+    else
+        # 检查已安装的Java版本
+        echo -e "${YELLOW}检查已安装的Java版本...${NC}"
+        JAVA_VER=$(java -version 2>&1 | head -1 | cut -d'"' -f2 | cut -d'.' -f1)
+        echo -e "${YELLOW}当前Java版本: ${JAVA_VER}${NC}"
+
+        # 如果Java版本过低，提示用户
+        if [ "$JAVA_VER" -lt "$JAVA_VERSION" ]; then
+            echo -e "${RED}✗ Java版本过低，需要安装JDK ${JAVA_VERSION}${NC}"
+            echo -e "${YELLOW}正在尝试安装JDK ${JAVA_VERSION}...${NC}"
+            case "$PKG_MANAGER" in
+                apt)
+                    ${PKG_INSTALL} openjdk-${JAVA_VERSION}-jdk || echo -e "${YELLOW}⚠️  安装失败，尝试使用当前版本...${NC}"
+                    ;;
+                yum|dnf)
+                    ${PKG_INSTALL} java-${JAVA_VERSION}-openjdk-devel || echo -e "${YELLOW}⚠️  安装失败，尝试使用当前版本...${NC}"
+                    ;;
+                *)
+                    echo -e "${YELLOW}⚠️  无法自动安装，将使用当前Java版本${NC}"
+                    ;;
+            esac
+        fi
     fi
 
     # 安装Maven
@@ -443,8 +465,48 @@ build_backend() {
 
     cd ${BACKEND_DIR}
 
-    echo -e "${YELLOW}构建后端...${NC}"
-    JAVA_OPTS="$JAVA_OPTS" mvn clean package -DskipTests
+    # 检查Java版本并调整构建参数
+    JAVA_VER=$(java -version 2>&1 | head -1 | cut -d'"' -f2 | cut -d'.' -f1)
+    echo -e "${YELLOW}使用Java版本: ${JAVA_VER} 进行构建${NC}"
+
+    # 检查Maven配置文件
+    if [ -f "pom.xml" ]; then
+        echo -e "${YELLOW}检查Maven配置...${NC}"
+
+        # 如果Java版本低于17，临时修改pom.xml
+        if [ "$JAVA_VER" -lt "$JAVA_VERSION" ]; then
+            echo -e "${YELLOW}⚠️  Java版本 ${JAVA_VER} 低于要求的 ${JAVA_VERSION}，临时修改Maven配置${NC}"
+
+            # 备份原pom.xml
+            cp pom.xml pom.xml.backup
+
+            # 修改Java版本配置
+            if command -v sed &> /dev/null; then
+                # 移除release版本要求
+                sed -i 's/<release>17<\/release>/<release>${JAVA_VER}<\/release>/g' pom.xml || true
+                sed -i 's/<maven.compiler.release>17<\/maven.compiler.release>//g' pom.xml || true
+
+                echo -e "${GREEN}✓ Maven配置已调整为Java ${JAVA_VER} 兼容模式${NC}"
+            fi
+        fi
+    fi
+
+    # 如果Java版本低于17，修改构建参数
+    if [ "$JAVA_VER" -lt "$JAVA_VERSION" ]; then
+        echo -e "${YELLOW}⚠️  Java版本 ${JAVA_VER} 低于要求的 ${JAVA_VERSION}，使用兼容构建模式${NC}"
+        echo -e "${YELLOW}构建后端...${NC}"
+        # 不指定release版本，让Maven使用当前Java版本
+        JAVA_OPTS="$JAVA_OPTS" mvn clean package -DskipTests -Dmaven.compiler.release=
+    else
+        echo -e "${YELLOW}构建后端...${NC}"
+        JAVA_OPTS="$JAVA_OPTS" mvn clean package -DskipTests
+    fi
+
+    # 恢复pom.xml备份
+    if [ -f "pom.xml.backup" ]; then
+        mv pom.xml.backup pom.xml
+        echo -e "${YELLOW}✓ Maven配置已恢复${NC}"
+    fi
 
     echo -e "${GREEN}✓ 后端构建完成${NC}"
 }
