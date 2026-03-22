@@ -217,34 +217,45 @@ show_current_config() {
 check_os() {
     echo -e "${BLUE}[5/10] 检查操作系统...${NC}"
 
-    # 先检测包管理器
-    if command -v apt &> /dev/null; then
+    # 先检测包管理器（使用多种检测方法增强可靠性）
+    PKG_MANAGER=""
+    if which apt &> /dev/null || command -v apt &> /dev/null; then
         PKG_MANAGER="apt"
         PKG_UPDATE="apt update"
         PKG_INSTALL="apt install -y"
-    elif command -v yum &> /dev/null; then
+    elif which yum &> /dev/null || command -v yum &> /dev/null || [ -f /usr/bin/yum ]; then
         PKG_MANAGER="yum"
         PKG_UPDATE="yum update -y"
         PKG_INSTALL="yum install -y"
-    elif command -v dnf &> /dev/null; then
+        # 如果yum不在PATH中，添加到PATH
+        if ! command -v yum &> /dev/null && [ -f /usr/bin/yum ]; then
+            export PATH="/usr/bin:$PATH"
+            echo -e "${YELLOW}⚠️  已添加 /usr/bin 到 PATH${NC}"
+        fi
+    elif which dnf &> /dev/null || command -v dnf &> /dev/null; then
         PKG_MANAGER="dnf"
         PKG_UPDATE="dnf update -y"
         PKG_INSTALL="dnf install -y"
-    elif command -v zypper &> /dev/null; then
+    elif which zypper &> /dev/null || command -v zypper &> /dev/null; then
         PKG_MANAGER="zypper"
         PKG_UPDATE="zypper refresh"
         PKG_INSTALL="zypper install -y"
-    elif command -v apk &> /dev/null; then
+    elif which apk &> /dev/null || command -v apk &> /dev/null; then
         PKG_MANAGER="apk"
         PKG_UPDATE="apk update"
         PKG_INSTALL="apk add"
-    elif command -v pacman &> /dev/null; then
+    elif which pacman &> /dev/null || command -v pacman &> /dev/null; then
         PKG_MANAGER="pacman"
         PKG_UPDATE="pacman -Sy"
         PKG_INSTALL="pacman -S --noconfirm"
-    else
+    fi
+
+    # 如果仍然没有检测到包管理器，显示调试信息
+    if [ -z "$PKG_MANAGER" ]; then
         echo -e "${RED}无法检测包管理器，请手动安装所需依赖${NC}"
         echo -e "${YELLOW}支持的包管理器: apt, yum, dnf, zypper, apk, pacman${NC}"
+        echo -e "${YELLOW}正在显示调试信息...${NC}"
+        debug_package_manager
         exit 1
     fi
 
@@ -596,8 +607,44 @@ show_deployment_info() {
     echo ""
 }
 
-# 显示使用帮助
-# 调试包管理器debug_package_manager() {    echo -e "${YELLOW}调试信息: 检测可用包管理器${NC}"    echo ""    echo -e "${YELLOW}检查常见包管理器...${NC}"    for pkg in apt yum dnf zypper apk pacman; do        if command -v $pkg &> /dev/null; then            echo -e "  ${GREEN}✓${NC} $pkg 可用"        else            echo -e "  ${RED}✗${NC} $pkg 不可用"        fi    done    echo ""    echo -e "${YELLOW}操作系统信息:${NC}"    if [ -f /etc/os-release ]; then        cat /etc/os-release    elif [ -f /etc/redhat-release ]; then        cat /etc/redhat-release    elif [ -f /etc/debian_version ]; then        cat /etc/debian_version    fi    echo ""    echo -e "${YELLOW}PATH环境变量:${NC}"    echo "  $PATH"}
+# 调试包管理器
+debug_package_manager() {
+    echo -e "${YELLOW}调试信息: 检测可用包管理器${NC}"
+    echo ""
+    echo -e "${YELLOW}检查常见包管理器...${NC}"
+
+    for pkg in apt yum dnf zypper apk pacman; do
+        if command -v $pkg &> /dev/null; then
+            echo -e "  ${GREEN}✓${NC} $pkg 可用"
+        elif which $pkg &> /dev/null; then
+            echo -e "  ${GREEN}✓${NC} $pkg 可用 (通过which检测)"
+        else
+            echo -e "  ${RED}✗${NC} $pkg 不可用"
+        fi
+    done
+
+    echo ""
+    echo -e "${YELLOW}操作系统信息:${NC}"
+    if [ -f /etc/os-release ]; then
+        cat /etc/os-release
+    elif [ -f /etc/redhat-release ]; then
+        cat /etc/redhat-release
+    elif [ -f /etc/debian_version ]; then
+        cat /etc/debian_version
+    fi
+
+    echo ""
+    echo -e "${YELLOW}PATH环境变量:${NC}"
+    echo "  $PATH"
+
+    echo ""
+    echo -e "${YELLOW}常见命令路径:${NC}"
+    for cmd in apt yum dnf zypper apk pacman git; do
+        if which $cmd &> /dev/null; then
+            echo -e "  $cmd: ${GREEN}$(which $cmd)${NC}"
+        fi
+    done
+}
 show_help() {
     echo -e "${GREEN}使用方法${NC}"
     echo ""
@@ -611,7 +658,9 @@ show_help() {
     echo -e "${YELLOW}  JAVA_HOME=${NC}  - 指定JDK安装路径"
     echo -e "${YELLOW}  JAVA_OPTS=${NC} - 指定JVM参数"
     echo ""
-    echo ""    echo -e "${GREEN}调试选项:${NC}"    echo -e "${YELLOW}  ./deploy.sh --debug    ${NC}  - 调试包管理器检测"
+    echo ""
+    echo -e "${GREEN}调试选项:${NC}"
+    echo -e "${YELLOW}  ./deploy.sh --debug    ${NC}  - 调试包管理器检测"
     echo -e "${GREEN}示例配置文件:${NC}"
     echo -e "${YELLOW}# 数据库配置${NC}"
     echo -e "${YELLOW}DB_HOST=your-mysql-host${NC}"
