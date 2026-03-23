@@ -58,9 +58,9 @@ DEFAULT_SERVICE_USER="root"
 DEFAULT_BACKUP_RETENTION_DAYS="7"
 DEFAULT_AUTO_BACKUP_ENABLED=true
 
-# 全局变量
-export JAVA_HOME=""
-export PATH=""
+# 全局变量（不要清空，保留系统环境）
+export JAVA_HOME="${JAVA_HOME:-}"
+export PATH="${PATH:-}"
 
 echo -e "${BLUE}"
 echo "======================================"
@@ -606,59 +606,23 @@ build_frontend() {
 build_backend() {
     echo -e "${BLUE}[11/10] 构建后端...${NC}"
 
+    # 确保JAVA_HOME正确设置
+    if [ -z "$JAVA_HOME" ] || [ ! -d "$JAVA_HOME" ]; then
+        if [ -d "/usr/lib/jvm/java-${JAVA_VERSION}-openjdk" ]; then
+            export JAVA_HOME="/usr/lib/jvm/java-${JAVA_VERSION}-openjdk"
+        elif [ -d "/usr/lib/jvm/java-${JAVA_VERSION}-openjdk-"* ]; then
+            export JAVA_HOME=$(ls -d /usr/lib/jvm/java-${JAVA_VERSION}-openjdk-* | head -1)
+        fi
+        export PATH="$JAVA_HOME/bin:$PATH"
+    fi
+
+    echo -e "${YELLOW}JAVA_HOME: ${JAVA_HOME}${NC}"
+    echo -e "${YELLOW}Java版本: $(java -version 2>&1 | head -1)${NC}"
+
     cd ${BACKEND_DIR}
 
-    # 检查Java版本并调整构建参数
-    JAVA_VER=$(java -version 2>&1 | head -1 | cut -d'"' -f2 | cut -d'.' -f1)
-    echo -e "${YELLOW}使用Java版本: ${JAVA_VER} 进行构建${NC}"
-
-    # 检查Maven配置文件
-    if [ -f "pom.xml" ]; then
-        echo -e "${YELLOW}检查Maven配置...${NC}"
-
-        # 检查Java版本是否满足要求（17或更高）
-        # 提取Java主版本号进行比较
-        JAVA_MAIN_VER=$(echo "$JAVA_FULL_VER" | cut -d'.' -f1)
-
-        if [ "$JAVA_MAIN_VER" -lt "$JAVA_VERSION" ]; then
-            echo -e "${YELLOW}⚠️  Java版本 ${JAVA_VER} 低于要求的 ${JAVA_VERSION}，临时修改Maven配置${NC}"
-
-            # 备份原pom.xml
-            cp pom.xml pom.xml.backup
-
-            # 修改Java版本配置
-            if command -v sed &> /dev/null; then
-                # 移除release版本要求
-                sed -i 's/<release>17<\/release>/<release>${JAVA_VER}<\/release>/g' pom.xml || true
-                sed -i 's/<maven.compiler.release>17<\/maven.compiler.release>//g' pom.xml || true
-
-                echo -e "${GREEN}✓ Maven配置已调整为Java ${JAVA_VER} 兼容模式${NC}"
-            fi
-        else
-            echo -e "${GREEN}✓ Java版本 ${JAVA_VER} 满足要求${NC}"
-        fi
-    fi
-
-    # 检查Java版本是否满足要求（移除重复检查）
-    # 之前的检查逻辑已经在上面的build_backend中处理
-    # 这里不再重复检查
     echo -e "${YELLOW}构建后端...${NC}"
-
-    # 根据Java版本选择构建方式
-    JAVA_MAIN_VER=$(echo "$JAVA_FULL_VER" | cut -d'.' -f1)
-    if [ "$JAVA_MAIN_VER" -lt "$JAVA_VERSION" ]; then
-        # 不指定release版本，让Maven使用当前Java版本
-        JAVA_OPTS="$JAVA_OPTS" mvn clean package -DskipTests -Dmaven.compiler.release=
-    else
-        # Java版本满足要求，使用标准构建
-        JAVA_OPTS="$JAVA_OPTS" mvn clean package -DskipTests
-    fi
-
-    # 恢复pom.xml备份
-    if [ -f "pom.xml.backup" ]; then
-        mv pom.xml.backup pom.xml
-        echo -e "${YELLOW}✓ Maven配置已恢复${NC}"
-    fi
+    JAVA_HOME="$JAVA_HOME" PATH="$JAVA_HOME/bin:$PATH" mvn clean package -DskipTests
 
     echo -e "${GREEN}✓ 后端构建完成${NC}"
 }
@@ -942,6 +906,7 @@ main() {
     check_os
     load_config
     show_current_config
+    setup_environment_variables
     install_dependencies
     setup_code
     setup_database
