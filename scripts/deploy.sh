@@ -633,35 +633,40 @@ configure_nginx() {
 
     NGINX_CONF="/etc/nginx/conf.d/${PROJECT_NAME}.conf"
 
-    # 使用echo命令逐行创建配置文件
-    {
-        echo "server {"
-        echo "  listen ${NGINX_PORT};"
-        echo "  server_name _;"
-        echo ""
-        echo "  location / {"
-        echo "    root ${FRONTEND_DIR}/dist;"
-        echo "    try_files \$uri \$uri/ /index.html;"
-        echo "    index index.html;"
-        echo ""
-        echo "    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot) {"
-        echo "      expires 30d;"
-        echo "      add_header Cache-Control \"public, immutable\";"
-        echo "    }"
-        echo ""
-        echo "  location /api {"
-        echo "    proxy_pass http://localhost:${BACKEND_PORT};"
-        echo "    proxy_set_header Host \$host;"
-        echo "    proxy_set_header X-Real-IP \$remote_addr;"
-        echo "    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;"
-        echo "    proxy_set_header X-Forwarded-Proto \$scheme;"
-        echo ""
-        echo "    proxy_connect_timeout 60s;"
-        echo "    proxy_send_timeout 60s;"
-        echo "    proxy_read_timeout 60s;"
-        echo "  }"
-        echo "}"
-    } > ${NGINX_CONF}
+    # 创建nginx配置文件
+    cat > ${NGINX_CONF} << EOF
+server {
+    listen ${NGINX_PORT};
+    server_name _;
+
+    root ${FRONTEND_DIR}/dist;
+    index index.html;
+
+    # 前端静态资源
+    location / {
+        try_files \$uri \$uri/ /index.html;
+    }
+
+    # 静态资源缓存
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+    }
+
+    # 后端API代理
+    location /api {
+        proxy_pass http://localhost:${BACKEND_PORT};
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
+    }
+}
+EOF
 
     # 测试nginx配置
     echo -e "${YELLOW}测试nginx配置...${NC}"
