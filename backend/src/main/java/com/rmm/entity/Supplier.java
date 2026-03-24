@@ -13,6 +13,10 @@ public class Supplier {
     private String contact;
     private String phone;
     private String address;
+
+    // 新增字段：证件照片路径（JSON数组字符串）
+    private String certificateImages;
+
     private Integer status;
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
