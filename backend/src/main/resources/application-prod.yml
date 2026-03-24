@@ -42,3 +42,9 @@ backup:
   # Linux 通常为: /usr/bin/mysqldump
   # 或通过环境变量 MYSQLDUMP_PATH 设置
   mysqldump-path: ${MYSQLDUMP_PATH:}
+
+# 文件上传配置
+upload:
+  # 上传文件存储目录（建议使用绝对路径）
+  # 示例: /var/rmm/uploads 或通过环境变量 UPLOAD_PATH 设置
+  path: ${UPLOAD_PATH:/var/rmm/uploads}

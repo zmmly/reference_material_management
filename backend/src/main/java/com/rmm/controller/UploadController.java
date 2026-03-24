@@ -34,13 +34,29 @@ public class UploadController {
 
     @PostConstruct
     public void init() {
-        // 使用用户目录下的绝对路径
-        uploadPath = System.getProperty("user.home") + "/rmm-uploads";
+        // 使用配置的上传路径
+        uploadPath = configuredUploadPath;
+
+        // 如果是相对路径，转换为绝对路径（相对于项目根目录）
         File dir = new File(uploadPath);
-        if (!dir.exists()) {
-            dir.mkdirs();
-            log.info("Created upload directory: {}", uploadPath);
+        if (!dir.isAbsolute()) {
+            // 使用系统临时目录或用户主目录作为基准
+            String basePath = System.getProperty("user.home");
+            uploadPath = basePath + File.separator + uploadPath;
+            dir = new File(uploadPath);
         }
+
+        // 创建目录
+        if (!dir.exists()) {
+            boolean created = dir.mkdirs();
+            if (created) {
+                log.info("Created upload directory: {}", uploadPath);
+            } else {
+                log.warn("Failed to create upload directory: {}", uploadPath);
+            }
+        }
+
+        log.info("Upload path configured: {}", uploadPath);
     }
 
     @Operation(summary = "上传文件")
