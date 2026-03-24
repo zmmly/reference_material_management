@@ -30,7 +30,13 @@
 **Files:**
 - Create: `database/migrations/20260324_add_certificate_images_to_supplier.sql`
 
-- [ ] **Step 1: 创建迁移脚本文件**
+- [ ] **Step 1: 创建迁移目录（如果不存在）**
+
+```bash
+mkdir -p database/migrations
+```
+
+- [ ] **Step 2: 创建迁移脚本文件**
 
 创建文件 `database/migrations/20260324_add_certificate_images_to_supplier.sql`：
 
@@ -39,43 +45,52 @@
 -- 执行时间：2026-03-24
 
 ALTER TABLE `supplier`
-ADD COLUMN `certificate_images` TEXT COMMENT '证件照片路径（JSON数组）' AFTER `address`;
+ADD COLUMN `certificate_images` TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
+COMMENT '证件照片路径（JSON数组）' AFTER `address`;
 ```
 
-- [ ] **Step 2: 执行迁移脚本**
+- [ ] **Step 3: 执行迁移脚本**
 
 ```bash
-# 连接到 MySQL 容器（macOS Docker 环境）
+# macOS Docker 环境（推荐）
 docker exec -i mysql-dev mysql -u root -p123456 --default-character-set=utf8mb4 reference_material_management < database/migrations/20260324_add_certificate_images_to_supplier.sql
 
-# 或者如果是 Windows 本地 MySQL
-"/c/Program Files/MySQL/MySQL Shell 8.0/bin/mysqlsh.exe" --sql --uri root:123456@localhost:3306/reference_material_management < database/migrations/20260324_add_certificate_images_to_supplier.sql
+# Windows 本地 MySQL（方式1：使用 mysqlsh）
+"/c/Program Files/MySQL/MySQL Shell 8.0/bin/mysqlsh.exe" --sql --uri root:123456@localhost:3306/reference_material_management --execute "ALTER TABLE supplier ADD COLUMN certificate_images TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci COMMENT '证件照片路径（JSON数组）' AFTER address;"
+
+# Windows 本地 MySQL（方式2：直接使用 mysql 命令）
+"/c/Program Files/MySQL/MySQL Server 8.0/bin/mysql.exe" -h localhost -u root -p123456 --default-character-set=utf8mb4 reference_material_management -e "ALTER TABLE supplier ADD COLUMN certificate_images TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci COMMENT '证件照片路径（JSON数组）' AFTER address;"
 ```
 
 Expected output: 无错误信息
 
-- [ ] **Step 3: 验证字段添加成功**
+**注意**：生产环境执行前建议备份数据库（虽然是添加字段操作，但养成备份习惯）
+
+- [ ] **Step 4: 验证字段添加成功**
 
 ```bash
-# 连接数据库验证
+# macOS Docker 环境
 docker exec -it mysql-dev mysql -u root -p123456 --default-character-set=utf8mb4 -e "USE reference_material_management; DESC supplier;"
+
+# Windows 本地环境
+"/c/Program Files/MySQL/MySQL Server 8.0/bin/mysql.exe" -h localhost -u root -p123456 --default-character-set=utf8mb4 reference_material_management -e "DESC supplier;"
 ```
 
 Expected output:
 ```
-+---------------------+--------------+------+-----+---------+----------------+
-| Field               | Type         | Null | Key | Default | Extra          |
-+---------------------+--------------+------+-----+---------+----------------+
-| id                  | bigint       | NO   | PRI | NULL    | auto_increment |
-| name                | varchar(200) | NO   |     | NULL    |                |
-| contact             | varchar(50)  | YES  |     | NULL    |                |
-| phone               | varchar(20)  | YES  |     | NULL    |                |
-| address             | varchar(500) | YES  |     | NULL    |                |
-| certificate_images  | text         | YES  |     | NULL    |                |
-| status              | tinyint      | YES  |     | 1       |                |
-| create_time         | datetime     | YES  |     | NULL    |                |
-| update_time         | datetime     | YES  |     | NULL    |                |
-+---------------------+--------------+------+-----+---------+----------------+
++---------------------+--------------+------+-----+-------------------+-------------------+
+| Field               | Type         | Null | Key | Default           | Extra             |
++---------------------+--------------+------+-----+-------------------+-------------------+
+| id                  | bigint       | NO   | PRI | NULL              | auto_increment    |
+| name                | varchar(200) | NO   |     | NULL              |                   |
+| contact             | varchar(50)  | YES  |     | NULL              |                   |
+| phone               | varchar(20)  | YES  |     | NULL              |                   |
+| address             | varchar(500) | YES  |     | NULL              |                   |
+| certificate_images  | text         | YES  |     | NULL              |                   |
+| status              | tinyint      | YES  |     | 1                 |                   |
+| create_time         | datetime     | YES  |     | CURRENT_TIMESTAMP | DEFAULT_GENERATED |
+| update_time         | datetime     | YES  |     | CURRENT_TIMESTAMP | DEFAULT_GENERATED |
++---------------------+--------------+------+-----+-------------------+-------------------+
 ```
 
 - [ ] **Step 4: 提交数据库修改**
@@ -142,7 +157,7 @@ git add backend/src/main/java/com/rmm/entity/Supplier.java
 git commit -m "feat(entity): add certificateImages field to Supplier entity"
 ```
 
-### Task 2.2: 增强 UploadController 安全验证（可选但推荐）
+### Task 2.2: 增强 UploadController 安全验证（强烈推荐）
 
 **Files:**
 - Modify: `backend/src/main/java/com/rmm/controller/UploadController.java`
@@ -172,7 +187,8 @@ public class UploadController {
 需要导入：
 ```java
 import java.util.Set;
-import java.util.HashSet;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 ```
 
 - [ ] **Step 2: 在 upload 方法中添加文件类型验证**
@@ -473,16 +489,14 @@ const handleSubmit = async () => {
 }
 ```
 
-- [ ] **Step 9: 添加样式优化**
+- [ ] **Step 9: 追加样式优化到现有 style 块**
 
-在 `<style scoped>` 部分添加：
+在现有的 `<style scoped>` 部分追加以下样式：
 
 ```css
-<style scoped>
-.page-container { padding: 20px; }
-.search-form { margin-bottom: 20px; }
+/* 追加到现有 <style scoped> 块中 */
 
-/* 新增：证件照片上传样式 */
+/* 证件照片上传样式 */
 :deep(.el-upload--picture-card) {
   width: 120px;
   height: 120px;
@@ -498,8 +512,9 @@ const handleSubmit = async () => {
   font-size: 12px;
   margin-top: 7px;
 }
-</style>
 ```
+
+**注意**：不要创建新的 `<style>` 标签，追加到现有的 `<style scoped>` 块末尾。
 
 - [ ] **Step 10: 验证前端代码**
 
