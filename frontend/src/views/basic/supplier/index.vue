@@ -199,6 +199,7 @@ const beforeUpload = (file) => {
 const handleUploadSuccess = (response, file, fileList) => {
   if (response.code === 200) {
     file.response = response
+    ElMessage.success('上传成功')
   } else {
     ElMessage.error(response.message || '上传失败')
     const index = fileList.indexOf(file)
