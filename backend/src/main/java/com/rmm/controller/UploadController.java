@@ -121,8 +121,10 @@ public class UploadController {
         }
 
         // 新增：路径安全验证，防止路径遍历攻击
+        // 去掉开头的 "/"，确保是相对路径
+        String relativePath = path.startsWith("/") ? path.substring(1) : path;
         Path uploadPathObj = Paths.get(uploadPath).normalize();
-        Path resolvedPath = uploadPathObj.resolve(path).normalize();
+        Path resolvedPath = uploadPathObj.resolve(relativePath).normalize();
 
         if (!resolvedPath.startsWith(uploadPathObj)) {
             response.sendError(HttpServletResponse.SC_FORBIDDEN, "非法路径");
@@ -166,8 +168,10 @@ public class UploadController {
 
         try {
             // 新增：路径安全验证，防止路径遍历攻击
+            // 去掉开头的 "/"，确保是相对路径
+            String relativePath = path.startsWith("/") ? path.substring(1) : path;
             Path uploadPathObj = Paths.get(uploadPath).normalize();
-            Path resolvedPath = uploadPathObj.resolve(path).normalize();
+            Path resolvedPath = uploadPathObj.resolve(relativePath).normalize();
 
             if (!resolvedPath.startsWith(uploadPathObj)) {
                 return Result.error("非法路径");
