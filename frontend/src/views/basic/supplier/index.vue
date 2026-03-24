@@ -22,6 +22,32 @@
         <el-table-column prop="contact" label="联系人" min-width="100" />
         <el-table-column prop="phone" label="联系电话" min-width="120" />
         <el-table-column prop="address" label="地址" min-width="200" />
+        <el-table-column label="证件照片" min-width="100">
+          <template #default="{ row }">
+            <div v-if="row.certificateImages" style="display: flex; gap: 4px; flex-wrap: wrap;">
+              <template v-for="(path, index) in parseImagePaths(row.certificateImages)" :key="index">
+                <el-image
+                  v-if="index < 3"
+                  :src="`/api/upload/preview?path=${encodeURIComponent(path)}`"
+                  :preview-src-list="getPreviewList(row.certificateImages)"
+                  :initial-index="index"
+                  fit="cover"
+                  style="width: 40px; height: 40px; border-radius: 4px; cursor: pointer;"
+                >
+                  <template #error>
+                    <div style="width: 40px; height: 40px; background: #f5f5f5; display: flex; align-items: center; justify-content: center;">
+                      <el-icon><Document /></el-icon>
+                    </div>
+                  </template>
+                </el-image>
+              </template>
+              <span v-if="getImageCount(row.certificateImages) > 3" style="color: #999; font-size: 12px; line-height: 40px;">
+                +{{ getImageCount(row.certificateImages) - 3 }}
+              </span>
+            </div>
+            <span v-else style="color: #999;">-</span>
+          </template>
+        </el-table-column>
         <el-table-column prop="status" label="状态" min-width="70">
           <template #default="{ row }">
             <el-tag :type="row.status === 1 ? 'success' : 'danger'">
@@ -100,7 +126,7 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus } from '@element-plus/icons-vue'
+import { Plus, Document } from '@element-plus/icons-vue'
 import { getSupplierList, createSupplier, updateSupplier, deleteSupplier } from '@/api/supplier'
 import { getToken } from '@/utils/auth'
 
@@ -222,6 +248,27 @@ const handlePreview = (file) => {
   if (url) {
     window.open(url, '_blank')
   }
+}
+
+// 解析证件照片路径
+const parseImagePaths = (certificateImages) => {
+  if (!certificateImages) return []
+  try {
+    return JSON.parse(certificateImages)
+  } catch (e) {
+    return []
+  }
+}
+
+// 获取图片数量
+const getImageCount = (certificateImages) => {
+  return parseImagePaths(certificateImages).length
+}
+
+// 获取预览列表
+const getPreviewList = (certificateImages) => {
+  const paths = parseImagePaths(certificateImages)
+  return paths.map(path => `/api/upload/preview?path=${encodeURIComponent(path)}`)
 }
 
 onMounted(() => fetchData())

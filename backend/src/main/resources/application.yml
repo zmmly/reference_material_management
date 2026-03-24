@@ -49,6 +49,6 @@ backup:
 # 文件上传配置
 upload:
   # 上传文件存储目录（支持环境变量 UPLOAD_PATH）
-  # 相对路径会基于用户主目录，建议生产环境使用绝对路径
-  # 示例: uploads (相对路径) 或 /var/rmm/uploads (绝对路径)
-  path: ${UPLOAD_PATH:uploads}
+  # 开发环境：使用用户主目录下的 uploads 文件夹
+  # 生产环境：通过环境变量 UPLOAD_PATH 设置，如 /var/rmm/uploads
+  path: ${UPLOAD_PATH:${user.home}/uploads}
