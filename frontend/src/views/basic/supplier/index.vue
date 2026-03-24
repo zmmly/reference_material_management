@@ -171,7 +171,7 @@ const handleEdit = (row) => {
       const imagePaths = JSON.parse(row.certificateImages)
       certificateFileList.value = imagePaths.map((path, index) => ({
         name: `证件${index + 1}`,
-        url: path,
+        url: `/api/upload/preview?path=${encodeURIComponent(path)}`,
         response: { data: path }
       }))
     } catch (e) {
@@ -244,9 +244,9 @@ const handleUploadRemove = (file, fileList) => {
 }
 
 const handlePreview = (file) => {
-  const url = file.url || file.response?.data
-  if (url) {
-    window.open(url, '_blank')
+  const path = file.response?.data
+  if (path) {
+    window.open(`/api/upload/preview?path=${encodeURIComponent(path)}`, '_blank')
   }
 }
 
