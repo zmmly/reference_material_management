@@ -62,6 +62,29 @@
         <el-form-item label="地址" prop="address">
           <el-input v-model="form.address" type="textarea" :rows="2" placeholder="请输入地址" />
         </el-form-item>
+        <el-form-item label="证件照片">
+          <el-upload
+            v-model:file-list="certificateFileList"
+            action="/api/upload"
+            list-type="picture-card"
+            :headers="{ Authorization: 'Bearer ' + token }"
+            :data="{ type: 'certificate' }"
+            :on-success="handleUploadSuccess"
+            :on-error="handleUploadError"
+            :on-remove="handleUploadRemove"
+            :on-preview="handlePreview"
+            :before-upload="beforeUpload"
+            accept=".jpg,.jpeg,.png,.pdf"
+            :limit="10"
+          >
+            <el-icon><Plus /></el-icon>
+            <template #tip>
+              <div class="el-upload__tip">
+                支持 JPG、PNG、PDF 格式，单个文件不超过 10MB，最多 10 张
+              </div>
+            </template>
+          </el-upload>
+        </el-form-item>
         <el-form-item label="状态">
           <el-switch v-model="form.status" :active-value="1" :inactive-value="0" />
         </el-form-item>
@@ -77,7 +100,9 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Plus } from '@element-plus/icons-vue'
 import { getSupplierList, createSupplier, updateSupplier, deleteSupplier } from '@/api/supplier'
+import { getToken } from '@/utils/auth'
 
 const loading = ref(false)
 const tableData = ref([])
@@ -85,9 +110,11 @@ const total = ref(0)
 const dialogVisible = ref(false)
 const editId = ref(null)
 const formRef = ref()
+const certificateFileList = ref([])
+const token = getToken()
 
 const queryParams = reactive({ current: 1, size: 10, keyword: '', status: null })
-const form = reactive({ name: '', contact: '', phone: '', address: '', status: 1 })
+const form = reactive({ name: '', contact: '', phone: '', address: '', certificateImages: '', status: 1 })
 const rules = {
   name: [{ required: true, message: '请输入供应商名称', trigger: 'blur' }]
 }
@@ -105,18 +132,37 @@ const fetchData = async () => {
 
 const handleAdd = () => {
   editId.value = null
-  Object.assign(form, { name: '', contact: '', phone: '', address: '', status: 1 })
+  Object.assign(form, { name: '', contact: '', phone: '', address: '', certificateImages: '', status: 1 })
+  certificateFileList.value = []
   dialogVisible.value = true
 }
 
 const handleEdit = (row) => {
   editId.value = row.id
   Object.assign(form, row)
+  if (row.certificateImages) {
+    try {
+      const imagePaths = JSON.parse(row.certificateImages)
+      certificateFileList.value = imagePaths.map((path, index) => ({
+        name: `证件${index + 1}`,
+        url: path,
+        response: { data: path }
+      }))
+    } catch (e) {
+      certificateFileList.value = []
+    }
+  } else {
+    certificateFileList.value = []
+  }
   dialogVisible.value = true
 }
 
 const handleSubmit = async () => {
   await formRef.value.validate()
+  const imagePaths = certificateFileList.value
+    .map(file => file.response?.data || file.url)
+    .filter(Boolean)
+  form.certificateImages = imagePaths.length > 0 ? JSON.stringify(imagePaths) : ''
   if (editId.value) {
     await updateSupplier(editId.value, form)
     ElMessage.success('更新成功')
@@ -135,10 +181,65 @@ const handleDelete = async (row) => {
   fetchData()
 }
 
+const beforeUpload = (file) => {
+  const isImage = ['image/jpeg', 'image/png'].includes(file.type)
+  const isPdf = file.type === 'application/pdf'
+  if (!isImage && !isPdf) {
+    ElMessage.error('只能上传 JPG、PNG、PDF 格式的文件')
+    return false
+  }
+  const isLt10M = file.size / 1024 / 1024 < 10
+  if (!isLt10M) {
+    ElMessage.error('文件大小不能超过 10MB')
+    return false
+  }
+  return true
+}
+
+const handleUploadSuccess = (response, file, fileList) => {
+  if (response.code === 200) {
+    file.response = response
+  } else {
+    ElMessage.error(response.message || '上传失败')
+    const index = fileList.indexOf(file)
+    if (index > -1) {
+      fileList.splice(index, 1)
+    }
+  }
+}
+
+const handleUploadError = (error, file) => {
+  ElMessage.error('文件上传失败，请重试')
+}
+
+const handleUploadRemove = (file, fileList) => {
+  certificateFileList.value = fileList
+}
+
+const handlePreview = (file) => {
+  const url = file.url || file.response?.data
+  if (url) {
+    window.open(url, '_blank')
+  }
+}
+
 onMounted(() => fetchData())
 </script>
 
 <style scoped>
 .page-container { padding: 20px; }
 .search-form { margin-bottom: 20px; }
+:deep(.el-upload--picture-card) {
+  width: 120px;
+  height: 120px;
+}
+:deep(.el-upload-list--picture-card .el-upload-list__item) {
+  width: 120px;
+  height: 120px;
+}
+.el-upload__tip {
+  color: #999;
+  font-size: 12px;
+  margin-top: 7px;
+}
 </style>
