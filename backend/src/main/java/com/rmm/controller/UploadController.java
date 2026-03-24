@@ -17,8 +17,11 @@ import java.io.OutputStream;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.Set;
 import java.util.UUID;
 
 @Slf4j
@@ -26,6 +29,10 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/upload")
 public class UploadController {
+
+    // 新增：允许的文件扩展名白名单
+    private static final Set<String> ALLOWED_EXTENSIONS =
+        Set.of(".jpg", ".jpeg", ".png", ".pdf", ".doc", ".docx", ".xls", ".xlsx");
 
     @Value("${upload.path:uploads}")
     private String configuredUploadPath;
@@ -75,6 +82,11 @@ public class UploadController {
                 extension = originalFilename.substring(originalFilename.lastIndexOf("."));
             }
 
+            // 新增：验证文件类型
+            if (!ALLOWED_EXTENSIONS.contains(extension.toLowerCase())) {
+                return Result.error("不支持的文件类型，仅支持 JPG、PNG、PDF、DOC、XLS 等格式");
+            }
+
             // 生成新文件名：日期/UUID.扩展名
             String datePath = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy/MM"));
             String newFilename = UUID.randomUUID().toString().replace("-", "") + extension;
@@ -108,7 +120,16 @@ public class UploadController {
             return;
         }
 
-        File file = new File(uploadPath + path);
+        // 新增：路径安全验证，防止路径遍历攻击
+        Path uploadPathObj = Paths.get(uploadPath).normalize();
+        Path resolvedPath = uploadPathObj.resolve(path).normalize();
+
+        if (!resolvedPath.startsWith(uploadPathObj)) {
+            response.sendError(HttpServletResponse.SC_FORBIDDEN, "非法路径");
+            return;
+        }
+
+        File file = resolvedPath.toFile();
         if (!file.exists() || !file.isFile()) {
             response.sendError(HttpServletResponse.SC_NOT_FOUND, "文件不存在");
             return;
