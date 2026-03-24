@@ -92,9 +92,11 @@ start_backend() {
         exit 1
     fi
 
+    JAR_FILE="target/reference-material-management-1.0.0.jar"
+
     # 编译打包（如果 jar 不存在或代码有更新）
-    if [ ! -f "target/reference-material-management-0.0.1-SNAPSHOT.jar" ] || \
-       [ "$(find src -newer target/reference-material-management-0.0.1-SNAPSHOT.jar 2>/dev/null | wc -l)" -gt 0 ]; then
+    if [ ! -f "$JAR_FILE" ] || \
+       [ "$(find src -newer $JAR_FILE 2>/dev/null | wc -l)" -gt 0 ]; then
         echo -e "${YELLOW}正在编译后端项目...${NC}"
         mvn clean package -DskipTests -q
     fi
@@ -102,7 +104,7 @@ start_backend() {
     # 使用生产环境配置启动后端
     echo -e "${YELLOW}正在启动后端服务 (生产环境配置)...${NC}"
     nohup java -Xms512m -Xmx1024m -XX:+UseG1GC \
-        -jar target/reference-material-management-0.0.1-SNAPSHOT.jar \
+        -jar $JAR_FILE \
         --spring.profiles.active=prod \
         > $LOG_DIR/backend.log 2>&1 &
 
