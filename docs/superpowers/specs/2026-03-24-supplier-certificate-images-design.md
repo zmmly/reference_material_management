@@ -362,26 +362,131 @@ const handleAdd = () => {
 
 ## 错误处理
 
-### 上传失败
+### 前端错误处理
+
+#### 上传失败
 - **文件格式错误**：提示"只能上传 JPG、PNG 或 PDF 格式的文件"
 - **文件过大**：提示"文件大小不能超过 10MB"
 - **上传接口失败**：显示错误信息，从列表移除文件
+- **网络中断**：添加 `on-error` 回调，提示"上传失败，请检查网络连接后重试"
+- **上传超时**：配置 `timeout` 参数（默认 30 秒），超时后重试
 
-### 数据库错误
+```javascript
+// 前端完整错误处理
+const onError = (error, file) => {
+  if (error.message?.includes('timeout')) {
+    ElMessage.error('上传超时，请重试')
+  } else if (error.message?.includes('Network Error')) {
+    ElMessage.error('网络错误，请检查网络连接')
+  } else {
+    ElMessage.error(error.message || '上传失败')
+  }
+}
+```
+
+### 后端错误处理
+
+#### 数据库错误
 - **JSON 解析失败**：捕获异常，返回空数组
 - **字段过长**：TEXT 类型最大 65535 字节，足够存储约 2000 个文件路径
+- **并发编辑冲突**：考虑使用乐观锁（`@Version` 注解）
+
+#### 文件系统错误
+- **磁盘空间不足**：捕获 IOException，返回明确错误信息
+- **文件读取失败**：预览时处理文件读取异常，返回 404
+- **文件已损坏**：捕获异常，提示"文件已损坏或不存在"
+
+```java
+// 后端磁盘空间检查
+try {
+    file.transferTo(destFile.getAbsoluteFile());
+} catch (IOException e) {
+    if (e.getMessage().contains("No space left on device")) {
+        log.error("磁盘空间不足，无法上传文件");
+        return Result.error("服务器磁盘空间不足，请联系管理员");
+    }
+    throw e;
+}
+```
 
 ## 安全考虑
 
 ### 文件上传安全
-- 限制文件类型（白名单）
+
+#### 前端验证
+- 限制文件类型（白名单）：JPG、JPEG、PNG、PDF
 - 限制文件大小（10MB）
-- 文件名使用 UUID，避免路径遍历攻击
 - 上传需要认证（Authorization header）
+
+#### 后端验证（关键改进）
+**1. 文件类型白名单验证**
+
+在 `UploadController.upload()` 方法中增加：
+
+```java
+private static final Set<String> ALLOWED_EXTENSIONS =
+    Set.of(".jpg", ".jpeg", ".png", ".pdf");
+
+@PostMapping
+public Result<String> upload(@RequestParam("file") MultipartFile file,
+                              @RequestParam(value = "type", defaultValue = "certificate") String type) {
+    // ... 现有代码
+
+    // 后端文件类型验证
+    String extension = getFileExtension(originalFilename);
+    if (!ALLOWED_EXTENSIONS.contains(extension.toLowerCase())) {
+        return Result.error("不支持的文件类型，仅支持 JPG、PNG、PDF 格式");
+    }
+
+    // ... 继续处理
+}
+```
+
+**2. 路径遍历防护**
+
+在 `UploadController.preview()` 方法中增加路径安全验证：
+
+```java
+@GetMapping("/preview")
+public void preview(@RequestParam String path, HttpServletResponse response) throws IOException {
+    if (path == null || path.isEmpty()) {
+        response.sendError(HttpServletResponse.SC_BAD_REQUEST, "文件路径不能为空");
+        return;
+    }
+
+    // 路径安全验证：防止路径遍历攻击
+    Path resolvedPath = Paths.get(uploadPath).resolve(path).normalize();
+    if (!resolvedPath.startsWith(Paths.get(uploadPath).normalize())) {
+        response.sendError(HttpServletResponse.SC_FORBIDDEN, "非法路径");
+        return;
+    }
+
+    File file = resolvedPath.toFile();
+    // ... 继续处理
+}
+```
+
+**3. 文件大小限制配置**
+
+在 `application.yml` 中配置：
+
+```yaml
+spring:
+  servlet:
+    multipart:
+      max-file-size: 10MB      # 单个文件最大 10MB
+      max-request-size: 100MB  # 总请求最大 100MB
+```
+
+#### 其他安全措施
+- 文件名使用 UUID，避免路径遍历攻击（已实现）
+- 文件存储路径可配置，建议使用专用目录（已实现）
+- 定期清理孤儿文件（建议实施）
 
 ### 访问控制
 - 文件预览需要认证（复用现有认证机制）
-- 供应商数据修改需要权限验证
+- 供应商数据修改需要权限验证（复用现有权限系统）
+- 确认 Spring Security CSRF 配置已启用
 
 ## 测试计划
 
@@ -463,6 +568,38 @@ const handleAdd = () => {
   }
 ]
 ```
+
+### 文件删除策略
+
+**问题：** 当用户在编辑供应商时删除已上传的证件照片，数据库中的记录会移除，但物理文件仍保留在服务器上（孤儿文件）。
+
+**解决方案：**
+
+#### 方案 1：延迟清理（推荐）
+- **策略**：保留被删除的文件，定期（如每周）扫描并清理未被任何记录引用的文件
+- **优点**：
+  - 支持撤销操作，用户误删后可以找回
+  - 不影响编辑性能
+- **实施**：创建定时任务，比对文件目录和数据库记录
+
+```java
+@Scheduled(cron = "0 0 2 ? * SUN")  // 每周日凌晨 2 点执行
+public void cleanOrphanFiles() {
+    Path uploadDir = Paths.get(uploadPath, "certificate");
+    // 递归遍历所有文件
+    // 查询数据库，检查文件是否被引用
+    // 删除未被引用的文件
+}
+```
+
+#### 方案 2：立即删除（激进）
+- **策略**：用户删除照片时，立即删除对应的物理文件
+- **缺点**：
+  - 误删无法恢复
+  - 需要额外的事务管理
+  - 并发编辑可能导致文件丢失
+
+**推荐使用方案 1**，在后续迭代中实施。
 
 ### 向后兼容
 - 当前的字符串数组格式可以直接升级为对象数组
