@@ -28,6 +28,9 @@ public class BackupService {
     @Value("${backup.directory:backups}")
     private String backupDirectory;
 
+    @Value("${backup.mysqldump-path:}")
+    private String configuredMysqldumpPath;
+
     @Value("${spring.datasource.url}")
     private String datasourceUrl;
 
@@ -65,7 +68,7 @@ public class BackupService {
         Path backupFile = backupDir.resolve(filename);
 
         String database = extractDatabaseName(datasourceUrl);
-        String mysqldumpPath = "C:\\\\Program Files\\MySQL\\MySQL Server 8.0\\bin\\mysqldump.exe";
+        String mysqldumpPath = getMysqldumpPath();
 
         try {
             ProcessBuilder pb = new ProcessBuilder(
@@ -172,5 +175,55 @@ public class BackupService {
             }
             return sb.toString();
         }
+    }
+
+    /**
+     * 获取 mysqldump 工具路径
+     * 优先级：
+     * 1. 配置文件或环境变量中指定的路径 (backup.mysqldump-path 或 MYSQLDUMP_PATH)
+     * 2. 系统默认路径（根据操作系统自动检测）
+     */
+    private String getMysqldumpPath() {
+        // 1. 优先使用配置的路径
+        if (configuredMysqldumpPath != null && !configuredMysqldumpPath.trim().isEmpty()) {
+            log.info("Using configured mysqldump path: {}", configuredMysqldumpPath);
+            return configuredMysqldumpPath.trim();
+        }
+
+        // 2. 根据操作系统自动检测
+        String os = System.getProperty("os.name").toLowerCase();
+        String mysqldumpPath;
+
+        if (os.contains("win")) {
+            // Windows: 尝试常见路径
+            String[] possiblePaths = {
+                "C:\\Program Files\\MySQL\\MySQL Server 8.0\\bin\\mysqldump.exe",
+                "C:\\Program Files\\MySQL\\MySQL Server 5.7\\bin\\mysqldump.exe",
+                "C:\\Program Files\\MySQL\\MySQL Server 5.6\\bin\\mysqldump.exe",
+                "mysqldump"  // 最后尝试从 PATH 查找
+            };
+            mysqldumpPath = findExecutable(possiblePaths);
+        } else {
+            // Linux/Mac: 直接使用 mysqldump（从 PATH 查找）
+            mysqldumpPath = "mysqldump";
+        }
+
+        log.info("Auto-detected mysqldump path: {}", mysqldumpPath);
+        return mysqldumpPath;
+    }
+
+    /**
+     * 在可能的路径中查找可执行文件
+     */
+    private String findExecutable(String[] possiblePaths) {
+        for (String path : possiblePaths) {
+            if (path.equals("mysqldump")) {
+                return path;  // 最后返回 mysqldump，让系统从 PATH 查找
+            }
+            if (Files.exists(Paths.get(path))) {
+                return path;
+            }
+        }
+        return "mysqldump";  // 默认返回 mysqldump
     }
 }

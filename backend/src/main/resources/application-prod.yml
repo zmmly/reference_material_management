@@ -33,3 +33,12 @@ logging:
   level:
     com.rmm: INFO
     root: WARN
+
+backup:
+  # 生产环境备份文件存储目录（建议使用绝对路径）
+  # 示例: /var/backups/rmm 或通过环境变量 BACKUP_DIR 设置
+  directory: ${BACKUP_DIR:/var/backups/rmm}
+  # mysqldump 工具路径（可选，不配置则自动检测）
+  # Linux 通常为: /usr/bin/mysqldump
+  # 或通过环境变量 MYSQLDUMP_PATH 设置
+  mysqldump-path: ${MYSQLDUMP_PATH:}

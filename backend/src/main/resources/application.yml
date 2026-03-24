@@ -38,4 +38,10 @@ logging:
     com.rmm: DEBUG
 
 backup:
+  # 备份文件存储目录（支持环境变量 BACKUP_DIR）
   directory: ${BACKUP_DIR:backups}
+  # mysqldump 工具路径（可选，不配置则自动检测）
+  # Windows 示例: C:\Program Files\MySQL\MySQL Server 8.0\bin\mysqldump.exe
+  # Linux 示例: /usr/bin/mysqldump
+  # 支持环境变量 MYSQLDUMP_PATH
+  mysqldump-path: ${MYSQLDUMP_PATH:}
