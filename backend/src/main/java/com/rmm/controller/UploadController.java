@@ -165,7 +165,15 @@ public class UploadController {
         }
 
         try {
-            File file = new File(uploadPath + path);
+            // 新增：路径安全验证，防止路径遍历攻击
+            Path uploadPathObj = Paths.get(uploadPath).normalize();
+            Path resolvedPath = uploadPathObj.resolve(path).normalize();
+
+            if (!resolvedPath.startsWith(uploadPathObj)) {
+                return Result.error("非法路径");
+            }
+
+            File file = resolvedPath.toFile();
             if (file.exists() && file.isFile()) {
                 file.delete();
                 log.info("File deleted: {}", path);
