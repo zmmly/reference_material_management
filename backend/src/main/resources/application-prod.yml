@@ -6,21 +6,26 @@ server:
 
 spring:
   datasource:
-    url: ${DB_URL}
-    username: ${DB_USER}
-    password: ${DB_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/reference_material_management?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+    username: root
+    password: xjYY3687!
 
 jwt:
-  secret: ${JWT_SECRET}
+  secret: ZcVkhpqjyVqkxlRy7CrxRv0/yrywh1pLHYbq27kP9gcvhOASFMdCaYfluZX4GzQv
+  expiration: 86400000
 
 app:
   cors:
-    allowed-origins: ${CORS_ORIGINS}
+    allowed-origins: http://localhost,http://127.0.0.1
   swagger:
     enabled: false
 
 mybatis-plus:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.rmm.entity
   configuration:
+    map-underscore-to-camel-case: true
     # 生产环境关闭 SQL 日志
     log-impl: org.apache.ibatis.logging.nologging.NoLoggingImpl
 

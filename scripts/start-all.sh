@@ -7,7 +7,7 @@
 set -e
 
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-FRONTEND_PORT=3002
+FRONTEND_PORT=80
 BACKEND_PORT=8080
 
 # 颜色定义
