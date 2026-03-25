@@ -29,8 +29,9 @@ request.interceptors.response.use(
     const res = response.data
     if (res.code !== 200) {
       ElMessage.error(res.message || '请求失败')
-      if (res.code === 401) {
+      if (res.code === 401 || res.code === 403) {
         removeToken()
+        ElMessage.warning('登录已过期，请重新登录')
         router.push('/login')
       }
       return Promise.reject(new Error(res.message || 'Error'))
@@ -38,7 +39,15 @@ request.interceptors.response.use(
     return res
   },
   error => {
-    ElMessage.error(error.message || '网络错误')
+    // 处理 HTTP 状态码错误
+    const status = error.response?.status
+    if (status === 401 || status === 403) {
+      removeToken()
+      ElMessage.warning('登录已过期，请重新登录')
+      router.push('/login')
+    } else {
+      ElMessage.error(error.message || '网络错误')
+    }
     return Promise.reject(error)
   }
 )
