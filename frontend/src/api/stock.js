@@ -42,3 +42,26 @@ export function approveStockOut(id, approved, rejectReason) {
 export function cancelStockOut(id) {
   return request.put(`/stock-out/${id}/cancel`)
 }
+
+// 下载入库导入模板
+export function downloadStockInTemplate() {
+  return request.get('/stock-in/template', {
+    responseType: 'blob'
+  })
+}
+
+// 预览入库导入数据
+export function previewStockInImport(file) {
+  const formData = new FormData()
+  formData.append('file', file)
+  return request.post('/stock-in/import/preview', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  })
+}
+
+// 确认入库导入
+export function confirmStockInImport(items) {
+  return request.post('/stock-in/import/confirm', { items })
+}
