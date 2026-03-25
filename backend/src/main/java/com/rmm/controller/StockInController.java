@@ -190,6 +190,13 @@ public class StockInController {
                 mainSheet.setColumnWidth(i, 20 * 256);
             }
 
+            // 创建文本格式（用于有效期列，防止 Excel 自动转换日期）
+            org.apache.poi.ss.usermodel.CellStyle textStyle = workbook.createCellStyle();
+            org.apache.poi.ss.usermodel.DataFormat format = workbook.createDataFormat();
+            textStyle.setDataFormat(format.getFormat("@"));  // "@" 表示文本格式
+            // 设置整列为文本格式
+            mainSheet.setDefaultColumnStyle(6, textStyle);
+
             // ===== 写入示例数据行 =====
             org.apache.poi.ss.usermodel.Row sampleRow = mainSheet.createRow(1);
             sampleRow.createCell(0).setCellValue("RM001");  // 标准物质编码
@@ -198,7 +205,9 @@ public class StockInController {
             sampleRow.createCell(3).setCellValue(suppliers.isEmpty() ? "" : suppliers.get(0).getName());  // 供应商
             sampleRow.createCell(4).setCellValue("BATCH20260325");  // 批号
             sampleRow.createCell(5).setCellValue(5);  // 入库数量
-            sampleRow.createCell(6).setCellValue("2026-12-31");  // 有效期
+            org.apache.poi.ss.usermodel.Cell expiryCell = sampleRow.createCell(6);
+            expiryCell.setCellStyle(textStyle);  // 应用文本格式
+            expiryCell.setCellValue("2026-12-31");  // 有效期
 
             String firstLocation = locations.isEmpty() ? "" : locations.get(0).getName();
             String firstReason = reasons.isEmpty() ? "" : reasons.get(0).getName();

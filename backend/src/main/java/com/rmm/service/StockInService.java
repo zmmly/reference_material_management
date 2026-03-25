@@ -361,12 +361,13 @@ public class StockInService {
             errors.add("入库数量必须大于0");
         }
 
-        // 校验有效期格式
+        // 校验有效期格式（支持 YYYY-MM-DD 和 YYYY/MM/DD）
         if (row.getExpiryDate() != null && !row.getExpiryDate().isBlank()) {
             try {
-                item.setExpiryDate(LocalDate.parse(row.getExpiryDate()));
+                String dateStr = row.getExpiryDate().replace("/", "-");
+                item.setExpiryDate(LocalDate.parse(dateStr));
             } catch (Exception e) {
-                errors.add("有效期格式错误，应为 YYYY-MM-DD");
+                errors.add("有效期格式错误，应为 YYYY-MM-DD 或 YYYY/MM/DD");
             }
         }
 
