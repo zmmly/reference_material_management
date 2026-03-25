@@ -5,11 +5,11 @@ import com.alibaba.excel.annotation.write.style.ColumnWidth;
 import lombok.Data;
 
 /**
- * 入库导入 Excel 行数据 DTO
+ * 入库导入模板 DTO（包含展示字段）
  */
 @Data
 @ColumnWidth(20)
-public class StockInImportDTO {
+public class StockInTemplateDTO {
 
     @ExcelProperty("标准物质编码*")
     private String materialCode;
