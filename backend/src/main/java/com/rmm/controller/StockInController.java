@@ -281,6 +281,20 @@ public class StockInController {
             reasonDv.createErrorBox("输入错误", "请从下拉列表中选择有效的入库原因");
             mainSheet.addValidationData(reasonDv);
 
+            // 标准物质编码下拉框（A列，第2-1001行）- 从参考数据表D列获取
+            if (!materials.isEmpty()) {
+                int lastMaterialCodeRow = materialStartRow + materials.size() - 1;
+                String materialCodeRange = String.format("'参考数据'!$D$%d:$D$%d", materialStartRow, lastMaterialCodeRow);
+                DataValidation materialDv = dvHelper.createValidation(
+                    dvHelper.createFormulaListConstraint(materialCodeRange),
+                    new CellRangeAddressList(1, 1000, 0, 0)  // A列
+                );
+                materialDv.setShowErrorBox(true);
+                materialDv.setErrorStyle(DataValidation.ErrorStyle.STOP);
+                materialDv.createErrorBox("输入错误", "请从下拉列表中选择有效的标准物质编码");
+                mainSheet.addValidationData(materialDv);
+            }
+
             // ===== 冻结首行 =====
             mainSheet.createFreezePane(0, 1);
 
