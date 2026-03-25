@@ -4,7 +4,8 @@
       <el-tabs v-model="activeTab">
         <el-tab-pane label="我的申请" name="my">
           <el-table :data="myApplications" v-loading="loading" border>
-            <el-table-column prop="materialName" label="标准物质" min-width="160" show-overflow-tooltip />
+            <el-table-column prop="materialCode" label="编号" min-width="130" show-overflow-tooltip />
+            <el-table-column prop="materialName" label="名称" min-width="160" show-overflow-tooltip />
             <el-table-column prop="casNumber" label="CAS号" min-width="110" show-overflow-tooltip />
             <el-table-column prop="supplierName" label="供应商" min-width="130" show-overflow-tooltip />
             <el-table-column prop="internalCode" label="内部编码" min-width="110" show-overflow-tooltip />
@@ -31,7 +32,8 @@
         <el-tab-pane label="待审批" name="pending" v-if="canApprove">
           <el-table :data="pendingList" v-loading="loading" border>
             <el-table-column prop="applicantName" label="申请人" min-width="100" show-overflow-tooltip />
-            <el-table-column prop="materialName" label="标准物质" min-width="160" show-overflow-tooltip />
+            <el-table-column prop="materialCode" label="编号" min-width="130" show-overflow-tooltip />
+            <el-table-column prop="materialName" label="名称" min-width="160" show-overflow-tooltip />
             <el-table-column prop="casNumber" label="CAS号" min-width="110" show-overflow-tooltip />
             <el-table-column prop="supplierName" label="供应商" min-width="130" show-overflow-tooltip />
             <el-table-column prop="internalCode" label="内部编码" min-width="110" show-overflow-tooltip />
