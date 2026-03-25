@@ -64,7 +64,7 @@
               <el-tooltip v-if="row.hasPendingOut" content="已有待审批的出库申请" placement="top">
                 <el-button type="info" size="small" disabled>出库</el-button>
               </el-tooltip>
-              <el-button v-else type="primary" size="small" @click="handleOut(row)" :disabled="row.status !== 1">出库</el-button>
+              <el-button v-else type="primary" size="small" @click="handleOut(row)" :disabled="row.status === 0">出库</el-button>
             </div>
           </template>
         </el-table-column>
@@ -148,8 +148,8 @@ const handleSelectionChange = (rows) => {
   selectedRows.value = rows
 }
 
-// 只能选择状态正常且没有待审批出库申请的库存
-const canSelect = (row) => row.status === 1 && !row.hasPendingOut
+// 只能选择未出库且没有待审批出库申请的库存
+const canSelect = (row) => row.status !== 0 && !row.hasPendingOut
 
 const handleOut = (row) => router.push({ path: '/stock-out/apply', query: { stockId: row.id } })
 

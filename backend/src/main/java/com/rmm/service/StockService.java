@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -28,9 +29,11 @@ public class StockService {
     public PageResult<Stock> list(Integer current, Integer size, String keyword, Long locationId, Integer status) {
         Page<Stock> page = new Page<>(current, size);
 
+        // 注意：不在此处按 status 筛选，因为状态需要动态计算
+        // 只排除已出库的记录（status=0）在非明确查询已出库时
         LambdaQueryWrapper<Stock> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(locationId != null, Stock::getLocationId, locationId)
-               .eq(status != null, Stock::getStatus, status)
+               .ne(status == null || status > 0, Stock::getStatus, 0)  // 默认排除已出库
                .orderByDesc(Stock::getUpdateTime);
 
         Page<Stock> result = stockMapper.selectPage(page, wrapper);
@@ -45,17 +48,28 @@ public class StockService {
 
         result.getRecords().forEach(stock -> {
             fillRelations(stock);
+            // 动态计算并更新状态（基于有效期）
+            updateStatusByExpiryDate(stock);
             stock.setHasPendingOut(pendingStockIds.contains(stock.getId()));
             // 已出库：状态为0表示已出库
             stock.setHasApprovedOut(stock.getStatus() != null && stock.getStatus() == 0);
         });
 
+        // 关键字筛选
         if (StringUtils.hasText(keyword)) {
             String kw = keyword.toLowerCase();
             List<Stock> filtered = result.getRecords().stream()
                 .filter(s -> (s.getMaterialName() != null && s.getMaterialName().toLowerCase().contains(kw))
                           || (s.getInternalCode() != null && s.getInternalCode().toLowerCase().contains(kw))
                           || (s.getBatchNo() != null && s.getBatchNo().toLowerCase().contains(kw)))
+                .toList();
+            result.setRecords(filtered);
+        }
+
+        // 按动态计算后的状态筛选
+        if (status != null && status > 0) {
+            List<Stock> filtered = result.getRecords().stream()
+                .filter(s -> status.equals(s.getStatus()))
                 .toList();
             result.setRecords(filtered);
         }
@@ -67,6 +81,35 @@ public class StockService {
         pageResult.setCurrent(result.getCurrent());
         pageResult.setPages(result.getPages());
         return pageResult;
+    }
+
+    /**
+     * 根据有效期动态计算库存状态
+     * 状态定义：1=正常, 2=即将过期(30天内), 3=已过期
+     * 注意：已出库状态(status=0)保持不变
+     */
+    private void updateStatusByExpiryDate(Stock stock) {
+        // 已出库状态保持不变
+        if (stock.getStatus() != null && stock.getStatus() == 0) {
+            return;
+        }
+
+        LocalDate expiryDate = stock.getExpiryDate();
+        if (expiryDate == null) {
+            stock.setStatus(1);  // 无有效期默认正常
+            return;
+        }
+
+        LocalDate today = LocalDate.now();
+        LocalDate warningDate = today.plusDays(30);  // 30天后为即将过期阈值
+
+        if (expiryDate.isBefore(today)) {
+            stock.setStatus(3);  // 已过期
+        } else if (!expiryDate.isAfter(warningDate)) {
+            stock.setStatus(2);  // 即将过期（有效期在今天和30天后之间，含30天后）
+        } else {
+            stock.setStatus(1);  // 正常
+        }
     }
 
     /**
@@ -87,10 +130,14 @@ public class StockService {
     }
 
     public List<Stock> listAll() {
+        // 获取所有未出库的库存
         List<Stock> list = stockMapper.selectList(
-            new LambdaQueryWrapper<Stock>().eq(Stock::getStatus, 1)
+            new LambdaQueryWrapper<Stock>().ne(Stock::getStatus, 0)
         );
-        list.forEach(this::fillRelations);
+        list.forEach(stock -> {
+            fillRelations(stock);
+            updateStatusByExpiryDate(stock);
+        });
         return list;
     }
 
@@ -98,6 +145,7 @@ public class StockService {
         Stock stock = stockMapper.selectById(id);
         if (stock != null) {
             fillRelations(stock);
+            updateStatusByExpiryDate(stock);
         }
         return stock;
     }

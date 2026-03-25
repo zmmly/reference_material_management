@@ -52,8 +52,9 @@ public class StockOutService {
         if (stock == null) {
             throw new BusinessException("库存不存在");
         }
-        if (stock.getStatus() != 1) {
-            throw new BusinessException("该库存已出库或不可用");
+        // 允许正常(1)、即将过期(2)、已过期(3)的库存出库，禁止已出库(0)
+        if (stock.getStatus() == 0) {
+            throw new BusinessException("该库存已出库");
         }
 
         // 检查是否已有待审批的出库申请
@@ -91,8 +92,9 @@ public class StockOutService {
             if (stock == null) {
                 throw new BusinessException("库存不存在: " + stockId);
             }
-            if (stock.getStatus() != 1) {
-                throw new BusinessException("库存已出库或不可用: " + stock.getInternalCode());
+            // 允许正常(1)、即将过期(2)、已过期(3)的库存出库，禁止已出库(0)
+            if (stock.getStatus() == 0) {
+                throw new BusinessException("库存已出库: " + stock.getInternalCode());
             }
 
             // 检查是否已有待审批的出库申请
@@ -135,8 +137,9 @@ public class StockOutService {
             if (stock == null) {
                 throw new BusinessException("库存不存在");
             }
-            if (stock.getStatus() != 1) {
-                throw new BusinessException("该库存已出库或不可用");
+            // 允许正常(1)、即将过期(2)、已过期(3)的库存出库，禁止已出库(0)
+            if (stock.getStatus() == 0) {
+                throw new BusinessException("该库存已出库");
             }
 
             // 标记库存为已出库
