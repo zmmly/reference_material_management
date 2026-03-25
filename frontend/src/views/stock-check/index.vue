@@ -79,7 +79,8 @@
         </div>
       </template>
       <el-table :data="checkGroups" v-loading="groupsLoading" border>
-        <el-table-column prop="materialName" label="标准物质" min-width="120" />
+        <el-table-column prop="materialCode" label="编号" min-width="130" show-overflow-tooltip />
+        <el-table-column prop="materialName" label="名称" min-width="120" />
         <el-table-column prop="batchNo" label="批号" width="100" />
         <el-table-column prop="locationName" label="存放位置" width="100" />
         <el-table-column label="内部编号" min-width="150">

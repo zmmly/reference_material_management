@@ -31,6 +31,9 @@ public class StockCheckGroup {
     private LocalDateTime updateTime;
 
     @TableField(exist = false)
+    private String materialCode;
+
+    @TableField(exist = false)
     private String materialName;
 
     @TableField(exist = false)

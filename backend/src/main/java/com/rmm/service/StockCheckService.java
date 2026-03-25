@@ -341,6 +341,7 @@ public class StockCheckService {
         if (group.getMaterialId() != null) {
             ReferenceMaterial material = materialMapper.selectById(group.getMaterialId());
             if (material != null) {
+                group.setMaterialCode(material.getCode());
                 group.setMaterialName(material.getName());
             }
         }
