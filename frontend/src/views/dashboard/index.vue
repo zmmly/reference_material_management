@@ -22,16 +22,14 @@
       <template #header>
         <span class="card-title">⚡ 快捷入口</span>
       </template>
-      <el-row :gutter="20">
-        <el-col :span="4" v-for="(entry, index) in quickEntries" :key="index">
-          <div class="quick-entry" @click="router.push(entry.route)">
-            <div class="quick-entry-icon" :style="{ '--entry-gradient': entry.gradient }">
-              <el-icon :size="24"><component :is="entry.icon" /></el-icon>
-            </div>
-            <span class="quick-entry-name">{{ entry.name }}</span>
+      <div class="quick-entry-grid">
+        <div class="quick-entry" v-for="(entry, index) in quickEntries" :key="index" @click="router.push(entry.route)">
+          <div class="quick-entry-icon" :style="{ '--entry-gradient': entry.gradient }">
+            <el-icon :size="24"><component :is="entry.icon" /></el-icon>
           </div>
-        </el-col>
-      </el-row>
+          <span class="quick-entry-name">{{ entry.name }}</span>
+        </div>
+      </div>
     </el-card>
 
     <!-- 待办事项和预警 -->
@@ -165,12 +163,13 @@ const statCards = ref([
 ])
 
 const quickEntries = [
-  { name: '入库登记', icon: 'Download', gradient: 'linear-gradient(135deg, #8b5cf6, #3b82f6)', route: '/stock-in' },
-  { name: '出库申请', icon: 'Upload', gradient: 'linear-gradient(135deg, #06b6d4, #3b82f6)', route: '/stock-out' },
-  { name: '库存查询', icon: 'Search', gradient: 'linear-gradient(135deg, #f59e0b, #ec4899)', route: '/stock' },
-  { name: '采购申请', icon: 'ShoppingCart', gradient: 'linear-gradient(135deg, #10b981, #06b6d4)', route: '/purchase' },
-  { name: '盘点任务', icon: 'DocumentChecked', gradient: 'linear-gradient(135deg, #ef4444, #f59e0b)', route: '/stock-check' },
-  { name: '预警中心', icon: 'Bell', gradient: 'linear-gradient(135deg, #ec4899, #8b5cf6)', route: '/alert' }
+  { name: '采购申请', icon: 'ShoppingCart', gradient: 'linear-gradient(135deg, #34d399 0%, #10b981 50%, #059669 100%)', route: '/purchase' },
+  { name: '采购验收', icon: 'CircleCheck', gradient: 'linear-gradient(135deg, #4ade80 0%, #22c55e 50%, #16a34a 100%)', route: '/purchase-acceptance' },
+  { name: '入库登记', icon: 'Download', gradient: 'linear-gradient(135deg, #a78bfa 0%, #8b5cf6 50%, #7c3aed 100%)', route: '/stock-in' },
+  { name: '出库申请', icon: 'Upload', gradient: 'linear-gradient(135deg, #60a5fa 0%, #3b82f6 50%, #2563eb 100%)', route: '/stock-out' },
+  { name: '库存查询', icon: 'Search', gradient: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%)', route: '/stock' },
+  { name: '盘点任务', icon: 'DocumentChecked', gradient: 'linear-gradient(135deg, #fb923c 0%, #f97316 50%, #ea580c 100%)', route: '/stock-check' },
+  { name: '预警中心', icon: 'Bell', gradient: 'linear-gradient(135deg, #f87171 0%, #ef4444 50%, #dc2626 100%)', route: '/alert' }
 ]
 
 const fetchData = async () => {
@@ -673,6 +672,20 @@ onUnmounted(() => {
   }
 }
 
+.quick-entry-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 16px;
+
+  @media (max-width: 1200px) {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  @media (max-width: 768px) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
 .quick-entry {
   display: flex;
   flex-direction: column;
@@ -690,6 +703,7 @@ onUnmounted(() => {
 
     .quick-entry-icon {
       transform: scale(1.1);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
     }
   }
 
@@ -706,10 +720,35 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   color: #fff;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--entry-gradient);
   margin-bottom: var(--spacing-md);
   transition: all var(--transition-slow);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.25);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+  position: relative;
+  overflow: hidden;
+
+  // 添加光泽效果
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 50%;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0) 100%);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  }
+
+  // 添加底部阴影深度
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 30%;
+    background: linear-gradient(0deg, rgba(0, 0, 0, 0.1) 0%, rgba(0, 0, 0, 0) 100%);
+  }
 }
 
 .quick-entry-name {
