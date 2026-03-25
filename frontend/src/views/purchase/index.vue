@@ -30,8 +30,8 @@
           <el-table :data="myApplications" v-loading="loading" border>
             <el-table-column prop="purchaseNo" label="采购单号" min-width="140" />
             <el-table-column prop="applicantName" label="申请人" min-width="100" show-overflow-tooltip />
-            <el-table-column prop="materialCode" label="标准物质编码" min-width="130" show-overflow-tooltip />
-            <el-table-column prop="materialName" label="标准物质名称" min-width="160" show-overflow-tooltip />
+            <el-table-column prop="materialCode" label="编号" min-width="130" show-overflow-tooltip />
+            <el-table-column prop="materialName" label="名称" min-width="160" show-overflow-tooltip />
             <el-table-column prop="specification" label="规格" min-width="110" show-overflow-tooltip />
             <el-table-column prop="batchNumber" label="批号" min-width="110" />
             <el-table-column prop="quantity" label="数量" min-width="80" />
@@ -88,8 +88,8 @@
           </el-form>
           <el-table :data="pendingList" v-loading="loading" border>
             <el-table-column prop="applicantName" label="申请人" min-width="100" show-overflow-tooltip />
-            <el-table-column prop="materialCode" label="标准物质编码" min-width="130" show-overflow-tooltip />
-            <el-table-column prop="materialName" label="标准物质名称" min-width="160" show-overflow-tooltip />
+            <el-table-column prop="materialCode" label="编号" min-width="130" show-overflow-tooltip />
+            <el-table-column prop="materialName" label="名称" min-width="160" show-overflow-tooltip />
             <el-table-column prop="specification" label="规格" min-width="110" show-overflow-tooltip />
             <el-table-column prop="batchNumber" label="批号" min-width="110" />
             <el-table-column prop="quantity" label="数量" min-width="80" />
