@@ -249,15 +249,28 @@
         >
           重新上传
         </el-button>
-        <el-button
+        <el-tooltip
           v-if="importStep === 2"
-          type="primary"
-          :disabled="importPreview.invalidCount > 0"
-          :loading="importLoading"
-          @click="handleConfirmImport"
+          :disabled="importPreview.invalidCount === 0"
+          placement="top"
         >
-          确认导入
-        </el-button>
+          <template #content>
+            <div style="max-width: 300px;">
+              存在 {{ importPreview.invalidCount }} 条无效数据，请修正后再导入。<br/>
+              无效数据行：{{ importPreview.items.filter(i => !i.valid).map(i => '第' + i.rowNum + '行').join('、') }}
+            </div>
+          </template>
+          <span>
+            <el-button
+              type="primary"
+              :disabled="importPreview.invalidCount > 0"
+              :loading="importLoading"
+              @click="handleConfirmImport"
+            >
+              确认导入
+            </el-button>
+          </span>
+        </el-tooltip>
         <el-button
           v-if="importStep === 3"
           type="primary"
