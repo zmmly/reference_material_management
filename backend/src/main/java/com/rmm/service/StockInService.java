@@ -12,8 +12,19 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import com.alibaba.excel.EasyExcel;
+import com.rmm.dto.StockInImportConfirmDTO;
+import com.rmm.dto.StockInImportDTO;
+import com.rmm.dto.StockInImportPreviewVO;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Service
@@ -26,6 +37,15 @@ public class StockInService {
     private final LocationMapper locationMapper;
     private final UserMapper userMapper;
     private final SupplierMapper supplierMapper;
+
+    /** 入库原因文字到编码的映射 */
+    private static final Map<String, String> REASON_TEXT_TO_CODE = Map.of(
+        "新购入", "PURCHASE",
+        "盘盈", "SURPLUS",
+        "归还", "RETURN",
+        "调拨入", "TRANSFER_IN",
+        "其他", "OTHER"
+    );
 
     public PageResult<StockIn> list(Integer current, Integer size, String keyword, String reason,
                                       String startDate, String endDate, Long operatorId,
@@ -197,5 +217,240 @@ public class StockInService {
                 stockIn.setSupplierName(supplier.getName());
             }
         }
+    }
+
+    /**
+     * 预览导入数据
+     */
+    public StockInImportPreviewVO previewImport(MultipartFile file) throws IOException {
+        // 解析 Excel
+        List<StockInImportDTO> rows = EasyExcel.read(file.getInputStream())
+                .head(StockInImportDTO.class)
+                .sheet()
+                .doReadSync();
+
+        // 预加载标准物质编码映射
+        Map<String, ReferenceMaterial> materialCodeMap = loadMaterialCodeMap();
+        // 预加载位置名称映射
+        Map<String, Location> locationNameMap = loadLocationNameMap();
+
+        List<StockInImportPreviewVO.PreviewItem> items = new ArrayList<>();
+        int validCount = 0;
+        int invalidCount = 0;
+
+        for (int i = 0; i < rows.size(); i++) {
+            StockInImportDTO row = rows.get(i);
+            // 跳过示例数据行或空行
+            if (i == 0 && isSampleDataRow(row)) {
+                continue;
+            }
+            // 跳过完全空的行
+            if (isEmptyRow(row)) {
+                continue;
+            }
+
+            StockInImportPreviewVO.PreviewItem item = validateRow(row, i + 2, materialCodeMap, locationNameMap);
+            items.add(item);
+
+            if (item.getValid()) {
+                validCount++;
+            } else {
+                invalidCount++;
+            }
+        }
+
+        StockInImportPreviewVO result = new StockInImportPreviewVO();
+        result.setItems(items);
+        result.setTotalCount(items.size());
+        result.setValidCount(validCount);
+        result.setInvalidCount(invalidCount);
+        return result;
+    }
+
+    /**
+     * 判断是否为示例数据行
+     */
+    private boolean isSampleDataRow(StockInImportDTO row) {
+        return row.getMaterialCode() == null && row.getBatchNo() == null;
+    }
+
+    /**
+     * 判断是否为空行
+     */
+    private boolean isEmptyRow(StockInImportDTO row) {
+        return (row.getMaterialCode() == null || row.getMaterialCode().isBlank())
+            && (row.getBatchNo() == null || row.getBatchNo().isBlank())
+            && row.getQuantity() == null
+            && (row.getLocationName() == null || row.getLocationName().isBlank());
+    }
+
+    /**
+     * 加载标准物质编码映射
+     */
+    private Map<String, ReferenceMaterial> loadMaterialCodeMap() {
+        Map<String, ReferenceMaterial> map = new HashMap<>();
+        List<ReferenceMaterial> materials = materialMapper.selectList(null);
+        for (ReferenceMaterial m : materials) {
+            if (m.getCode() != null) {
+                map.put(m.getCode(), m);
+            }
+        }
+        return map;
+    }
+
+    /**
+     * 加载位置名称映射
+     */
+    private Map<String, Location> loadLocationNameMap() {
+        Map<String, Location> map = new HashMap<>();
+        List<Location> locations = locationMapper.selectList(null);
+        for (Location l : locations) {
+            if (l.getName() != null) {
+                map.put(l.getName(), l);
+            }
+        }
+        return map;
+    }
+
+    /**
+     * 校验单行数据
+     */
+    private StockInImportPreviewVO.PreviewItem validateRow(
+            StockInImportDTO row, int rowNum,
+            Map<String, ReferenceMaterial> materialCodeMap,
+            Map<String, Location> locationNameMap) {
+
+        StockInImportPreviewVO.PreviewItem item = new StockInImportPreviewVO.PreviewItem();
+        item.setRowNum(rowNum);
+        item.setMaterialCode(row.getMaterialCode());
+        item.setBatchNo(row.getBatchNo());
+        item.setQuantity(row.getQuantity());
+        item.setLocationName(row.getLocationName());
+        item.setReasonText(row.getReason());
+        item.setRemarks(row.getRemarks());
+
+        List<String> errors = new ArrayList<>();
+
+        // 校验标准物质编码
+        if (row.getMaterialCode() == null || row.getMaterialCode().isBlank()) {
+            errors.add("标准物质编码不能为空");
+        } else {
+            ReferenceMaterial material = materialCodeMap.get(row.getMaterialCode());
+            if (material == null) {
+                errors.add("标准物质编码不存在");
+            } else {
+                item.setMaterialId(material.getId());
+                item.setMaterialName(material.getName());
+            }
+        }
+
+        // 校验批号
+        if (row.getBatchNo() == null || row.getBatchNo().isBlank()) {
+            errors.add("批号不能为空");
+        }
+
+        // 校验入库数量
+        if (row.getQuantity() == null) {
+            errors.add("入库数量不能为空");
+        } else if (row.getQuantity() < 1) {
+            errors.add("入库数量必须大于0");
+        }
+
+        // 校验有效期格式
+        if (row.getExpiryDate() != null && !row.getExpiryDate().isBlank()) {
+            try {
+                item.setExpiryDate(LocalDate.parse(row.getExpiryDate()));
+            } catch (Exception e) {
+                errors.add("有效期格式错误，应为 YYYY-MM-DD");
+            }
+        }
+
+        // 校验存放位置
+        if (row.getLocationName() == null || row.getLocationName().isBlank()) {
+            errors.add("存放位置不能为空");
+        } else {
+            Location location = locationNameMap.get(row.getLocationName());
+            if (location == null) {
+                errors.add("存放位置不存在");
+            } else {
+                item.setLocationId(location.getId());
+            }
+        }
+
+        // 校验入库原因
+        if (row.getReason() == null || row.getReason().isBlank()) {
+            errors.add("入库原因不能为空");
+        } else {
+            String code = REASON_TEXT_TO_CODE.get(row.getReason());
+            if (code == null) {
+                errors.add("入库原因必须是：新购入/盘盈/归还/调拨入/其他");
+            } else {
+                item.setReasonCode(code);
+            }
+        }
+
+        item.setValid(errors.isEmpty());
+        item.setErrors(errors);
+        return item;
+    }
+
+    /**
+     * 确认批量导入
+     */
+    @Transactional
+    public int confirmImport(StockInImportConfirmDTO dto, Long operatorId) {
+        int successCount = 0;
+        for (StockInImportConfirmDTO.ImportItem item : dto.getItems()) {
+            // 构建 StockIn 对象
+            StockIn stockIn = new StockIn();
+            stockIn.setMaterialId(item.getMaterialId());
+            stockIn.setBatchNo(item.getBatchNo());
+            stockIn.setQuantity(BigDecimal.valueOf(item.getQuantity()));
+            stockIn.setExpiryDate(item.getExpiryDate());
+            stockIn.setLocationId(item.getLocationId());
+            stockIn.setReason(item.getReason());
+            stockIn.setRemarks(item.getRemarks());
+
+            // 调用内部方法创建入库记录
+            createStockInRecord(stockIn, operatorId);
+            successCount++;
+        }
+        return successCount;
+    }
+
+    /**
+     * 创建入库记录（复用 create 方法核心逻辑）
+     */
+    private void createStockInRecord(StockIn stockIn, Long operatorId) {
+        int quantity = stockIn.getQuantity() != null ? stockIn.getQuantity().intValue() : 1;
+
+        // 获取该批号的最大序列号
+        int maxSequence = getMaxSequence(stockIn.getBatchNo());
+
+        // 生成内部编号范围
+        String firstCode = generateInternalCode(stockIn.getBatchNo(), maxSequence + 1);
+        String lastCode = generateInternalCode(stockIn.getBatchNo(), maxSequence + quantity);
+        String internalCodeRange = quantity == 1 ? firstCode : firstCode + " ~ " + lastCode;
+
+        stockIn.setOperatorId(operatorId);
+        stockIn.setInternalCode(internalCodeRange);
+
+        // 为每个物品创建独立的库存记录
+        for (int i = 1; i <= quantity; i++) {
+            int sequence = maxSequence + i;
+            String internalCode = generateInternalCode(stockIn.getBatchNo(), sequence);
+
+            Stock stock = new Stock();
+            stock.setMaterialId(stockIn.getMaterialId());
+            stock.setBatchNo(stockIn.getBatchNo());
+            stock.setInternalCode(internalCode);
+            stock.setExpiryDate(stockIn.getExpiryDate());
+            stock.setQuantity(BigDecimal.ONE);
+            stock.setLocationId(stockIn.getLocationId());
+            stock.setStatus(1);
+            stockMapper.insert(stock);
+        }
+
+        stockInMapper.insert(stockIn);
     }
 }
