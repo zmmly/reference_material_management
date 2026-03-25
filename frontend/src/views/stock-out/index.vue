@@ -8,7 +8,7 @@
             <el-table-column prop="materialName" label="名称" min-width="160" show-overflow-tooltip />
             <el-table-column prop="casNumber" label="CAS号" min-width="110" show-overflow-tooltip />
             <el-table-column prop="supplierName" label="供应商" min-width="130" show-overflow-tooltip />
-            <el-table-column prop="internalCode" label="内部编码" min-width="110" show-overflow-tooltip />
+            <el-table-column prop="internalCode" label="内部编号" min-width="110" show-overflow-tooltip />
             <el-table-column prop="quantity" label="申请数量" min-width="90" />
             <el-table-column prop="reason" label="出库原因" min-width="90">
               <template #default="{ row }">{{ reasonText(row.reason) }}</template>
@@ -36,7 +36,7 @@
             <el-table-column prop="materialName" label="名称" min-width="160" show-overflow-tooltip />
             <el-table-column prop="casNumber" label="CAS号" min-width="110" show-overflow-tooltip />
             <el-table-column prop="supplierName" label="供应商" min-width="130" show-overflow-tooltip />
-            <el-table-column prop="internalCode" label="内部编码" min-width="110" show-overflow-tooltip />
+            <el-table-column prop="internalCode" label="内部编号" min-width="110" show-overflow-tooltip />
             <el-table-column prop="quantity" label="申请数量" min-width="90" />
             <el-table-column prop="reason" label="出库原因" min-width="90">
               <template #default="{ row }">{{ reasonText(row.reason) }}</template>

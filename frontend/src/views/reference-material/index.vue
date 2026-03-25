@@ -6,7 +6,7 @@
           <el-input v-model="queryParams.name" placeholder="请输入" clearable />
         </el-form-item>
         <el-form-item label="分类">
-          <el-select v-model="queryParams.categoryId" placeholder="全部" clearable>
+          <el-select v-model="queryParams.categoryId" placeholder="全部" clearable style="width: 200px">
             <el-option v-for="item in categoryList" :key="item.id" :label="item.label" :value="item.id" />
           </el-select>
         </el-form-item>

@@ -44,7 +44,7 @@
           </template>
         </el-table-column>
         <el-table-column prop="materialName" label="标准物质" />
-        <el-table-column label="内部编码" min-width="180">
+        <el-table-column label="内部编号" min-width="180">
           <template #default="{ row }">
             {{ row.internalCodes || row.internalCode || '-' }}
           </template>

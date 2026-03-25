@@ -68,13 +68,18 @@ public class BackupService {
         Path backupFile = backupDir.resolve(filename);
 
         String database = extractDatabaseName(datasourceUrl);
+        String host = extractHost(datasourceUrl);
+        String port = extractPort(datasourceUrl);
         String mysqldumpPath = getMysqldumpPath();
 
         try {
+            // 使用 --protocol=tcp 强制 TCP 连接，避免 socket 连接问题
+            // 这对于 Docker 中的 MySQL 或远程 MySQL 特别重要
             ProcessBuilder pb = new ProcessBuilder(
                 mysqldumpPath,
-                "-h", "localhost",
-                "-P", "3306",
+                "--protocol=tcp",
+                "-h", host,
+                "-P", port,
                 "-u", datasourceUsername,
                 "-p" + datasourcePassword,
                 database,
@@ -164,6 +169,30 @@ public class BackupService {
             end = url.length();
         }
         return url.substring(start, end);
+    }
+
+    /**
+     * 从 JDBC URL 提取主机地址
+     */
+    private String extractHost(String url) {
+        // JDBC URL format: jdbc:mysql://host:port/database?params
+        int hostStart = url.indexOf("://") + 3;
+        int hostEnd = url.indexOf(':', hostStart);
+        if (hostEnd == -1) {
+            hostEnd = url.indexOf('/', hostStart);
+        }
+        return url.substring(hostStart, hostEnd);
+    }
+
+    /**
+     * 从 JDBC URL 提取端口
+     */
+    private String extractPort(String url) {
+        // JDBC URL format: jdbc:mysql://host:port/database?params
+        int hostStart = url.indexOf("://") + 3;
+        int portStart = url.indexOf(':', hostStart) + 1;
+        int portEnd = url.indexOf('/', portStart);
+        return url.substring(portStart, portEnd);
     }
 
     private String readStream(InputStream inputStream) throws IOException {

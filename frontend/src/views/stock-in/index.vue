@@ -46,7 +46,7 @@
       <el-table :data="tableData" v-loading="loading" border>
         <el-table-column prop="materialName" label="标准物质" min-width="160" show-overflow-tooltip />
         <el-table-column prop="batchNo" label="批号" min-width="110" />
-        <el-table-column prop="internalCode" label="内部编码" min-width="180" show-overflow-tooltip>
+        <el-table-column prop="internalCode" label="内部编号" min-width="180" show-overflow-tooltip>
           <template #default="{ row }">
             <el-tag v-if="row.internalCode">{{ row.internalCode }}</el-tag>
           </template>
@@ -102,7 +102,7 @@
         </el-row>
         <el-alert
           v-if="form.batchNo"
-          :title="`内部编码将自动生成: ${form.batchNo.toUpperCase()}-NNN`"
+          :title="`内部编号将自动生成: ${form.batchNo.toUpperCase()}-NNN`"
           type="info"
           :closable="false"
           style="margin-bottom: 16px"

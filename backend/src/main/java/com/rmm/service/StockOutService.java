@@ -182,6 +182,7 @@ public class StockOutService {
         if (stockOut.getMaterialId() != null) {
             ReferenceMaterial material = materialMapper.selectById(stockOut.getMaterialId());
             if (material != null) {
+                stockOut.setMaterialCode(material.getCode());
                 stockOut.setMaterialName(material.getName());
                 stockOut.setCasNumber(material.getCasNumber());
 

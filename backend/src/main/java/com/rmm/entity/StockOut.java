@@ -26,6 +26,8 @@ public class StockOut {
     private String remarks;
 
     @TableField(exist = false)
+    private String materialCode;
+    @TableField(exist = false)
     private String materialName;
     @TableField(exist = false)
     private String casNumber;

@@ -82,7 +82,7 @@
         <el-table-column prop="materialName" label="标准物质" min-width="120" />
         <el-table-column prop="batchNo" label="批号" width="100" />
         <el-table-column prop="locationName" label="存放位置" width="100" />
-        <el-table-column label="内部编码" min-width="150">
+        <el-table-column label="内部编号" min-width="150">
           <template #default="{ row }">
             <el-tooltip :content="row.internalCodes" placement="top" :disabled="!row.internalCodes || row.internalCodes.length < 30">
               <span class="text-ellipsis">{{ row.internalCodes || '-' }}</span>

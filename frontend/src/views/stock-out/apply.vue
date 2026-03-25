@@ -26,7 +26,7 @@
         </el-row>
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="内部编码">
+            <el-form-item label="内部编号">
               <el-input :value="stockInfo.internalCode" disabled />
             </el-form-item>
           </el-col>
