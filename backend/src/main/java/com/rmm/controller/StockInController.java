@@ -5,22 +5,32 @@ import com.alibaba.excel.annotation.ExcelProperty;
 import com.alibaba.excel.annotation.write.style.ColumnWidth;
 import com.rmm.common.PageResult;
 import com.rmm.common.Result;
+import com.rmm.dto.StockInImportConfirmDTO;
+import com.rmm.dto.StockInImportDTO;
+import com.rmm.dto.StockInImportPreviewVO;
 import com.rmm.entity.StockIn;
 import com.rmm.service.StockInService;
 import com.rmm.util.JwtUtil;
 import com.rmm.util.OperationLogUtil;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/stock-in")
 @RequiredArgsConstructor
@@ -98,6 +108,81 @@ public class StockInController {
         EasyExcel.write(response.getOutputStream(), StockInExportDTO.class)
                 .sheet("入库记录")
                 .doWrite(exportList);
+    }
+
+    @GetMapping("/template")
+    @Operation(summary = "下载入库导入模板")
+    public void downloadTemplate(HttpServletResponse response) throws IOException {
+        // 设置响应头
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setCharacterEncoding("utf-8");
+        String fileName = URLEncoder.encode("入库导入模板", StandardCharsets.UTF_8).replaceAll("\\+", "%20");
+        response.setHeader("Content-disposition", "attachment;filename*=utf-8''" + fileName + ".xlsx");
+
+        // 创建模板数据（标题行 + 示例行）
+        List<StockInImportDTO> templateData = new ArrayList<>();
+
+        // 示例数据行
+        StockInImportDTO sample = new StockInImportDTO();
+        sample.setMaterialCode("RM001");
+        sample.setBatchNo("BATCH20260325");
+        sample.setQuantity(5);
+        sample.setExpiryDate("2026-12-31");
+        sample.setLocationName("仓库A");
+        sample.setReason("新购入");
+        sample.setRemarks("示例备注");
+        templateData.add(sample);
+
+        // 写入 Excel
+        EasyExcel.write(response.getOutputStream(), StockInImportDTO.class)
+                .sheet("入库导入")
+                .doWrite(templateData);
+    }
+
+    @PostMapping("/import/preview")
+    @Operation(summary = "预览入库导入数据")
+    public Result<StockInImportPreviewVO> previewImport(@RequestParam("file") MultipartFile file) {
+        try {
+            // 验证文件格式
+            String filename = file.getOriginalFilename();
+            if (filename == null || !filename.toLowerCase().endsWith(".xlsx")) {
+                return Result.error("仅支持 .xlsx 格式的 Excel 文件");
+            }
+
+            StockInImportPreviewVO preview = stockInService.previewImport(file);
+            return Result.success(preview);
+        } catch (IOException e) {
+            log.error("解析导入文件失败", e);
+            return Result.error("解析文件失败：" + e.getMessage());
+        }
+    }
+
+    @PostMapping("/import/confirm")
+    @Operation(summary = "确认入库导入")
+    public Result<Map<String, Object>> confirmImport(
+            @RequestBody StockInImportConfirmDTO dto,
+            HttpServletRequest request) {
+        // 验证数据
+        if (dto.getItems() == null || dto.getItems().isEmpty()) {
+            return Result.error("导入数据不能为空");
+        }
+
+        // 获取当前用户
+        String token = request.getHeader("Authorization").substring(7);
+        Long userId = jwtUtil.getUserId(token);
+        String username = jwtUtil.getUsername(token);
+
+        // 执行导入
+        int successCount = stockInService.confirmImport(dto, userId);
+
+        // 记录操作日志
+        operationLogUtil.log(request, userId, username, "stock", "入库",
+            "批量入库导入", "成功导入 " + successCount + " 条入库记录");
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("successCount", successCount);
+        result.put("message", "成功导入 " + successCount + " 条入库记录");
+        return Result.success(result);
     }
 
     private String reasonToText(String reason) {
