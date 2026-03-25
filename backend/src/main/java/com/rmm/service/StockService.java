@@ -27,60 +27,107 @@ public class StockService {
     private final SupplierMapper supplierMapper;
 
     public PageResult<Stock> list(Integer current, Integer size, String keyword, Long locationId, Integer status) {
-        Page<Stock> page = new Page<>(current, size);
+        // 当有状态筛选或关键字筛选时，需要先获取全部数据再筛选，以正确计算total
+        // 因为状态是动态计算的，无法在SQL层面筛选
+        boolean needMemoryFilter = (status != null && status > 0) || StringUtils.hasText(keyword);
 
-        // 注意：不在此处按 status 筛选，因为状态需要动态计算
-        // 只排除已出库的记录（status=0）在非明确查询已出库时
-        LambdaQueryWrapper<Stock> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(locationId != null, Stock::getLocationId, locationId)
-               .ne(status == null || status > 0, Stock::getStatus, 0)  // 默认排除已出库
-               .orderByDesc(Stock::getUpdateTime);
+        if (needMemoryFilter) {
+            // 查询所有符合条件的记录（不含分页）
+            LambdaQueryWrapper<Stock> wrapper = new LambdaQueryWrapper<>();
+            wrapper.eq(locationId != null, Stock::getLocationId, locationId)
+                   .ne(status == null || status > 0, Stock::getStatus, 0)  // 默认排除已出库
+                   .orderByDesc(Stock::getUpdateTime);
 
-        Page<Stock> result = stockMapper.selectPage(page, wrapper);
+            List<Stock> allRecords = stockMapper.selectList(wrapper);
 
-        // 获取所有库存ID
-        List<Long> stockIds = result.getRecords().stream()
-                .map(Stock::getId)
-                .toList();
+            // 获取所有库存ID
+            List<Long> stockIds = allRecords.stream()
+                    .map(Stock::getId)
+                    .toList();
 
-        // 查询有待审批出库申请的库存ID集合
-        Set<Long> pendingStockIds = getPendingStockIds(stockIds);
+            // 查询有待审批出库申请的库存ID集合
+            Set<Long> pendingStockIds = getPendingStockIds(stockIds);
 
-        result.getRecords().forEach(stock -> {
-            fillRelations(stock);
-            // 动态计算并更新状态（基于有效期）
-            updateStatusByExpiryDate(stock);
-            stock.setHasPendingOut(pendingStockIds.contains(stock.getId()));
-            // 已出库：状态为0表示已出库
-            stock.setHasApprovedOut(stock.getStatus() != null && stock.getStatus() == 0);
-        });
+            // 填充关联数据并动态计算状态
+            allRecords.forEach(stock -> {
+                fillRelations(stock);
+                updateStatusByExpiryDate(stock);
+                stock.setHasPendingOut(pendingStockIds.contains(stock.getId()));
+                stock.setHasApprovedOut(stock.getStatus() != null && stock.getStatus() == 0);
+            });
 
-        // 关键字筛选
-        if (StringUtils.hasText(keyword)) {
-            String kw = keyword.toLowerCase();
-            List<Stock> filtered = result.getRecords().stream()
-                .filter(s -> (s.getMaterialName() != null && s.getMaterialName().toLowerCase().contains(kw))
-                          || (s.getInternalCode() != null && s.getInternalCode().toLowerCase().contains(kw))
-                          || (s.getBatchNo() != null && s.getBatchNo().toLowerCase().contains(kw)))
-                .toList();
-            result.setRecords(filtered);
+            // 内存中筛选
+            List<Stock> filtered = allRecords;
+
+            // 按状态筛选
+            if (status != null && status > 0) {
+                final Integer targetStatus = status;
+                filtered = filtered.stream()
+                    .filter(s -> targetStatus.equals(s.getStatus()))
+                    .toList();
+            }
+
+            // 按关键字筛选
+            if (StringUtils.hasText(keyword)) {
+                String kw = keyword.toLowerCase();
+                filtered = filtered.stream()
+                    .filter(s -> (s.getMaterialName() != null && s.getMaterialName().toLowerCase().contains(kw))
+                              || (s.getInternalCode() != null && s.getInternalCode().toLowerCase().contains(kw))
+                              || (s.getBatchNo() != null && s.getBatchNo().toLowerCase().contains(kw)))
+                    .toList();
+            }
+
+            // 手动分页
+            int total = filtered.size();
+            int fromIndex = (current - 1) * size;
+            int toIndex = Math.min(fromIndex + size, total);
+
+            List<Stock> pagedRecords = fromIndex < total
+                ? filtered.subList(fromIndex, toIndex)
+                : List.of();
+
+            // 构建返回结果
+            PageResult<Stock> pageResult = new PageResult<>();
+            pageResult.setRecords(pagedRecords);
+            pageResult.setTotal((long) total);
+            pageResult.setSize((long) size);
+            pageResult.setCurrent((long) current);
+            pageResult.setPages((long) ((total + size - 1) / size));
+            return pageResult;
+        } else {
+            // 无状态筛选时，使用正常的数据库分页
+            Page<Stock> page = new Page<>(current, size);
+
+            LambdaQueryWrapper<Stock> wrapper = new LambdaQueryWrapper<>();
+            wrapper.eq(locationId != null, Stock::getLocationId, locationId)
+                   .ne(Stock::getStatus, 0)  // 排除已出库
+                   .orderByDesc(Stock::getUpdateTime);
+
+            Page<Stock> result = stockMapper.selectPage(page, wrapper);
+
+            // 获取所有库存ID
+            List<Long> stockIds = result.getRecords().stream()
+                    .map(Stock::getId)
+                    .toList();
+
+            // 查询有待审批出库申请的库存ID集合
+            Set<Long> pendingStockIds = getPendingStockIds(stockIds);
+
+            result.getRecords().forEach(stock -> {
+                fillRelations(stock);
+                updateStatusByExpiryDate(stock);
+                stock.setHasPendingOut(pendingStockIds.contains(stock.getId()));
+                stock.setHasApprovedOut(stock.getStatus() != null && stock.getStatus() == 0);
+            });
+
+            PageResult<Stock> pageResult = new PageResult<>();
+            pageResult.setRecords(result.getRecords());
+            pageResult.setTotal(result.getTotal());
+            pageResult.setSize(result.getSize());
+            pageResult.setCurrent(result.getCurrent());
+            pageResult.setPages(result.getPages());
+            return pageResult;
         }
-
-        // 按动态计算后的状态筛选
-        if (status != null && status > 0) {
-            List<Stock> filtered = result.getRecords().stream()
-                .filter(s -> status.equals(s.getStatus()))
-                .toList();
-            result.setRecords(filtered);
-        }
-
-        PageResult<Stock> pageResult = new PageResult<>();
-        pageResult.setRecords(result.getRecords());
-        pageResult.setTotal(result.getTotal());
-        pageResult.setSize(result.getSize());
-        pageResult.setCurrent(result.getCurrent());
-        pageResult.setPages(result.getPages());
-        return pageResult;
     }
 
     /**
