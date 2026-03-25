@@ -163,14 +163,22 @@ public class StockInController {
             // 获取所有供应商
             List<Supplier> suppliers = supplierMapper.selectList(null);
 
-            // 写入位置参考数据（A列，从第2行开始）
+            // 写入位置参考数据（A列，从第1行开始，Excel行号从0开始）
             for (int i = 0; i < locations.size(); i++) {
-                refSheet.createRow(i + 1).createCell(0).setCellValue(locations.get(i).getName());
+                org.apache.poi.ss.usermodel.Row row = refSheet.getRow(i);
+                if (row == null) {
+                    row = refSheet.createRow(i);
+                }
+                row.createCell(0).setCellValue(locations.get(i).getName());
             }
 
-            // 写入入库原因参考数据（B列，从第2行开始）
+            // 写入入库原因参考数据（B列，复用已有行）
             for (int i = 0; i < reasons.size(); i++) {
-                refSheet.createRow(i + 1).createCell(1).setCellValue(reasons.get(i).getName());
+                org.apache.poi.ss.usermodel.Row row = refSheet.getRow(i);
+                if (row == null) {
+                    row = refSheet.createRow(i);
+                }
+                row.createCell(1).setCellValue(reasons.get(i).getName());
             }
 
             // 写入标准物质参考数据（D-G列：编码、名称、CAS、供应商名称）
@@ -243,7 +251,8 @@ public class StockInController {
             XSSFDataValidationHelper dvHelper = new XSSFDataValidationHelper(mainSheet);
 
             // 存放位置下拉框（H列，第2-1001行）
-            String locationRange = String.format("'参考数据'!$A$2:$A$%d", Math.max(locations.size(), 1) + 1);
+            int lastLocationRow = locations.isEmpty() ? 1 : locations.size();
+            String locationRange = String.format("'参考数据'!$A$1:$A$%d", lastLocationRow);
             DataValidation locationDv = dvHelper.createValidation(
                 dvHelper.createFormulaListConstraint(locationRange),
                 new CellRangeAddressList(1, 1000, 7, 7)  // H列
@@ -254,7 +263,8 @@ public class StockInController {
             mainSheet.addValidationData(locationDv);
 
             // 入库原因下拉框（I列，第2-1001行）
-            String reasonRange = String.format("'参考数据'!$B$2:$B$%d", Math.max(reasons.size(), 1) + 1);
+            int lastReasonRow = reasons.isEmpty() ? 1 : reasons.size();
+            String reasonRange = String.format("'参考数据'!$B$1:$B$%d", lastReasonRow);
             DataValidation reasonDv = dvHelper.createValidation(
                 dvHelper.createFormulaListConstraint(reasonRange),
                 new CellRangeAddressList(1, 1000, 8, 8)  // I列
