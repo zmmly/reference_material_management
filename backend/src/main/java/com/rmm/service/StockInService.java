@@ -323,6 +323,7 @@ public class StockInService {
         StockInImportPreviewVO.PreviewItem item = new StockInImportPreviewVO.PreviewItem();
         item.setRowNum(rowNum);
         item.setMaterialCode(row.getMaterialCode());
+        item.setMaterialName(row.getMaterialName());
         item.setBatchNo(row.getBatchNo());
         item.setQuantity(row.getQuantity());
         item.setLocationName(row.getLocationName());
@@ -340,8 +341,12 @@ public class StockInService {
                 errors.add("标准物质编码不存在");
             } else {
                 item.setMaterialId(material.getId());
-                item.setMaterialName(material.getName());
             }
+        }
+
+        // 校验标准物质名称
+        if (row.getMaterialName() == null || row.getMaterialName().isBlank()) {
+            errors.add("标准物质名称不能为空");
         }
 
         // 校验批号

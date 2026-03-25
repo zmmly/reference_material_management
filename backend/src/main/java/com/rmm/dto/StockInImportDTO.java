@@ -14,7 +14,7 @@ public class StockInImportDTO {
     @ExcelProperty("标准物质编码*")
     private String materialCode;
 
-    @ExcelProperty("标准物质名称")
+    @ExcelProperty("标准物质名称*")
     private String materialName;
 
     @ExcelProperty("CAS编码")

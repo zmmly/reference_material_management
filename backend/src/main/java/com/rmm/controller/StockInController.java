@@ -10,12 +10,10 @@ import com.rmm.dto.StockInImportDTO;
 import com.rmm.dto.StockInImportPreviewVO;
 import com.rmm.entity.Location;
 import com.rmm.entity.Metadata;
-import com.rmm.entity.ReferenceMaterial;
 import com.rmm.entity.StockIn;
 import com.rmm.entity.Supplier;
 import com.rmm.mapper.LocationMapper;
 import com.rmm.mapper.MetadataMapper;
-import com.rmm.mapper.ReferenceMaterialMapper;
 import com.rmm.mapper.SupplierMapper;
 import com.rmm.service.StockInService;
 import com.rmm.util.JwtUtil;
@@ -27,8 +25,6 @@ import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.DataValidation;
-import org.apache.poi.ss.usermodel.DataValidationHelper;
-import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.util.CellRangeAddressList;
 import org.apache.poi.xssf.usermodel.XSSFDataValidationHelper;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
@@ -39,7 +35,6 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -56,7 +51,6 @@ public class StockInController {
     private final OperationLogUtil operationLogUtil;
     private final LocationMapper locationMapper;
     private final MetadataMapper metadataMapper;
-    private final ReferenceMaterialMapper referenceMaterialMapper;
     private final SupplierMapper supplierMapper;
 
     @GetMapping
@@ -158,12 +152,10 @@ public class StockInController {
                     .eq(Metadata::getType, "STOCK_IN_REASON")
                     .eq(Metadata::getStatus, 1)
                     .orderByAsc(Metadata::getSortOrder));
-            // 获取所有标准物质（用于VLOOKUP）
-            List<ReferenceMaterial> materials = referenceMaterialMapper.selectList(null);
             // 获取所有供应商
             List<Supplier> suppliers = supplierMapper.selectList(null);
 
-            // 写入位置参考数据（A列，从第2行开始，Excel索引从1开始）
+            // 写入位置参考数据（A列，从第2行开始）
             for (int i = 0; i < locations.size(); i++) {
                 org.apache.poi.ss.usermodel.Row row = refSheet.getRow(i + 1);
                 if (row == null) {
@@ -181,119 +173,77 @@ public class StockInController {
                 row.createCell(1).setCellValue(reasons.get(i).getName());
             }
 
-            // 计算标准物质数据的起始行（在位置和原因数据之后）
-            int materialStartRow = Math.max(locations.size(), reasons.size()) + 2;
-
-            // 写入标准物质参考数据（D-G列：编码、名称、CAS、供应商名称）
-            for (int i = 0; i < materials.size(); i++) {
-                ReferenceMaterial m = materials.get(i);
-                int rowIndex = materialStartRow + i;
-                org.apache.poi.ss.usermodel.Row row = refSheet.getRow(rowIndex);
+            // 写入供应商参考数据（C列，从第2行开始）
+            for (int i = 0; i < suppliers.size(); i++) {
+                org.apache.poi.ss.usermodel.Row row = refSheet.getRow(i + 1);
                 if (row == null) {
-                    row = refSheet.createRow(rowIndex);
+                    row = refSheet.createRow(i + 1);
                 }
-                row.createCell(3).setCellValue(m.getCode() != null ? m.getCode() : "");
-                row.createCell(4).setCellValue(m.getName() != null ? m.getName() : "");
-                row.createCell(5).setCellValue(m.getCasNumber() != null ? m.getCasNumber() : "");
-                // 根据供应商ID查找供应商名称
-                String supplierName = "";
-                if (m.getSupplierId() != null) {
-                    Supplier supplier = suppliers.stream()
-                        .filter(s -> s.getId().equals(m.getSupplierId()))
-                        .findFirst().orElse(null);
-                    if (supplier != null) {
-                        supplierName = supplier.getName() != null ? supplier.getName() : "";
-                    }
-                }
-                row.createCell(6).setCellValue(supplierName);
+                row.createCell(2).setCellValue(suppliers.get(i).getName());
             }
 
             // ===== 写入主工作表标题行 =====
             org.apache.poi.ss.usermodel.Row headerRow = mainSheet.createRow(0);
-            String[] headers = {"标准物质编码*", "标准物质名称", "CAS编码", "供应商", "批号*", "入库数量*", "有效期", "存放位置*", "入库原因*", "备注"};
+            String[] headers = {"标准物质编码*", "标准物质名称*", "CAS编码", "供应商", "批号*", "入库数量*", "有效期", "存放位置*", "入库原因*", "备注"};
             for (int i = 0; i < headers.length; i++) {
                 headerRow.createCell(i).setCellValue(headers[i]);
-                // 设置列宽
                 mainSheet.setColumnWidth(i, 20 * 256);
             }
-
-            // 设置辅助列为灰色背景（表示只读）
-            org.apache.poi.ss.usermodel.CellStyle readOnlyStyle = workbook.createCellStyle();
-            readOnlyStyle.setFillForegroundColor(org.apache.poi.ss.usermodel.IndexedColors.GREY_25_PERCENT.getIndex());
-            readOnlyStyle.setFillPattern(org.apache.poi.ss.usermodel.FillPatternType.SOLID_FOREGROUND);
-            readOnlyStyle.setFillForegroundColor((short) 22); // 浅灰色
 
             // ===== 写入示例数据行 =====
             org.apache.poi.ss.usermodel.Row sampleRow = mainSheet.createRow(1);
             sampleRow.createCell(0).setCellValue("RM001");  // 标准物质编码
-            sampleRow.createCell(1).setCellValue("");        // 标准物质名称（公式）
-            sampleRow.createCell(2).setCellValue("");        // CAS编码（公式）
-            sampleRow.createCell(3).setCellValue("");        // 供应商（公式）
+            sampleRow.createCell(1).setCellValue("示例标准物质");  // 标准物质名称
+            sampleRow.createCell(2).setCellValue("1234-56-7");  // CAS编码
+            sampleRow.createCell(3).setCellValue(suppliers.isEmpty() ? "" : suppliers.get(0).getName());  // 供应商
             sampleRow.createCell(4).setCellValue("BATCH20260325");  // 批号
-            sampleRow.createCell(5).setCellValue(5);         // 入库数量
-            sampleRow.createCell(6).setCellValue("2026-12-31");    // 有效期
+            sampleRow.createCell(5).setCellValue(5);  // 入库数量
+            sampleRow.createCell(6).setCellValue("2026-12-31");  // 有效期
 
-            // 设置位置和原因下拉框的示例值
             String firstLocation = locations.isEmpty() ? "" : locations.get(0).getName();
             String firstReason = reasons.isEmpty() ? "" : reasons.get(0).getName();
             sampleRow.createCell(7).setCellValue(firstLocation);   // 存放位置
             sampleRow.createCell(8).setCellValue(firstReason);     // 入库原因
             sampleRow.createCell(9).setCellValue("示例备注");       // 备注
 
-            // ===== 添加VLOOKUP公式（B、C、D列）=====
-            int lastMaterialRow = materialStartRow + materials.size() - 1;
-            String materialRange = String.format("'参考数据'!$D$%d:$G$%d", materialStartRow, lastMaterialRow);
-
-            // B列：标准物质名称
-            sampleRow.getCell(1).setCellFormula(
-                String.format("IFERROR(VLOOKUP(A2,%s,2,FALSE),\"\")", materialRange));
-            // C列：CAS编码
-            sampleRow.getCell(2).setCellFormula(
-                String.format("IFERROR(VLOOKUP(A2,%s,3,FALSE),\"\")", materialRange));
-            // D列：供应商
-            sampleRow.getCell(3).setCellFormula(
-                String.format("IFERROR(VLOOKUP(A2,%s,4,FALSE),\"\")", materialRange));
-
             // ===== 设置下拉框（数据验证）=====
             XSSFDataValidationHelper dvHelper = new XSSFDataValidationHelper(mainSheet);
 
-            // 存放位置下拉框（H列，第2-1001行）- 参考数据从第2行开始
+            // 存放位置下拉框（H列，第2-1001行）
             int lastLocationRow = locations.isEmpty() ? 2 : locations.size() + 1;
             String locationRange = String.format("'参考数据'!$A$2:$A$%d", lastLocationRow);
             DataValidation locationDv = dvHelper.createValidation(
                 dvHelper.createFormulaListConstraint(locationRange),
-                new CellRangeAddressList(1, 1000, 7, 7)  // H列
+                new CellRangeAddressList(1, 1000, 7, 7)
             );
             locationDv.setShowErrorBox(true);
             locationDv.setErrorStyle(DataValidation.ErrorStyle.STOP);
             locationDv.createErrorBox("输入错误", "请从下拉列表中选择有效的存放位置");
             mainSheet.addValidationData(locationDv);
 
-            // 入库原因下拉框（I列，第2-1001行）- 参考数据从第2行开始
+            // 入库原因下拉框（I列，第2-1001行）
             int lastReasonRow = reasons.isEmpty() ? 2 : reasons.size() + 1;
             String reasonRange = String.format("'参考数据'!$B$2:$B$%d", lastReasonRow);
             DataValidation reasonDv = dvHelper.createValidation(
                 dvHelper.createFormulaListConstraint(reasonRange),
-                new CellRangeAddressList(1, 1000, 8, 8)  // I列
+                new CellRangeAddressList(1, 1000, 8, 8)
             );
             reasonDv.setShowErrorBox(true);
             reasonDv.setErrorStyle(DataValidation.ErrorStyle.STOP);
             reasonDv.createErrorBox("输入错误", "请从下拉列表中选择有效的入库原因");
             mainSheet.addValidationData(reasonDv);
 
-            // 标准物质编码下拉框（A列，第2-1001行）- 从参考数据表D列获取
-            if (!materials.isEmpty()) {
-                int lastMaterialCodeRow = materialStartRow + materials.size() - 1;
-                String materialCodeRange = String.format("'参考数据'!$D$%d:$D$%d", materialStartRow, lastMaterialCodeRow);
-                DataValidation materialDv = dvHelper.createValidation(
-                    dvHelper.createFormulaListConstraint(materialCodeRange),
-                    new CellRangeAddressList(1, 1000, 0, 0)  // A列
-                );
-                materialDv.setShowErrorBox(true);
-                materialDv.setErrorStyle(DataValidation.ErrorStyle.STOP);
-                materialDv.createErrorBox("输入错误", "请从下拉列表中选择有效的标准物质编码");
-                mainSheet.addValidationData(materialDv);
-            }
+            // 供应商下拉框（D列，第2-1001行）
+            int lastSupplierRow = suppliers.isEmpty() ? 2 : suppliers.size() + 1;
+            String supplierRange = String.format("'参考数据'!$C$2:$C$%d", lastSupplierRow);
+            DataValidation supplierDv = dvHelper.createValidation(
+                dvHelper.createFormulaListConstraint(supplierRange),
+                new CellRangeAddressList(1, 1000, 3, 3)  // D列
+            );
+            supplierDv.setShowErrorBox(true);
+            supplierDv.setErrorStyle(DataValidation.ErrorStyle.STOP);
+            supplierDv.createErrorBox("输入错误", "请从下拉列表中选择有效的供应商");
+            mainSheet.addValidationData(supplierDv);
 
             // ===== 冻结首行 =====
             mainSheet.createFreezePane(0, 1);
