@@ -28,6 +28,15 @@
           <el-menu-item index="/basic/metadata">元数据配置</el-menu-item>
         </el-sub-menu>
 
+        <el-sub-menu index="purchase" v-if="canAccess('purchase')">
+          <template #title>
+            <el-icon><ShoppingCart /></el-icon>
+            <span>采购管理</span>
+          </template>
+          <el-menu-item index="/purchase">采购申请</el-menu-item>
+          <el-menu-item index="/purchase-acceptance">采购验收</el-menu-item>
+        </el-sub-menu>
+
         <el-sub-menu index="stock" v-if="canAccess('stock')">
           <template #title>
             <el-icon><Box /></el-icon>
@@ -36,15 +45,6 @@
           <el-menu-item index="/stock">库存查询</el-menu-item>
           <el-menu-item index="/stock-in">入库登记</el-menu-item>
           <el-menu-item index="/stock-out">出库管理</el-menu-item>
-        </el-sub-menu>
-
-        <el-sub-menu index="purchase" v-if="canAccess('purchase')">
-          <template #title>
-            <el-icon><ShoppingCart /></el-icon>
-            <span>采购管理</span>
-          </template>
-          <el-menu-item index="/purchase">采购申请</el-menu-item>
-          <el-menu-item index="/purchase-acceptance">采购验收</el-menu-item>
         </el-sub-menu>
 
         <el-sub-menu index="check" v-if="canAccess('check')">

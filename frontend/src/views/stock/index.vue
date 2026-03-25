@@ -61,6 +61,7 @@
         <el-table-column label="操作" min-width="120" fixed="right">
           <template #default="{ row }">
             <div class="action-buttons">
+              <el-button type="warning" size="small" @click="handleEditExpiry(row)">修改有效期</el-button>
               <el-tooltip v-if="row.hasPendingOut" content="已有待审批的出库申请" placement="top">
                 <el-button type="info" size="small" disabled>出库</el-button>
               </el-tooltip>
@@ -104,6 +105,34 @@
         <el-button type="primary" @click="confirmBatchOut" :loading="batchOutLoading">确定</el-button>
       </template>
     </el-dialog>
+
+    <!-- 修改有效期弹窗 -->
+    <el-dialog v-model="expiryDialogVisible" title="修改有效期" width="420">
+      <el-alert type="warning" :closable="false" style="margin-bottom: 16px">
+        将同时修改「{{ expiryForm.materialName }}」批号为「{{ expiryForm.batchNo }}」的所有 {{ expiryForm.count }} 条库存记录
+      </el-alert>
+      <el-form :model="expiryForm" label-width="100px">
+        <el-form-item label="标准物质">
+          <span>{{ expiryForm.materialName }}</span>
+        </el-form-item>
+        <el-form-item label="批号">
+          <span>{{ expiryForm.batchNo }}</span>
+        </el-form-item>
+        <el-form-item label="有效期" required>
+          <el-date-picker
+            v-model="expiryForm.expiryDate"
+            type="date"
+            placeholder="选择有效期"
+            value-format="YYYY-MM-DD"
+            style="width: 100%"
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="expiryDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="confirmEditExpiry" :loading="expiryLoading">确定</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -111,7 +140,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { getStockList, batchApplyStockOut } from '@/api/stock'
+import { getStockList, batchApplyStockOut, updateStockExpiryDate } from '@/api/stock'
 import { getAllLocations } from '@/api/location'
 
 const router = useRouter()
@@ -123,6 +152,9 @@ const selectedRows = ref([])
 const batchOutDialogVisible = ref(false)
 const batchOutLoading = ref(false)
 const batchOutForm = reactive({ reason: '', purpose: '' })
+const expiryDialogVisible = ref(false)
+const expiryLoading = ref(false)
+const expiryForm = reactive({ materialId: null, materialName: '', batchNo: '', expiryDate: '', count: 0 })
 
 const queryParams = reactive({ current: 1, size: 10, keyword: '', locationId: null, status: null })
 
@@ -152,6 +184,33 @@ const handleSelectionChange = (rows) => {
 const canSelect = (row) => row.status !== 0 && !row.hasPendingOut
 
 const handleOut = (row) => router.push({ path: '/stock-out/apply', query: { stockId: row.id } })
+
+const handleEditExpiry = (row) => {
+  // 计算同标准物质同批号的记录数量
+  const count = tableData.value.filter(item => item.materialId === row.materialId && item.batchNo === row.batchNo).length
+  expiryForm.materialId = row.materialId
+  expiryForm.materialName = row.materialName
+  expiryForm.batchNo = row.batchNo
+  expiryForm.expiryDate = row.expiryDate
+  expiryForm.count = count
+  expiryDialogVisible.value = true
+}
+
+const confirmEditExpiry = async () => {
+  if (!expiryForm.expiryDate) {
+    ElMessage.warning('请选择有效期')
+    return
+  }
+  expiryLoading.value = true
+  try {
+    const res = await updateStockExpiryDate(expiryForm.materialId, expiryForm.batchNo, expiryForm.expiryDate)
+    ElMessage.success(`已修改 ${res.data || expiryForm.count} 条记录的有效期`)
+    expiryDialogVisible.value = false
+    fetchData()
+  } finally {
+    expiryLoading.value = false
+  }
+}
 
 const handleBatchOut = () => {
   if (selectedRows.value.length === 0) {
@@ -208,4 +267,19 @@ onMounted(() => {
 .text-warning { color: #e6a23c; }
 .text-danger { color: #f56c6c; }
 .text-muted { color: #909399; }
+
+/* 操作按钮样式 */
+.action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+}
+
+.action-buttons .el-button {
+  margin: 0;
+  padding: 5px 12px;
+  font-size: 13px;
+  font-weight: 500;
+}
 </style>

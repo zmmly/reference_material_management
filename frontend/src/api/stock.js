@@ -65,3 +65,8 @@ export function previewStockInImport(file) {
 export function confirmStockInImport(items) {
   return request.post('/stock-in/import/confirm', { items })
 }
+
+// 更新库存有效期（按标准物质ID和批号，同标准物质同批号全部修改）
+export function updateStockExpiryDate(materialId, batchNo, expiryDate) {
+  return request.put('/stocks/expiry-date', null, { params: { materialId, batchNo, expiryDate } })
+}

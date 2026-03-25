@@ -197,6 +197,26 @@ public class StockService {
         return stock;
     }
 
+    /**
+     * 更新库存有效期（按标准物质ID和批号，同时更新同标准物质同批号所有记录）
+     */
+    public int updateExpiryDateByMaterialAndBatch(Long materialId, String batchNo, String expiryDate) {
+        List<Stock> stocks = stockMapper.selectList(
+            new LambdaQueryWrapper<Stock>()
+                .eq(Stock::getMaterialId, materialId)
+                .eq(Stock::getBatchNo, batchNo)
+        );
+        if (stocks.isEmpty()) {
+            throw new BusinessException("库存不存在");
+        }
+        LocalDate date = LocalDate.parse(expiryDate);
+        for (Stock stock : stocks) {
+            stock.setExpiryDate(date);
+            stockMapper.updateById(stock);
+        }
+        return stocks.size();
+    }
+
     private void fillRelations(Stock stock) {
         if (stock.getMaterialId() != null) {
             ReferenceMaterial material = materialMapper.selectById(stock.getMaterialId());

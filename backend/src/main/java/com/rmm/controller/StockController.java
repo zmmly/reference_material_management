@@ -43,4 +43,14 @@ public class StockController {
             @Parameter(description = "库存ID", required = true) @PathVariable Long id) {
         return Result.success(stockService.getById(id));
     }
+
+    @Operation(summary = "更新有效期", description = "修改库存的有效期（同标准物质同批号全部修改）")
+    @PutMapping("/expiry-date")
+    public Result<Integer> updateExpiryDate(
+            @Parameter(description = "标准物质ID", required = true) @RequestParam Long materialId,
+            @Parameter(description = "批号", required = true) @RequestParam String batchNo,
+            @Parameter(description = "有效期", required = true) @RequestParam String expiryDate) {
+        int count = stockService.updateExpiryDateByMaterialAndBatch(materialId, batchNo, expiryDate);
+        return Result.success(count);
+    }
 }
