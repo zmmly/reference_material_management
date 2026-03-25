@@ -148,8 +148,10 @@ public class StockInController {
             workbook.setSheetHidden(workbook.getSheetIndex(refSheet), true);
 
             // ===== 准备参考数据 =====
-            // 获取所有位置
-            List<Location> locations = locationMapper.selectList(null);
+            // 获取所有启用的位置
+            List<Location> locations = locationMapper.selectList(
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<Location>()
+                    .eq(Location::getStatus, 1));
             // 获取入库原因元数据
             List<Metadata> reasons = metadataMapper.selectList(
                 new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<Metadata>()
