@@ -163,28 +163,35 @@ public class StockInController {
             // 获取所有供应商
             List<Supplier> suppliers = supplierMapper.selectList(null);
 
-            // 写入位置参考数据（A列，从第1行开始，Excel行号从0开始）
+            // 写入位置参考数据（A列，从第2行开始，Excel索引从1开始）
             for (int i = 0; i < locations.size(); i++) {
-                org.apache.poi.ss.usermodel.Row row = refSheet.getRow(i);
+                org.apache.poi.ss.usermodel.Row row = refSheet.getRow(i + 1);
                 if (row == null) {
-                    row = refSheet.createRow(i);
+                    row = refSheet.createRow(i + 1);
                 }
                 row.createCell(0).setCellValue(locations.get(i).getName());
             }
 
-            // 写入入库原因参考数据（B列，复用已有行）
+            // 写入入库原因参考数据（B列，从第2行开始）
             for (int i = 0; i < reasons.size(); i++) {
-                org.apache.poi.ss.usermodel.Row row = refSheet.getRow(i);
+                org.apache.poi.ss.usermodel.Row row = refSheet.getRow(i + 1);
                 if (row == null) {
-                    row = refSheet.createRow(i);
+                    row = refSheet.createRow(i + 1);
                 }
                 row.createCell(1).setCellValue(reasons.get(i).getName());
             }
 
+            // 计算标准物质数据的起始行（在位置和原因数据之后）
+            int materialStartRow = Math.max(locations.size(), reasons.size()) + 2;
+
             // 写入标准物质参考数据（D-G列：编码、名称、CAS、供应商名称）
             for (int i = 0; i < materials.size(); i++) {
                 ReferenceMaterial m = materials.get(i);
-                org.apache.poi.ss.usermodel.Row row = refSheet.createRow(i + 1);
+                int rowIndex = materialStartRow + i;
+                org.apache.poi.ss.usermodel.Row row = refSheet.getRow(rowIndex);
+                if (row == null) {
+                    row = refSheet.createRow(rowIndex);
+                }
                 row.createCell(3).setCellValue(m.getCode() != null ? m.getCode() : "");
                 row.createCell(4).setCellValue(m.getName() != null ? m.getName() : "");
                 row.createCell(5).setCellValue(m.getCasNumber() != null ? m.getCasNumber() : "");
@@ -234,8 +241,8 @@ public class StockInController {
             sampleRow.createCell(9).setCellValue("示例备注");       // 备注
 
             // ===== 添加VLOOKUP公式（B、C、D列）=====
-            int lastMaterialRow = materials.size() + 1;
-            String materialRange = String.format("'参考数据'!$D$2:$G$%d", lastMaterialRow);
+            int lastMaterialRow = materialStartRow + materials.size() - 1;
+            String materialRange = String.format("'参考数据'!$D$%d:$G$%d", materialStartRow, lastMaterialRow);
 
             // B列：标准物质名称
             sampleRow.getCell(1).setCellFormula(
@@ -250,9 +257,9 @@ public class StockInController {
             // ===== 设置下拉框（数据验证）=====
             XSSFDataValidationHelper dvHelper = new XSSFDataValidationHelper(mainSheet);
 
-            // 存放位置下拉框（H列，第2-1001行）
-            int lastLocationRow = locations.isEmpty() ? 1 : locations.size();
-            String locationRange = String.format("'参考数据'!$A$1:$A$%d", lastLocationRow);
+            // 存放位置下拉框（H列，第2-1001行）- 参考数据从第2行开始
+            int lastLocationRow = locations.isEmpty() ? 2 : locations.size() + 1;
+            String locationRange = String.format("'参考数据'!$A$2:$A$%d", lastLocationRow);
             DataValidation locationDv = dvHelper.createValidation(
                 dvHelper.createFormulaListConstraint(locationRange),
                 new CellRangeAddressList(1, 1000, 7, 7)  // H列
@@ -262,9 +269,9 @@ public class StockInController {
             locationDv.createErrorBox("输入错误", "请从下拉列表中选择有效的存放位置");
             mainSheet.addValidationData(locationDv);
 
-            // 入库原因下拉框（I列，第2-1001行）
-            int lastReasonRow = reasons.isEmpty() ? 1 : reasons.size();
-            String reasonRange = String.format("'参考数据'!$B$1:$B$%d", lastReasonRow);
+            // 入库原因下拉框（I列，第2-1001行）- 参考数据从第2行开始
+            int lastReasonRow = reasons.isEmpty() ? 2 : reasons.size() + 1;
+            String reasonRange = String.format("'参考数据'!$B$2:$B$%d", lastReasonRow);
             DataValidation reasonDv = dvHelper.createValidation(
                 dvHelper.createFormulaListConstraint(reasonRange),
                 new CellRangeAddressList(1, 1000, 8, 8)  // I列
