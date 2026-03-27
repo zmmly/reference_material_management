@@ -103,7 +103,8 @@ start_backend() {
 
     # 使用生产环境配置启动后端
     echo -e "${YELLOW}正在启动后端服务 (生产环境配置)...${NC}"
-    nohup java -Xms512m -Xmx1024m -XX:+UseG1GC \
+    # 内存配置: 服务器总内存1.87GB,需控制JVM内存避免OOM
+    nohup java -Xms256m -Xmx512m -XX:+UseG1GC \
         -jar $JAR_FILE \
         --spring.profiles.active=prod \
         > $LOG_DIR/backend.log 2>&1 &
