@@ -193,6 +193,34 @@ public class StockInService {
         stockInMapper.insert(stockIn);
     }
 
+    /**
+     * 更新入库记录（仅更新有效期、存放位置、证书等可编辑字段）
+     */
+    @Transactional
+    public void update(Long id, StockIn stockIn) {
+        StockIn existing = stockInMapper.selectById(id);
+        if (existing == null) {
+            throw new BusinessException("入库记录不存在");
+        }
+
+        // 只更新允许编辑的字段
+        existing.setExpiryDate(stockIn.getExpiryDate());
+        existing.setLocationId(stockIn.getLocationId());
+        existing.setProductCertificate(stockIn.getProductCertificate());
+
+        stockInMapper.updateById(existing);
+
+        // 同步更新对应的库存记录
+        if (existing.getStockId() != null) {
+            Stock stock = stockMapper.selectById(existing.getStockId());
+            if (stock != null) {
+                stock.setExpiryDate(stockIn.getExpiryDate());
+                stock.setLocationId(stockIn.getLocationId());
+                stockMapper.updateById(stock);
+            }
+        }
+    }
+
     private void fillRelations(StockIn stockIn) {
         if (stockIn.getMaterialId() != null) {
             ReferenceMaterial material = materialMapper.selectById(stockIn.getMaterialId());

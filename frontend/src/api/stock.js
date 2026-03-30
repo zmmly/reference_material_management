@@ -16,6 +16,10 @@ export function createStockIn(data) {
   return request.post('/stock-in', data)
 }
 
+export function updateStockIn(id, data) {
+  return request.put(`/stock-in/${id}`, data)
+}
+
 export function exportStockIn(params) {
   return request.get('/stock-in/export', {
     params,

@@ -69,6 +69,11 @@
             </div>
           </template>
         </el-table-column>
+        <el-table-column label="操作" min-width="100" fixed="right">
+          <template #default="{ row }">
+            <el-button type="primary" link size="small" @click="handleEdit(row)">编辑</el-button>
+          </template>
+        </el-table-column>
         <el-table-column prop="createTime" label="入库时间" min-width="140" />
       </el-table>
 
@@ -171,6 +176,40 @@
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
         <el-button type="primary" @click="handleSubmit">确定</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 编辑入库记录对话框 -->
+    <el-dialog v-model="editDialogVisible" title="编辑入库记录" width="500">
+      <el-form ref="editFormRef" :model="editForm" :rules="editRules" label-width="100px">
+        <el-form-item label="有效期" prop="expiryDate">
+          <el-date-picker v-model="editForm.expiryDate" type="date" placeholder="选择日期" style="width: 100%" />
+        </el-form-item>
+        <el-form-item label="存放位置" prop="locationId">
+          <el-select v-model="editForm.locationId" placeholder="请选择" style="width: 100%">
+            <el-option v-for="item in locationList" :key="item.id" :label="item.name" :value="item.id" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="产品证书">
+          <el-upload
+            v-model:file-list="editFileList"
+            :action="uploadUrl"
+            :headers="uploadHeaders"
+            :on-success="handleEditUploadSuccess"
+            :on-error="handleUploadError"
+            :limit="1"
+            accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+          >
+            <el-button type="primary">上传文件</el-button>
+            <template #tip>
+              <div class="el-upload__tip">支持 PDF、图片、Word 文档，大小不超过 10MB</div>
+            </template>
+          </el-upload>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="editDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="handleEditSubmit">确定</el-button>
       </template>
     </el-dialog>
 
@@ -295,7 +334,7 @@
 import { ref, reactive, onMounted, computed, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { UploadFilled } from '@element-plus/icons-vue'
-import { getStockInList, createStockIn, exportStockIn, downloadStockInTemplate, previewStockInImport, confirmStockInImport } from '@/api/stock'
+import { getStockInList, createStockIn, updateStockIn, exportStockIn, downloadStockInTemplate, previewStockInImport, confirmStockInImport } from '@/api/stock'
 import { getAllMaterials } from '@/api/material'
 import { getAllLocations } from '@/api/location'
 import { getAllSuppliers } from '@/api/supplier'
@@ -442,6 +481,46 @@ const handleSubmit = async () => {
   await createStockIn(form)
   ElMessage.success('入库成功')
   dialogVisible.value = false
+  fetchData()
+}
+
+// 编辑相关
+const editDialogVisible = ref(false)
+const editFormRef = ref()
+const editForm = reactive({
+  id: null,
+  expiryDate: null,
+  locationId: null,
+  productCertificate: ''
+})
+const editFileList = ref([])
+const editRules = {
+  locationId: [{ required: true, message: '请选择存放位置', trigger: 'change' }]
+}
+
+const handleEdit = (row) => {
+  editForm.id = row.id
+  editForm.expiryDate = row.expiryDate
+  editForm.locationId = row.locationId
+  editForm.productCertificate = row.productCertificate || ''
+  editFileList.value = row.productCertificate ? [{ name: '证书文件', url: row.productCertificate }] : []
+  editDialogVisible.value = true
+}
+
+const handleEditUploadSuccess = (response) => {
+  if (response.code === 200) {
+    editForm.productCertificate = response.data
+    ElMessage.success('文件上传成功')
+  } else {
+    ElMessage.error(response.message || '上传失败')
+  }
+}
+
+const handleEditSubmit = async () => {
+  await editFormRef.value.validate()
+  await updateStockIn(editForm.id, editForm)
+  ElMessage.success('更新成功')
+  editDialogVisible.value = false
   fetchData()
 }
 

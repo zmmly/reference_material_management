@@ -81,6 +81,21 @@ public class StockInController {
         return Result.success();
     }
 
+    @PutMapping("/{id}")
+    @Operation(summary = "更新入库记录")
+    public Result<Void> update(@PathVariable Long id, @RequestBody StockIn stockIn, HttpServletRequest request) {
+        String token = request.getHeader("Authorization").substring(7);
+        Long userId = jwtUtil.getUserId(token);
+        String username = jwtUtil.getUsername(token);
+        stockInService.update(id, stockIn);
+
+        // 记录操作日志
+        operationLogUtil.log(request, userId, username, "stock", "入库",
+            "更新入库记录", "更新入库记录ID: " + id);
+
+        return Result.success();
+    }
+
     @GetMapping("/export")
     public void export(
             @RequestParam(required = false) String keyword,
