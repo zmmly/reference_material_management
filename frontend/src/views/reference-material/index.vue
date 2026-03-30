@@ -83,9 +83,16 @@
               </el-select>
             </el-form-item>
           </el-col>
+        </el-row>
+        <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="规格" prop="specification">
               <el-input v-model="form.specification" placeholder="请输入规格" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="包装形式">
+              <el-input v-model="form.packageForm" placeholder="请输入包装形式" />
             </el-form-item>
           </el-col>
         </el-row>
@@ -93,13 +100,6 @@
           <el-col :span="12">
             <el-form-item label="基质">
               <el-input v-model="form.matrix" placeholder="请输入基质" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="包装形式">
-              <el-input v-model="form.packageForm" placeholder="请输入包装形式" />
             </el-form-item>
           </el-col>
         </el-row>
