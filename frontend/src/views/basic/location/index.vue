@@ -21,6 +21,7 @@
           <template #default="{ row }">
             <div class="action-buttons">
               <el-button link type="primary" size="small" @click="handleEdit(row)">编辑</el-button>
+              <el-button link type="danger" size="small" @click="handleDelete(row)">删除</el-button>
             </div>
           </template>
         </el-table-column>
@@ -69,8 +70,8 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
-import { getLocationList, createLocation, updateLocation } from '@/api/location'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { getLocationList, createLocation, updateLocation, deleteLocation } from '@/api/location'
 
 const loading = ref(false)
 const tableData = ref([])
@@ -118,6 +119,13 @@ const handleSubmit = async () => {
   }
   ElMessage.success('操作成功')
   dialogVisible.value = false
+  fetchData()
+}
+
+const handleDelete = async (row) => {
+  await ElMessageBox.confirm('确定删除该位置？')
+  await deleteLocation(row.id)
+  ElMessage.success('删除成功')
   fetchData()
 }
 

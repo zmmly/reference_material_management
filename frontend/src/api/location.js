@@ -15,3 +15,7 @@ export function createLocation(data) {
 export function updateLocation(id, data) {
   return request.put(`/basic/location/${id}`, data)
 }
+
+export function deleteLocation(id) {
+  return request.delete(`/basic/location/${id}`)
+}

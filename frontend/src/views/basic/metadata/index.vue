@@ -17,6 +17,7 @@
           <template #default="{ row }">
             <div class="action-buttons">
               <el-button link type="primary" size="small" @click="handleEdit(row)">编辑</el-button>
+              <el-button link type="danger" size="small" @click="handleDelete(row)">删除</el-button>
             </div>
           </template>
         </el-table-column>
@@ -45,8 +46,8 @@
 
 <script setup>
 import { ref, reactive } from 'vue'
-import { ElMessage } from 'element-plus'
-import { getMetadataByType, createMetadata, updateMetadata } from '@/api/metadata'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { getMetadataByType, createMetadata, updateMetadata, deleteMetadata } from '@/api/metadata'
 
 const activeType = ref('STOCK_IN_REASON')
 const loading = ref(false)
@@ -93,6 +94,13 @@ const handleSubmit = async () => {
   }
   ElMessage.success('操作成功')
   dialogVisible.value = false
+  fetchData()
+}
+
+const handleDelete = async (row) => {
+  await ElMessageBox.confirm('确定删除该项元数据？')
+  await deleteMetadata(row.id)
+  ElMessage.success('删除成功')
   fetchData()
 }
 

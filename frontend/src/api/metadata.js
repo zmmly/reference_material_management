@@ -11,3 +11,7 @@ export function createMetadata(data) {
 export function updateMetadata(id, data) {
   return request.put(`/basic/metadata/${id}`, data)
 }
+
+export function deleteMetadata(id) {
+  return request.delete(`/basic/metadata/${id}`)
+}
