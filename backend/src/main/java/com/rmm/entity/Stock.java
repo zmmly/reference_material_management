@@ -14,6 +14,7 @@ public class Stock {
     private Long materialId;
     private String batchNo;
     private String internalCode;
+    private String purityConcentration;
     private LocalDate expiryDate;
     private BigDecimal quantity;
     private Long locationId;

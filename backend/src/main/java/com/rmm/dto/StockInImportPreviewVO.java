@@ -42,6 +42,9 @@ public class StockInImportPreviewVO {
         /** 批号 */
         private String batchNo;
 
+        /** 纯度/浓度 */
+        private String purityConcentration;
+
         /** 入库数量 */
         private Integer quantity;
 

@@ -184,7 +184,7 @@ public class StockInController {
 
             // ===== 写入主工作表标题行 =====
             org.apache.poi.ss.usermodel.Row headerRow = mainSheet.createRow(0);
-            String[] headers = {"标准物质编码*", "标准物质名称*", "CAS编码", "供应商", "批号*", "入库数量*", "有效期", "存放位置*", "入库原因*", "备注"};
+            String[] headers = {"标准物质编码*", "标准物质名称*", "CAS编码", "供应商", "批号*", "纯度/浓度*", "入库数量*", "有效期", "存放位置*", "入库原因*", "备注"};
             for (int i = 0; i < headers.length; i++) {
                 headerRow.createCell(i).setCellValue(headers[i]);
                 mainSheet.setColumnWidth(i, 20 * 256);
@@ -194,8 +194,8 @@ public class StockInController {
             org.apache.poi.ss.usermodel.CellStyle textStyle = workbook.createCellStyle();
             org.apache.poi.ss.usermodel.DataFormat format = workbook.createDataFormat();
             textStyle.setDataFormat(format.getFormat("@"));  // "@" 表示文本格式
-            // 设置整列为文本格式
-            mainSheet.setDefaultColumnStyle(6, textStyle);
+            // 设置整列为文本格式（有效期列现在是第8列，索引为7）
+            mainSheet.setDefaultColumnStyle(7, textStyle);
 
             // ===== 写入示例数据行 =====
             org.apache.poi.ss.usermodel.Row sampleRow = mainSheet.createRow(1);
@@ -204,38 +204,39 @@ public class StockInController {
             sampleRow.createCell(2).setCellValue("1234-56-7");  // CAS编码
             sampleRow.createCell(3).setCellValue(suppliers.isEmpty() ? "" : suppliers.get(0).getName());  // 供应商
             sampleRow.createCell(4).setCellValue("BATCH20260325");  // 批号
-            sampleRow.createCell(5).setCellValue(5);  // 入库数量
-            org.apache.poi.ss.usermodel.Cell expiryCell = sampleRow.createCell(6);
+            sampleRow.createCell(5).setCellValue("99.5%");  // 纯度/浓度
+            sampleRow.createCell(6).setCellValue(5);  // 入库数量
+            org.apache.poi.ss.usermodel.Cell expiryCell = sampleRow.createCell(7);
             expiryCell.setCellStyle(textStyle);  // 应用文本格式
             expiryCell.setCellValue("2026-12-31");  // 有效期
 
             String firstLocation = locations.isEmpty() ? "" : locations.get(0).getName();
             String firstReason = reasons.isEmpty() ? "" : reasons.get(0).getName();
-            sampleRow.createCell(7).setCellValue(firstLocation);   // 存放位置
-            sampleRow.createCell(8).setCellValue(firstReason);     // 入库原因
-            sampleRow.createCell(9).setCellValue("示例备注");       // 备注
+            sampleRow.createCell(8).setCellValue(firstLocation);   // 存放位置
+            sampleRow.createCell(9).setCellValue(firstReason);     // 入库原因
+            sampleRow.createCell(10).setCellValue("示例备注");       // 备注
 
             // ===== 设置下拉框（数据验证）=====
             XSSFDataValidationHelper dvHelper = new XSSFDataValidationHelper(mainSheet);
 
-            // 存放位置下拉框（H列，第2-1001行）
+            // 存放位置下拉框（I列，第2-1001行，现在是第8列，索引为8）
             int lastLocationRow = locations.isEmpty() ? 2 : locations.size() + 1;
             String locationRange = String.format("'参考数据'!$A$2:$A$%d", lastLocationRow);
             DataValidation locationDv = dvHelper.createValidation(
                 dvHelper.createFormulaListConstraint(locationRange),
-                new CellRangeAddressList(1, 1000, 7, 7)
+                new CellRangeAddressList(1, 1000, 8, 8)
             );
             locationDv.setShowErrorBox(true);
             locationDv.setErrorStyle(DataValidation.ErrorStyle.STOP);
             locationDv.createErrorBox("输入错误", "请从下拉列表中选择有效的存放位置");
             mainSheet.addValidationData(locationDv);
 
-            // 入库原因下拉框（I列，第2-1001行）
+            // 入库原因下拉框（J列，第2-1001行，现在是第9列，索引为9）
             int lastReasonRow = reasons.isEmpty() ? 2 : reasons.size() + 1;
             String reasonRange = String.format("'参考数据'!$B$2:$B$%d", lastReasonRow);
             DataValidation reasonDv = dvHelper.createValidation(
                 dvHelper.createFormulaListConstraint(reasonRange),
-                new CellRangeAddressList(1, 1000, 8, 8)
+                new CellRangeAddressList(1, 1000, 9, 9)
             );
             reasonDv.setShowErrorBox(true);
             reasonDv.setErrorStyle(DataValidation.ErrorStyle.STOP);

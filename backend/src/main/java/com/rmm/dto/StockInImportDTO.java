@@ -26,6 +26,9 @@ public class StockInImportDTO {
     @ExcelProperty("批号*")
     private String batchNo;
 
+    @ExcelProperty("纯度/浓度*")
+    private String purityConcentration;
+
     @ExcelProperty("入库数量*")
     private Integer quantity;
 

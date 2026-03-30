@@ -179,6 +179,7 @@ public class StockInService {
             stock.setMaterialId(stockIn.getMaterialId());
             stock.setBatchNo(stockIn.getBatchNo());
             stock.setInternalCode(internalCode);
+            stock.setPurityConcentration(stockIn.getPurityConcentration());
             stock.setExpiryDate(stockIn.getExpiryDate());
             stock.setQuantity(BigDecimal.ONE);  // 每条记录数量为1
             stock.setLocationId(stockIn.getLocationId());
@@ -325,6 +326,7 @@ public class StockInService {
         item.setMaterialCode(row.getMaterialCode());
         item.setMaterialName(row.getMaterialName());
         item.setBatchNo(row.getBatchNo());
+        item.setPurityConcentration(row.getPurityConcentration());
         item.setQuantity(row.getQuantity());
         item.setLocationName(row.getLocationName());
         item.setReasonText(row.getReason());
@@ -359,6 +361,11 @@ public class StockInService {
             errors.add("入库数量不能为空");
         } else if (row.getQuantity() < 1) {
             errors.add("入库数量必须大于0");
+        }
+
+        // 校验纯度/浓度
+        if (row.getPurityConcentration() == null || row.getPurityConcentration().isBlank()) {
+            errors.add("纯度/浓度不能为空");
         }
 
         // 校验有效期格式（支持 YYYY-MM-DD 和 YYYY/MM/DD）
@@ -411,6 +418,7 @@ public class StockInService {
             StockIn stockIn = new StockIn();
             stockIn.setMaterialId(item.getMaterialId());
             stockIn.setBatchNo(item.getBatchNo());
+            stockIn.setPurityConcentration(item.getPurityConcentration());
             stockIn.setQuantity(BigDecimal.valueOf(item.getQuantity()));
             stockIn.setExpiryDate(item.getExpiryDate());
             stockIn.setLocationId(item.getLocationId());

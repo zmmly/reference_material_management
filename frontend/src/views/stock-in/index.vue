@@ -95,6 +95,13 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
+            <el-form-item label="纯度/浓度" prop="purityConcentration">
+              <el-input v-model="form.purityConcentration" placeholder="请输入纯度/浓度，如 99.5%" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="20">
+          <el-col :span="12">
             <el-form-item label="入库数量" prop="quantity">
               <el-input-number v-model="form.quantity" :min="1" style="width: 100%" />
             </el-form-item>
@@ -201,6 +208,7 @@
           <el-table-column prop="materialCode" label="物质编码" width="120" />
           <el-table-column prop="materialName" label="物质名称" min-width="140" show-overflow-tooltip />
           <el-table-column prop="batchNo" label="批号" width="120" />
+          <el-table-column prop="purityConcentration" label="纯度/浓度" width="100" />
           <el-table-column prop="quantity" label="数量" width="70" />
           <el-table-column prop="expiryDate" label="有效期" width="110" />
           <el-table-column prop="locationName" label="位置" width="100" />
@@ -335,7 +343,7 @@ watch(dateRange, (val) => {
 })
 
 const form = reactive({
-  materialId: null, batchNo: '', quantity: 1, supplierId: null,
+  materialId: null, batchNo: '', purityConcentration: '', quantity: 1, supplierId: null,
   expiryDate: null, locationId: null, reason: 'PURCHASE', remarks: '', productCertificate: ''
 })
 
@@ -355,6 +363,7 @@ watch(() => form.materialId, (newMaterialId) => {
 const rules = {
   materialId: [{ required: true, message: '请选择标准物质', trigger: 'change' }],
   batchNo: [{ required: true, message: '请输入批号', trigger: 'blur' }],
+  purityConcentration: [{ required: true, message: '请输入纯度/浓度', trigger: 'blur' }],
   quantity: [{ required: true, message: '请输入入库数量', trigger: 'blur' }],
   reason: [{ required: true, message: '请选择入库原因', trigger: 'change' }]
 }
@@ -408,7 +417,7 @@ const handleReset = () => {
 
 const handleAdd = () => {
   Object.assign(form, {
-    materialId: null, batchNo: '', quantity: 1, supplierId: null,
+    materialId: null, batchNo: '', purityConcentration: '', quantity: 1, supplierId: null,
     expiryDate: null, locationId: null, reason: 'PURCHASE', remarks: '', productCertificate: ''
   })
   fileList.value = []
@@ -532,6 +541,7 @@ const handleConfirmImport = async () => {
     .map(item => ({
       materialId: item.materialId,
       batchNo: item.batchNo,
+      purityConcentration: item.purityConcentration,
       quantity: item.quantity,
       expiryDate: item.expiryDate,
       locationId: item.locationId,

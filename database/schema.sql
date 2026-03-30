@@ -261,7 +261,7 @@ CREATE TABLE `reference_material` (
   `english_name` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '英文名',
   `cas_number` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'CAS号',
   `specification` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '规格',
-  `purity_concentration` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '' COMMENT '纯度/浓度',
+  `purity_concentration` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '纯度/浓度',
   `matrix` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '基质',
   `package_form` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '' COMMENT '包装形式',
   `category_id` bigint DEFAULT NULL COMMENT '分类ID',
@@ -271,7 +271,6 @@ CREATE TABLE `reference_material` (
   `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE KEY `code` (`code`) USING BTREE,
-  UNIQUE KEY `uk_cas_supplier` (`cas_number`,`supplier_id`) COMMENT 'CAS号和供应商的复合唯一索引',
   KEY `idx_category` (`category_id`) USING BTREE,
   KEY `idx_name` (`name`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='标准物质主数据表';
@@ -309,6 +308,7 @@ CREATE TABLE `stock` (
   `material_id` bigint NOT NULL COMMENT '标准物质ID',
   `batch_no` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '批号',
   `internal_code` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '内部编码',
+  `purity_concentration` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '纯度/浓度',
   `expiry_date` date DEFAULT NULL COMMENT '有效期',
   `quantity` decimal(10,2) DEFAULT '0.00' COMMENT '库存数量',
   `location_id` bigint DEFAULT NULL COMMENT '存放位置ID',
@@ -466,6 +466,7 @@ CREATE TABLE `stock_in` (
   `material_id` bigint NOT NULL COMMENT '标准物质ID',
   `batch_no` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '批号',
   `internal_code` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '内部编码',
+  `purity_concentration` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '纯度/浓度',
   `expiry_date` date DEFAULT NULL COMMENT '有效期',
   `quantity` decimal(10,2) NOT NULL COMMENT '入库数量',
   `location_id` bigint DEFAULT NULL COMMENT '存放位置ID',
