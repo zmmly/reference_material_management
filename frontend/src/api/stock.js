@@ -20,6 +20,16 @@ export function updateStockIn(id, data) {
   return request.put(`/stock-in/${id}`, data)
 }
 
+// 检查入库记录是否可删除
+export function checkStockInDelete(id) {
+  return request.get(`/stock-in/${id}/delete-check`)
+}
+
+// 删除入库记录
+export function deleteStockIn(id) {
+  return request.delete(`/stock-in/${id}`)
+}
+
 export function exportStockIn(params) {
   return request.get('/stock-in/export', {
     params,

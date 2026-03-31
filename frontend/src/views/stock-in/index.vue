@@ -69,9 +69,10 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column label="操作" min-width="100" fixed="right">
+        <el-table-column label="操作" min-width="140" fixed="right">
           <template #default="{ row }">
             <el-button type="primary" link size="small" @click="handleEdit(row)">编辑</el-button>
+            <el-button type="danger" link size="small" @click="handleDelete(row)">删除</el-button>
           </template>
         </el-table-column>
         <el-table-column prop="createTime" label="入库时间" min-width="140" />
@@ -327,14 +328,70 @@
         </el-button>
       </template>
     </el-dialog>
+
+    <!-- 删除确认对话框 -->
+    <el-dialog
+      v-model="deleteDialogVisible"
+      title="无法删除"
+      width="600"
+    >
+      <el-alert
+        type="error"
+        :closable="false"
+        style="margin-bottom: 16px"
+      >
+        <template #title>
+          <span style="font-size: 16px; font-weight: bold;">{{ deleteCheckResult?.reason }}</span>
+        </template>
+      </el-alert>
+
+      <div v-if="deleteCheckResult?.blockedItems?.length" style="margin-top: 16px">
+        <p style="font-weight: bold; margin-bottom: 12px;">以下出库记录阻止了删除操作：</p>
+        <el-table :data="deleteCheckResult.blockedItems" border size="small">
+          <el-table-column prop="internalCode" label="内部编号" min-width="140" />
+          <el-table-column prop="status" label="状态" width="100">
+            <template #default="{ row }">
+              <el-tag :type="row.status === '待审批' ? 'warning' : (row.status === '已批准' ? 'success' : 'info')">
+                {{ row.status }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="reason" label="出库原因" min-width="120" show-overflow-tooltip />
+          <el-table-column prop="applyTime" label="申请时间" width="160">
+            <template #default="{ row }">
+              {{ row.applyTime ? row.applyTime.replace('T', ' ').substring(0, 16) : '-' }}
+            </template>
+          </el-table-column>
+        </el-table>
+
+        <el-alert
+          type="info"
+          :closable="false"
+          style="margin-top: 16px"
+        >
+          <template #title>处理建议</template>
+          <template #default>
+            <p style="margin: 0">请先处理上述出库记录后再尝试删除入库记录：</p>
+            <ul style="margin: 8px 0 0 0; padding-left: 20px;">
+              <li>对于"待审批"状态：可取消出库申请</li>
+              <li>对于"已批准/已出库"状态：无法删除，该物质已投入使用</li>
+            </ul>
+          </template>
+        </el-alert>
+      </div>
+
+      <template #footer>
+        <el-button @click="deleteDialogVisible = false">关闭</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted, computed, watch } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { UploadFilled } from '@element-plus/icons-vue'
-import { getStockInList, createStockIn, updateStockIn, exportStockIn, downloadStockInTemplate, previewStockInImport, confirmStockInImport } from '@/api/stock'
+import { getStockInList, createStockIn, updateStockIn, exportStockIn, downloadStockInTemplate, previewStockInImport, confirmStockInImport, checkStockInDelete, deleteStockIn } from '@/api/stock'
 import { getAllMaterials } from '@/api/material'
 import { getAllLocations } from '@/api/location'
 import { getAllSuppliers } from '@/api/supplier'
@@ -522,6 +579,54 @@ const handleEditSubmit = async () => {
   ElMessage.success('更新成功')
   editDialogVisible.value = false
   fetchData()
+}
+
+// 删除相关
+const deleteDialogVisible = ref(false)
+const deleteCheckResult = ref(null)
+const deleteLoading = ref(false)
+const deleteTargetRow = ref(null)
+
+const handleDelete = async (row) => {
+  deleteTargetRow.value = row
+  deleteLoading.value = true
+  try {
+    const res = await checkStockInDelete(row.id)
+    deleteCheckResult.value = res.data
+    if (deleteCheckResult.value.canDelete) {
+      // 可以删除，直接确认
+      await ElMessageBox.confirm(
+        `确定要删除该入库记录吗？将同时删除关联的库存明细。`,
+        '删除确认',
+        { type: 'warning' }
+      )
+      await confirmDelete()
+    } else {
+      // 不能删除，显示原因对话框
+      deleteDialogVisible.value = true
+    }
+  } catch (e) {
+    if (e !== 'cancel') {
+      ElMessage.error('检查失败：' + (e.message || '未知错误'))
+    }
+  } finally {
+    deleteLoading.value = false
+  }
+}
+
+const confirmDelete = async () => {
+  if (!deleteTargetRow.value) return
+  deleteLoading.value = true
+  try {
+    await deleteStockIn(deleteTargetRow.value.id)
+    ElMessage.success('删除成功')
+    deleteDialogVisible.value = false
+    fetchData()
+  } catch (e) {
+    ElMessage.error('删除失败：' + (e.message || '未知错误'))
+  } finally {
+    deleteLoading.value = false
+  }
 }
 
 const handleExport = async () => {

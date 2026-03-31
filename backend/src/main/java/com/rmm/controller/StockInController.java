@@ -8,6 +8,7 @@ import com.rmm.common.Result;
 import com.rmm.dto.StockInImportConfirmDTO;
 import com.rmm.dto.StockInImportDTO;
 import com.rmm.dto.StockInImportPreviewVO;
+import com.rmm.dto.StockInDeleteCheckVO;
 import com.rmm.entity.Location;
 import com.rmm.entity.Metadata;
 import com.rmm.entity.StockIn;
@@ -92,6 +93,27 @@ public class StockInController {
         // 记录操作日志
         operationLogUtil.log(request, userId, username, "stock", "入库",
             "更新入库记录", "更新入库记录ID: " + id);
+
+        return Result.success();
+    }
+
+    @GetMapping("/{id}/delete-check")
+    @Operation(summary = "检查入库记录是否可删除")
+    public Result<StockInDeleteCheckVO> checkCanDelete(@PathVariable Long id) {
+        return Result.success(stockInService.checkCanDelete(id));
+    }
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "删除入库记录")
+    public Result<Void> delete(@PathVariable Long id, HttpServletRequest request) {
+        String token = request.getHeader("Authorization").substring(7);
+        Long userId = jwtUtil.getUserId(token);
+        String username = jwtUtil.getUsername(token);
+        stockInService.delete(id);
+
+        // 记录操作日志
+        operationLogUtil.log(request, userId, username, "stock", "入库",
+            "删除入库记录", "删除入库记录ID: " + id);
 
         return Result.success();
     }

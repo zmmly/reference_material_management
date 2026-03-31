@@ -6,6 +6,7 @@ import com.rmm.common.BusinessException;
 import com.rmm.common.PageResult;
 import com.rmm.entity.*;
 import com.rmm.mapper.*;
+import com.rmm.dto.StockInDeleteCheckVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -33,6 +34,7 @@ public class StockInService {
 
     private final StockInMapper stockInMapper;
     private final StockMapper stockMapper;
+    private final StockOutMapper stockOutMapper;
     private final ReferenceMaterialMapper materialMapper;
     private final LocationMapper locationMapper;
     private final UserMapper userMapper;
@@ -494,5 +496,148 @@ public class StockInService {
         }
 
         stockInMapper.insert(stockIn);
+    }
+
+    /**
+     * 检查入库记录是否可以删除
+     * 返回检查结果，包含是否可删除、不可删除原因、相关出库记录信息
+     */
+    public StockInDeleteCheckVO checkCanDelete(Long id) {
+        StockIn stockIn = stockInMapper.selectById(id);
+        if (stockIn == null) {
+            throw new BusinessException("入库记录不存在");
+        }
+
+        StockInDeleteCheckVO result = new StockInDeleteCheckVO();
+        result.setStockInId(id);
+        result.setCanDelete(true);
+
+        // 解析内部编号范围
+        List<String> internalCodes = parseInternalCodeRange(stockIn.getInternalCode());
+        if (internalCodes.isEmpty()) {
+            result.setCanDelete(false);
+            result.setReason("无法解析内部编号");
+            return result;
+        }
+
+        // 查找所有关联的库存记录
+        LambdaQueryWrapper<Stock> stockWrapper = new LambdaQueryWrapper<>();
+        stockWrapper.in(Stock::getInternalCode, internalCodes);
+        List<Stock> stocks = stockMapper.selectList(stockWrapper);
+
+        List<StockInDeleteCheckVO.StockOutInfo> blockedItems = new ArrayList<>();
+
+        for (Stock stock : stocks) {
+            // 检查是否有待审批或已批准的出库申请
+            LambdaQueryWrapper<StockOut> outWrapper = new LambdaQueryWrapper<>();
+            outWrapper.eq(StockOut::getStockId, stock.getId())
+                     .in(StockOut::getStatus, 0, 1); // 0=待审批, 1=已批准
+            List<StockOut> stockOuts = stockOutMapper.selectList(outWrapper);
+
+            for (StockOut out : stockOuts) {
+                StockInDeleteCheckVO.StockOutInfo info = new StockInDeleteCheckVO.StockOutInfo();
+                info.setInternalCode(stock.getInternalCode());
+                info.setStatus(out.getStatus() == 0 ? "待审批" : "已批准");
+                info.setReason(out.getReason());
+                info.setApplyTime(out.getApplyTime());
+                blockedItems.add(info);
+            }
+
+            // 检查库存状态是否已出库
+            if (stock.getStatus() != null && stock.getStatus() == 0) {
+                StockInDeleteCheckVO.StockOutInfo info = new StockInDeleteCheckVO.StockOutInfo();
+                info.setInternalCode(stock.getInternalCode());
+                info.setStatus("已出库");
+                info.setReason("该物质已完成出库");
+                blockedItems.add(info);
+            }
+        }
+
+        if (!blockedItems.isEmpty()) {
+            result.setCanDelete(false);
+            result.setReason("存在关联的出库记录，无法删除");
+            result.setBlockedItems(blockedItems);
+        }
+
+        return result;
+    }
+
+    /**
+     * 删除入库记录及关联的库存记录
+     */
+    @Transactional
+    public void delete(Long id) {
+        StockIn stockIn = stockInMapper.selectById(id);
+        if (stockIn == null) {
+            throw new BusinessException("入库记录不存在");
+        }
+
+        // 先检查是否可以删除
+        StockInDeleteCheckVO check = checkCanDelete(id);
+        if (!check.getCanDelete()) {
+            throw new BusinessException(check.getReason());
+        }
+
+        // 解析内部编号范围
+        List<String> internalCodes = parseInternalCodeRange(stockIn.getInternalCode());
+
+        // 删除关联的库存记录
+        if (!internalCodes.isEmpty()) {
+            LambdaQueryWrapper<Stock> stockWrapper = new LambdaQueryWrapper<>();
+            stockWrapper.in(Stock::getInternalCode, internalCodes);
+            stockMapper.delete(stockWrapper);
+        }
+
+        // 删除入库记录
+        stockInMapper.deleteById(id);
+    }
+
+    /**
+     * 解析内部编号范围
+     * 支持格式: "BATCH001-001" 或 "BATCH001-001 ~ BATCH001-003"
+     */
+    private List<String> parseInternalCodeRange(String internalCode) {
+        List<String> codes = new ArrayList<>();
+        if (internalCode == null || internalCode.isBlank()) {
+            return codes;
+        }
+
+        if (internalCode.contains("~")) {
+            // 范围格式: BATCH001-001 ~ BATCH001-003
+            String[] parts = internalCode.split("~");
+            if (parts.length != 2) {
+                return codes;
+            }
+
+            String startCode = parts[0].trim();
+            String endCode = parts[1].trim();
+
+            // 提取序列号
+            int lastDashStart = startCode.lastIndexOf("-");
+            int lastDashEnd = endCode.lastIndexOf("-");
+
+            if (lastDashStart == -1 || lastDashEnd == -1) {
+                codes.add(startCode);
+                return codes;
+            }
+
+            String prefix = startCode.substring(0, lastDashStart + 1);
+            try {
+                int startSeq = Integer.parseInt(startCode.substring(lastDashStart + 1));
+                int endSeq = Integer.parseInt(endCode.substring(lastDashEnd + 1));
+
+                for (int i = startSeq; i <= endSeq; i++) {
+                    codes.add(prefix + String.format("%03d", i));
+                }
+            } catch (NumberFormatException e) {
+                log.error("无法解析内部编号序列号: {}", internalCode);
+                codes.add(startCode);
+            }
+        } else {
+            // 单个编号
+            codes.add(internalCode.trim());
+        }
+
+        return codes;
     }
 }
