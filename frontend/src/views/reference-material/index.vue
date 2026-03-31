@@ -13,6 +13,8 @@
         <el-form-item>
           <el-button type="primary" @click="fetchData">查询</el-button>
           <el-button @click="handleAdd">新增</el-button>
+          <el-button type="info" @click="handleDownloadTemplate">下载模板</el-button>
+          <el-button type="primary" @click="handleOpenImport">批量导入</el-button>
         </el-form-item>
       </el-form>
 
@@ -109,13 +111,80 @@
         <el-button type="primary" @click="handleSubmit">确定</el-button>
       </template>
     </el-dialog>
+
+    <!-- 批量导入对话框 -->
+    <el-dialog v-model="importDialogVisible" title="批量导入标准物质" width="800" :close-on-click-modal="false">
+      <!-- 步骤1：上传文件 -->
+      <div v-if="importStep === 1">
+        <el-upload
+          drag
+          accept=".xlsx"
+          :auto-upload="false"
+          :on-change="handleFileChange"
+          :limit="1"
+        >
+          <el-icon class="el-icon--upload"><upload-filled /></el-icon>
+          <div class="el-upload__text">将文件拖到此处，或<em>点击上传</em></div>
+          <template #tip>
+            <div class="el-upload__tip">只能上传 .xlsx 文件，请先下载模板填写数据</div>
+          </template>
+        </el-upload>
+      </div>
+
+      <!-- 步骤2：预览数据 -->
+      <div v-else-if="importStep === 2">
+        <el-alert
+          :title="`共 ${importPreview?.totalCount || 0} 条数据，有效 ${importPreview?.validCount || 0} 条，无效 ${importPreview?.invalidCount || 0} 条`"
+          :type="importPreview?.invalidCount > 0 ? 'warning' : 'success'"
+          show-icon
+          style="margin-bottom: 16px"
+        />
+        <el-table :data="importPreview?.items || []" border max-height="400">
+          <el-table-column prop="rowNum" label="行号" width="70" />
+          <el-table-column prop="code" label="编号" width="100" />
+          <el-table-column prop="name" label="名称" width="150" />
+          <el-table-column prop="categoryName" label="分类" width="100" />
+          <el-table-column prop="specification" label="规格" width="80" />
+          <el-table-column prop="supplierName" label="供应商" width="100" />
+          <el-table-column label="状态" width="80">
+            <template #default="{ row }">
+              <el-tag :type="row.valid ? 'success' : 'danger'">{{ row.valid ? '有效' : '无效' }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="错误信息" min-width="150">
+            <template #default="{ row }">
+              <span v-if="row.errors?.length" style="color: #f56c6c">{{ row.errors.join('；') }}</span>
+              <span v-else style="color: #67c23a">-</span>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
+
+      <!-- 步骤3：导入结果 -->
+      <div v-else-if="importStep === 3">
+        <el-result
+          icon="success"
+          title="导入完成"
+          :sub-title="`成功导入 ${importResult || 0} 条数据`"
+        />
+      </div>
+
+      <template #footer>
+        <el-button v-if="importStep === 1" @click="importDialogVisible = false">取消</el-button>
+        <el-button v-if="importStep === 1" type="primary" @click="handlePreviewImport" :disabled="!importFile">下一步</el-button>
+        <el-button v-if="importStep === 2" @click="importStep = 1">上一步</el-button>
+        <el-button v-if="importStep === 2" type="primary" @click="handleConfirmImport">确认导入</el-button>
+        <el-button v-if="importStep === 3" type="primary" @click="handleImportComplete">完成</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getMaterialList, createMaterial, updateMaterial, deleteMaterial } from '@/api/material'
+import { UploadFilled } from '@element-plus/icons-vue'
+import { getMaterialList, createMaterial, updateMaterial, deleteMaterial, downloadMaterialTemplate, previewMaterialImport, confirmMaterialImport } from '@/api/material'
 import { getCategoryTree } from '@/api/category'
 import { getSupplierList } from '@/api/supplier'
 
@@ -127,6 +196,13 @@ const supplierList = ref([])
 const dialogVisible = ref(false)
 const editId = ref(null)
 const formRef = ref()
+
+// 批量导入相关
+const importDialogVisible = ref(false)
+const importStep = ref(1)
+const importFile = ref(null)
+const importPreview = ref(null)
+const importResult = ref(null)
 
 const queryParams = reactive({ current: 1, size: 10, name: '', categoryId: null })
 const form = reactive({
@@ -193,7 +269,8 @@ const handleAdd = () => {
     categoryId: null,
     specification: '',
     matrix: '',
-    packageForm: ''
+    packageForm: '',
+    supplierId: null
   })
   dialogVisible.value = true
 }
@@ -221,6 +298,78 @@ const handleDelete = async (row) => {
   await deleteMaterial(row.id)
   ElMessage.success('删除成功')
   fetchData()
+}
+
+// 下载导入模板
+const handleDownloadTemplate = async () => {
+  try {
+    const res = await downloadMaterialTemplate()
+    const blob = new Blob([res], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = '标准物质导入模板.xlsx'
+    link.click()
+    window.URL.revokeObjectURL(url)
+  } catch (e) {
+    ElMessage.error('下载模板失败')
+  }
+}
+
+// 打开导入对话框
+const handleOpenImport = () => {
+  importStep.value = 1
+  importFile.value = null
+  importPreview.value = null
+  importResult.value = null
+  importDialogVisible.value = true
+}
+
+// 文件选择变化
+const handleFileChange = (file) => {
+  importFile.value = file.raw
+  return false // 阻止自动上传
+}
+
+// 预览导入数据
+const handlePreviewImport = async () => {
+  if (!importFile.value) {
+    ElMessage.warning('请先选择文件')
+    return
+  }
+  try {
+    const res = await previewMaterialImport(importFile.value)
+    importPreview.value = res.data
+    importStep.value = 2
+  } catch (e) {
+    ElMessage.error('预览失败：' + (e.message || '未知错误'))
+  }
+}
+
+// 确认导入
+const handleConfirmImport = async () => {
+  if (!importPreview.value?.items?.length) {
+    ElMessage.warning('没有可导入的数据')
+    return
+  }
+  const validItems = importPreview.value.items.filter(item => item.valid)
+  if (validItems.length === 0) {
+    ElMessage.warning('没有有效的数据可导入')
+    return
+  }
+  try {
+    const res = await confirmMaterialImport(validItems)
+    importResult.value = res.data
+    importStep.value = 3
+    fetchData()
+  } catch (e) {
+    ElMessage.error('导入失败：' + (e.message || '未知错误'))
+  }
+}
+
+// 完成导入
+const handleImportComplete = () => {
+  importDialogVisible.value = false
 }
 
 onMounted(() => {
