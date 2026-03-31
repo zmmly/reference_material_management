@@ -459,7 +459,6 @@ watch(() => form.materialId, (newMaterialId) => {
 const rules = {
   materialId: [{ required: true, message: '请选择标准物质', trigger: 'change' }],
   batchNo: [{ required: true, message: '请输入批号', trigger: 'blur' }],
-  purityConcentration: [{ required: true, message: '请输入纯度/浓度', trigger: 'blur' }],
   quantity: [{ required: true, message: '请输入入库数量', trigger: 'blur' }],
   reason: [{ required: true, message: '请选择入库原因', trigger: 'change' }]
 }
