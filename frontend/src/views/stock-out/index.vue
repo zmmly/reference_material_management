@@ -20,9 +20,11 @@
               </template>
             </el-table-column>
             <el-table-column prop="applyTime" label="申请时间" min-width="150" />
-            <el-table-column label="操作" min-width="100" fixed="right">
+            <el-table-column label="操作" min-width="140" fixed="right">
               <template #default="{ row }">
                 <div class="action-buttons">
+                  <el-button v-if="row.status === 0" link type="primary" size="small" @click="handleEdit(row)">编辑</el-button>
+                  <el-button v-if="row.status === 0" link type="danger" size="small" @click="handleDelete(row)">删除</el-button>
                   <el-button v-if="row.status === 0" link type="warning" size="small" @click="handleCancel(row)">撤回</el-button>
                 </div>
               </template>
@@ -63,13 +65,36 @@
         <el-button type="primary" @click="confirmReject">确定</el-button>
       </template>
     </el-dialog>
+
+    <!-- 编辑出库申请对话框 -->
+    <el-dialog v-model="editDialogVisible" title="编辑出库申请" width="500">
+      <el-form :model="editForm" label-width="100px">
+        <el-form-item label="出库原因" required>
+          <el-select v-model="editForm.reason" placeholder="请选择出库原因" style="width: 100%">
+            <el-option label="实验使用" value="EXPERIMENT" />
+            <el-option label="过期销毁" value="EXPIRED" />
+            <el-option label="报废" value="SCRAP" />
+            <el-option label="调拨出" value="TRANSFER_OUT" />
+            <el-option label="赠送" value="DONATE" />
+            <el-option label="其他" value="OTHER" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="用途说明">
+          <el-input v-model="editForm.purpose" type="textarea" :rows="3" placeholder="请输入用途说明" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="editDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="handleEditSubmit">确定</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getStockOutList, approveStockOut, cancelStockOut } from '@/api/stock'
+import { getStockOutList, approveStockOut, cancelStockOut, updateStockOut, deleteStockOut } from '@/api/stock'
 import { useUserStore } from '@/store/modules/user'
 
 const userStore = useUserStore()
@@ -79,6 +104,14 @@ const allApplications = ref([])
 const rejectDialogVisible = ref(false)
 const rejectReason = ref('')
 const currentRow = ref(null)
+
+// 编辑相关
+const editDialogVisible = ref(false)
+const editForm = reactive({
+  id: null,
+  reason: '',
+  purpose: ''
+})
 
 const canApprove = computed(() => {
   const roleCode = userStore.userInfo?.roleCode
@@ -131,6 +164,36 @@ const confirmReject = async () => {
   await approveStockOut(currentRow.value.id, false, rejectReason.value)
   ElMessage.success('已拒绝')
   rejectDialogVisible.value = false
+  fetchData()
+}
+
+// 编辑出库申请
+const handleEdit = (row) => {
+  editForm.id = row.id
+  editForm.reason = row.reason
+  editForm.purpose = row.purpose || ''
+  editDialogVisible.value = true
+}
+
+const handleEditSubmit = async () => {
+  if (!editForm.reason) {
+    ElMessage.warning('请选择出库原因')
+    return
+  }
+  await updateStockOut(editForm.id, {
+    reason: editForm.reason,
+    purpose: editForm.purpose
+  })
+  ElMessage.success('修改成功')
+  editDialogVisible.value = false
+  fetchData()
+}
+
+// 删除出库申请
+const handleDelete = async (row) => {
+  await ElMessageBox.confirm('确定删除该出库申请？', '删除确认', { type: 'warning' })
+  await deleteStockOut(row.id)
+  ElMessage.success('删除成功')
   fetchData()
 }
 

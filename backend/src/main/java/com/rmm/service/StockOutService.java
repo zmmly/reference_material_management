@@ -178,6 +178,46 @@ public class StockOutService {
         stockOutMapper.updateById(stockOut);
     }
 
+    /**
+     * 更新出库申请（仅允许更新待审批状态的申请）
+     */
+    public void update(Long id, StockOut stockOut, Long userId) {
+        StockOut existing = stockOutMapper.selectById(id);
+        if (existing == null) {
+            throw new BusinessException("出库申请不存在");
+        }
+        if (existing.getStatus() != 0) {
+            throw new BusinessException("只能编辑待审批的申请");
+        }
+        if (!existing.getApplicantId().equals(userId)) {
+            throw new BusinessException("只能编辑自己的申请");
+        }
+
+        // 只允许更新出库原因和用途说明
+        existing.setReason(stockOut.getReason());
+        existing.setPurpose(stockOut.getPurpose());
+        stockOutMapper.updateById(existing);
+    }
+
+    /**
+     * 删除出库申请（仅允许删除待审批状态的申请）
+     */
+    @Transactional
+    public void delete(Long id, Long userId) {
+        StockOut stockOut = stockOutMapper.selectById(id);
+        if (stockOut == null) {
+            throw new BusinessException("出库申请不存在");
+        }
+        if (stockOut.getStatus() != 0) {
+            throw new BusinessException("只能删除待审批的申请");
+        }
+        if (!stockOut.getApplicantId().equals(userId)) {
+            throw new BusinessException("只能删除自己的申请");
+        }
+
+        stockOutMapper.deleteById(id);
+    }
+
     private void fillRelations(StockOut stockOut) {
         if (stockOut.getMaterialId() != null) {
             ReferenceMaterial material = materialMapper.selectById(stockOut.getMaterialId());

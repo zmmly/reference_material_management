@@ -57,6 +57,16 @@ export function cancelStockOut(id) {
   return request.put(`/stock-out/${id}/cancel`)
 }
 
+// 更新出库申请
+export function updateStockOut(id, data) {
+  return request.put(`/stock-out/${id}`, data)
+}
+
+// 删除出库申请
+export function deleteStockOut(id) {
+  return request.delete(`/stock-out/${id}`)
+}
+
 // 下载入库导入模板
 export function downloadStockInTemplate() {
   return request.get('/stock-in/template', {

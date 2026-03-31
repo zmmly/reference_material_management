@@ -114,4 +114,32 @@ public class StockOutController {
 
         return Result.success();
     }
+
+    @PutMapping("/{id}")
+    public Result<Void> update(@PathVariable Long id, @RequestBody StockOut stockOut, HttpServletRequest request) {
+        String token = request.getHeader("Authorization").substring(7);
+        Long userId = jwtUtil.getUserId(token);
+        String username = jwtUtil.getUsername(token);
+        stockOutService.update(id, stockOut, userId);
+
+        // 记录操作日志
+        operationLogUtil.log(request, userId, username, "stock", "编辑",
+            "出库申请", "编辑出库申请ID: " + id);
+
+        return Result.success();
+    }
+
+    @DeleteMapping("/{id}")
+    public Result<Void> delete(@PathVariable Long id, HttpServletRequest request) {
+        String token = request.getHeader("Authorization").substring(7);
+        Long userId = jwtUtil.getUserId(token);
+        String username = jwtUtil.getUsername(token);
+        stockOutService.delete(id, userId);
+
+        // 记录操作日志
+        operationLogUtil.log(request, userId, username, "stock", "删除",
+            "出库申请", "删除出库申请ID: " + id);
+
+        return Result.success();
+    }
 }
