@@ -71,8 +71,10 @@
         </el-table-column>
         <el-table-column label="操作" min-width="140" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" size="small" @click="handleEdit(row)">编辑</el-button>
-            <el-button link type="danger" size="small" @click="handleDelete(row)">删除</el-button>
+            <div class="action-buttons">
+              <el-button link type="primary" size="small" @click="handleEdit(row)">编辑</el-button>
+              <el-button link type="danger" size="small" @click="handleDelete(row)">删除</el-button>
+            </div>
           </template>
         </el-table-column>
         <el-table-column prop="createTime" label="入库时间" min-width="140" />
@@ -764,4 +766,9 @@ onMounted(() => {
 .search-form { margin-bottom: 20px; }
 .text-muted { color: #909399; }
 .error-text { color: #f56c6c; }
+.action-buttons {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+}
 </style>

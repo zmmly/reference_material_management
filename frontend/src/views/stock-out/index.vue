@@ -208,4 +208,9 @@ onMounted(() => fetchData())
 
 <style scoped>
 .page-container { padding: 20px; }
+.action-buttons {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+}
 </style>
