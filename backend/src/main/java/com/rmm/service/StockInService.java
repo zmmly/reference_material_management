@@ -393,11 +393,6 @@ public class StockInService {
             errors.add("入库数量必须大于0");
         }
 
-        // 校验纯度/浓度
-        if (row.getPurityConcentration() == null || row.getPurityConcentration().isBlank()) {
-            errors.add("纯度/浓度不能为空");
-        }
-
         // 校验有效期格式（支持 YYYY-MM-DD 和 YYYY/MM/DD）
         if (row.getExpiryDate() != null && !row.getExpiryDate().isBlank()) {
             try {
