@@ -466,7 +466,7 @@ CREATE TABLE `stock_in` (
   `material_id` bigint NOT NULL COMMENT '标准物质ID',
   `batch_no` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '批号',
   `internal_code` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '内部编码',
-  `purity_concentration` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '纯度/浓度',
+  `purity_concentration` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '纯度/浓度',
   `expiry_date` date DEFAULT NULL COMMENT '有效期',
   `quantity` decimal(10,2) NOT NULL COMMENT '入库数量',
   `location_id` bigint DEFAULT NULL COMMENT '存放位置ID',
