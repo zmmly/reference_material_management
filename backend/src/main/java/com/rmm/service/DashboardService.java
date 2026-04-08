@@ -21,6 +21,8 @@ public class DashboardService {
     private final StockOutMapper stockOutMapper;
     private final PurchaseMapper purchaseMapper;
     private final AlertRecordMapper alertRecordMapper;
+    private final UserMapper userMapper;
+    private final RoleMapper roleMapper;
 
     public Map<String, Object> getStats() {
         Map<String, Object> stats = new HashMap<>();
@@ -90,19 +92,31 @@ public class DashboardService {
         return result;
     }
 
-    public Map<String, Object> getTodoItems() {
+    public Map<String, Object> getTodoItems(Long userId) {
         Map<String, Object> result = new HashMap<>();
 
-        // 待审批采购申请数量
-        long pendingPurchaseCount = purchaseMapper.selectCount(
-            new LambdaQueryWrapper<Purchase>().eq(Purchase::getStatus, 0)
-        );
+        // 判断是否为管理员/经理
+        User user = userMapper.selectById(userId);
+        Role role = user != null && user.getRoleId() != null ? roleMapper.selectById(user.getRoleId()) : null;
+        String roleCode = role != null ? role.getCode() : "";
+        boolean isAdmin = "ADMIN".equals(roleCode) || "MANAGER".equals(roleCode);
+
+        // 待审批采购申请数量：管理员看全部，普通用户只看自己申请的
+        LambdaQueryWrapper<Purchase> pendingWrapper = new LambdaQueryWrapper<Purchase>()
+            .eq(Purchase::getStatus, 0);
+        if (!isAdmin) {
+            pendingWrapper.eq(Purchase::getApplicantId, userId);
+        }
+        long pendingPurchaseCount = purchaseMapper.selectCount(pendingWrapper);
         result.put("pendingPurchaseCount", (int) pendingPurchaseCount);
 
-        // 已通过待确认数量
-        long approvedPurchaseCount = purchaseMapper.selectCount(
-            new LambdaQueryWrapper<Purchase>().eq(Purchase::getStatus, 1)
-        );
+        // 已通过待确认数量：管理员看全部，普通用户只看自己申请的
+        LambdaQueryWrapper<Purchase> approvedWrapper = new LambdaQueryWrapper<Purchase>()
+            .eq(Purchase::getStatus, 1);
+        if (!isAdmin) {
+            approvedWrapper.eq(Purchase::getApplicantId, userId);
+        }
+        long approvedPurchaseCount = purchaseMapper.selectCount(approvedWrapper);
         result.put("approvedPurchaseCount", (int) approvedPurchaseCount);
 
         // 待处理预警数量（status=0）

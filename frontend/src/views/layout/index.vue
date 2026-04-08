@@ -61,7 +61,7 @@
             <span>预警中心</span>
           </template>
           <el-menu-item index="/alert">预警管理</el-menu-item>
-          <el-menu-item index="/alert-config">预警配置</el-menu-item>
+          <el-menu-item index="/alert-config" v-if="isAdmin">预警配置</el-menu-item>
         </el-sub-menu>
 
         <el-sub-menu index="system" v-if="canAccess('system')">
@@ -127,6 +127,12 @@ const rolePermissions = {
   MANAGER: ['basic', 'stock', 'purchase', 'check', 'alert'],
   USER: ['stock', 'purchase', 'check']
 }
+
+// 是否为管理员或经理
+const isAdmin = computed(() => {
+  const roleCode = userStore.userInfo?.roleCode
+  return roleCode === 'ADMIN' || roleCode === 'MANAGER'
+})
 
 // 检查用户是否有权限访问某个模块
 const canAccess = (module) => {
