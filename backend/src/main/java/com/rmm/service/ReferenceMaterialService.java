@@ -22,10 +22,8 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -144,6 +142,16 @@ public class ReferenceMaterialService {
         // 预加载已存在的编号
         Map<String, Boolean> existingCodes = loadExistingCodes();
 
+        // 统计Excel内部编号出现次数，用于检测文件内重复
+        Map<String, List<Integer>> codeRowMap = new LinkedHashMap<>();
+        for (int i = 0; i < rows.size(); i++) {
+            MaterialImportDTO row = rows.get(i);
+            if (isEmptyRow(row) || row.getCode() == null || row.getCode().isBlank()) {
+                continue;
+            }
+            codeRowMap.computeIfAbsent(row.getCode().trim(), k -> new ArrayList<>()).add(i + 2);
+        }
+
         List<MaterialImportPreviewVO.PreviewItem> items = new ArrayList<>();
         int validCount = 0;
         int invalidCount = 0;
@@ -155,7 +163,7 @@ public class ReferenceMaterialService {
                 continue;
             }
 
-            MaterialImportPreviewVO.PreviewItem item = validateRow(row, i + 2, categoryNameMap, supplierNameMap, existingCodes);
+            MaterialImportPreviewVO.PreviewItem item = validateRow(row, i + 2, categoryNameMap, supplierNameMap, existingCodes, codeRowMap);
             items.add(item);
 
             if (item.getValid()) {
@@ -230,7 +238,8 @@ public class ReferenceMaterialService {
             MaterialImportDTO row, int rowNum,
             Map<String, Category> categoryNameMap,
             Map<String, Supplier> supplierNameMap,
-            Map<String, Boolean> existingCodes) {
+            Map<String, Boolean> existingCodes,
+            Map<String, List<Integer>> codeRowMap) {
 
         MaterialImportPreviewVO.PreviewItem item = new MaterialImportPreviewVO.PreviewItem();
         item.setRowNum(rowNum);
@@ -248,8 +257,11 @@ public class ReferenceMaterialService {
         // 校验编号
         if (row.getCode() == null || row.getCode().isBlank()) {
             errors.add("编号不能为空");
-        } else if (existingCodes.containsKey(row.getCode())) {
+        } else if (existingCodes.containsKey(row.getCode().trim())) {
             errors.add("编号已存在");
+        } else if (codeRowMap.containsKey(row.getCode().trim()) && codeRowMap.get(row.getCode().trim()).size() > 1) {
+            List<Integer> dupRows = codeRowMap.get(row.getCode().trim());
+            errors.add("编号在文件内重复，重复行：" + dupRows.stream().map(String::valueOf).collect(Collectors.joining("、")));
         }
 
         // 校验名称

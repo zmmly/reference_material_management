@@ -20,6 +20,6 @@ export function updateUserStatus(id, status) {
   return request.put(`/system/user/${id}/status`, null, { params: { status } })
 }
 
-export function resetPassword(id) {
-  return request.put(`/system/user/${id}/reset-password`)
+export function resetPassword(id, newPassword = '123456') {
+  return request.put(`/system/user/${id}/reset-password`, null, { params: { newPassword } })
 }
