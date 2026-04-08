@@ -70,6 +70,10 @@ public class AlertService {
             new LambdaQueryWrapper<AlertRecord>()
                 .eq(AlertRecord::getStatus, 0)
                 .likeRight(AlertRecord::getType, "EXPIRY")
+        ).intValue() + alertRecordMapper.selectCount(
+            new LambdaQueryWrapper<AlertRecord>()
+                .eq(AlertRecord::getStatus, 0)
+                .eq(AlertRecord::getType, "EXPIRY_OVERDUE")
         ).intValue());
         stats.setStockLow(alertRecordMapper.selectCount(
             new LambdaQueryWrapper<AlertRecord>()
@@ -121,18 +125,32 @@ public class AlertService {
 
         LocalDate today = LocalDate.now();
         LocalDate warningDate = today.plusDays(warningConfig.getThreshold());
-        LocalDate criticalDate = criticalConfig != null ? today.plusDays(criticalConfig.getThreshold()) : today.plusDays(7);
+        int criticalThreshold = criticalConfig != null ? criticalConfig.getThreshold() : 7;
 
-        List<Stock> stocks = stockMapper.selectList(
+        // 查询已过期的库存
+        List<Stock> expiredStocks = stockMapper.selectList(
+            new LambdaQueryWrapper<Stock>()
+                .isNotNull(Stock::getExpiryDate)
+                .le(Stock::getExpiryDate, today)
+        );
+
+        for (Stock stock : expiredStocks) {
+            long days = ChronoUnit.DAYS.between(stock.getExpiryDate(), today);
+            createAlertIfNotExists("EXPIRY_OVERDUE", stock, stock.getMaterialId(),
+                String.format("【%s】已过期%d天", getMaterialName(stock.getMaterialId()), days), 3);
+        }
+
+        // 查询即将过期的库存（未过期但在预警期内）
+        List<Stock> warningStocks = stockMapper.selectList(
             new LambdaQueryWrapper<Stock>()
                 .isNotNull(Stock::getExpiryDate)
                 .gt(Stock::getExpiryDate, today)
                 .le(Stock::getExpiryDate, warningDate)
         );
 
-        for (Stock stock : stocks) {
+        for (Stock stock : warningStocks) {
             long days = ChronoUnit.DAYS.between(today, stock.getExpiryDate());
-            String alertType = days <= (criticalConfig != null ? criticalConfig.getThreshold() : 7) ? "EXPIRY_CRITICAL" : "EXPIRY_WARNING";
+            String alertType = days <= criticalThreshold ? "EXPIRY_CRITICAL" : "EXPIRY_WARNING";
             int level = alertType.equals("EXPIRY_CRITICAL") ? 3 : 2;
 
             createAlertIfNotExists(alertType, stock, stock.getMaterialId(),
