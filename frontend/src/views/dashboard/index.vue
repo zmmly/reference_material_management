@@ -23,7 +23,7 @@
         <span class="card-title">⚡ 快捷入口</span>
       </template>
       <div class="quick-entry-grid">
-        <div class="quick-entry" v-for="(entry, index) in quickEntries" :key="index" @click="router.push(entry.route)">
+        <div class="quick-entry" v-for="(entry, index) in filteredQuickEntries" :key="index" @click="router.push(entry.route)">
           <div class="quick-entry-icon" :style="{ '--entry-gradient': entry.gradient }">
             <el-icon :size="24"><component :is="entry.icon" /></el-icon>
           </div>
@@ -104,9 +104,11 @@ import { ref, onMounted, onUnmounted, nextTick, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { getDashboardSummary, getCategoryStats, getExpiryStats, getDashboardTodoItems } from '@/api/report'
 import { getAlertList } from '@/api/alert'
+import { useUserStore } from '@/store/modules/user'
 import * as echarts from 'echarts'
 
 const router = useRouter()
+const userStore = useUserStore()
 const categoryChartRef = ref(null)
 const expiryChartRef = ref(null)
 let categoryChart = null
@@ -163,14 +165,32 @@ const statCards = ref([
 ])
 
 const quickEntries = [
-  { name: '采购申请', icon: 'ShoppingCart', gradient: 'linear-gradient(135deg, #34d399 0%, #10b981 50%, #059669 100%)', route: '/purchase' },
-  { name: '采购验收', icon: 'CircleCheck', gradient: 'linear-gradient(135deg, #4ade80 0%, #22c55e 50%, #16a34a 100%)', route: '/purchase-acceptance' },
-  { name: '入库登记', icon: 'Download', gradient: 'linear-gradient(135deg, #a78bfa 0%, #8b5cf6 50%, #7c3aed 100%)', route: '/stock-in' },
-  { name: '出库申请', icon: 'Upload', gradient: 'linear-gradient(135deg, #60a5fa 0%, #3b82f6 50%, #2563eb 100%)', route: '/stock-out' },
-  { name: '库存查询', icon: 'Search', gradient: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%)', route: '/stock' },
-  { name: '盘点任务', icon: 'DocumentChecked', gradient: 'linear-gradient(135deg, #fb923c 0%, #f97316 50%, #ea580c 100%)', route: '/stock-check' },
-  { name: '预警中心', icon: 'Bell', gradient: 'linear-gradient(135deg, #f87171 0%, #ef4444 50%, #dc2626 100%)', route: '/alert' }
+  { name: '采购申请', icon: 'ShoppingCart', gradient: 'linear-gradient(135deg, #34d399 0%, #10b981 50%, #059669 100%)', route: '/purchase', module: 'purchase' },
+  { name: '采购验收', icon: 'CircleCheck', gradient: 'linear-gradient(135deg, #4ade80 0%, #22c55e 50%, #16a34a 100%)', route: '/purchase-acceptance', module: 'purchase' },
+  { name: '入库登记', icon: 'Download', gradient: 'linear-gradient(135deg, #a78bfa 0%, #8b5cf6 50%, #7c3aed 100%)', route: '/stock-in', module: 'stock' },
+  { name: '出库申请', icon: 'Upload', gradient: 'linear-gradient(135deg, #60a5fa 0%, #3b82f6 50%, #2563eb 100%)', route: '/stock-out', module: 'stock' },
+  { name: '库存查询', icon: 'Search', gradient: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%)', route: '/stock', module: 'stock' },
+  { name: '盘点任务', icon: 'DocumentChecked', gradient: 'linear-gradient(135deg, #fb923c 0%, #f97316 50%, #ea580c 100%)', route: '/stock-check', module: 'check' },
+  { name: '预警中心', icon: 'Bell', gradient: 'linear-gradient(135deg, #f87171 0%, #ef4444 50%, #dc2626 100%)', route: '/alert', module: 'alert' }
 ]
+
+// 角色权限配置
+const rolePermissions = {
+  ADMIN: ['basic', 'stock', 'purchase', 'check', 'alert', 'system'],
+  MANAGER: ['basic', 'stock', 'purchase', 'check', 'alert'],
+  USER: ['stock', 'check']
+}
+
+const canAccess = (module) => {
+  const roleCode = userStore.userInfo?.roleCode
+  if (!roleCode) return false
+  const permissions = rolePermissions[roleCode] || []
+  return permissions.includes(module)
+}
+
+const filteredQuickEntries = computed(() => {
+  return quickEntries.filter(entry => canAccess(entry.module))
+})
 
 const fetchData = async () => {
   try {
