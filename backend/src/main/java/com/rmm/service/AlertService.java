@@ -2,6 +2,8 @@ package com.rmm.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.rmm.common.PageResult;
 import com.rmm.entity.*;
 import com.rmm.mapper.*;
 import lombok.RequiredArgsConstructor;
@@ -57,8 +59,114 @@ public class AlertService {
                .orderByDesc(AlertRecord::getCreateTime);
 
         List<AlertRecord> records = alertRecordMapper.selectList(wrapper);
-        records.forEach(this::fillRelations);
+        fillRelationsBatch(records);
         return records;
+    }
+
+    public PageResult<AlertRecord> getAlertsPage(Integer current, Integer size, Integer status, String type) {
+        Page<AlertRecord> page = new Page<>(current, size);
+        LambdaQueryWrapper<AlertRecord> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(status != null, AlertRecord::getStatus, status)
+               .eq(type != null && !type.isEmpty(), AlertRecord::getType, type)
+               .orderByDesc(AlertRecord::getCreateTime);
+
+        Page<AlertRecord> result = alertRecordMapper.selectPage(page, wrapper);
+        fillRelationsBatch(result.getRecords());
+
+        PageResult<AlertRecord> pageResult = new PageResult<>();
+        pageResult.setRecords(result.getRecords());
+        pageResult.setTotal(result.getTotal());
+        pageResult.setSize(result.getSize());
+        pageResult.setCurrent(result.getCurrent());
+        pageResult.setPages(result.getPages());
+        return pageResult;
+    }
+
+    private void fillRelationsBatch(List<AlertRecord> records) {
+        if (records.isEmpty()) return;
+
+        // 批量加载关联数据
+        List<Long> materialIds = records.stream().map(AlertRecord::getMaterialId).filter(Objects::nonNull).distinct().toList();
+        List<Long> stockIds = records.stream().map(AlertRecord::getStockId).filter(Objects::nonNull).distinct().toList();
+        List<Long> handlerIds = records.stream().map(AlertRecord::getHandlerId).filter(Objects::nonNull).distinct().toList();
+
+        Map<Long, ReferenceMaterial> materialMap = materialIds.isEmpty() ? Map.of() :
+            materialMapper.selectBatchIds(materialIds).stream().collect(Collectors.toMap(ReferenceMaterial::getId, m -> m));
+        Map<Long, Stock> stockMap = stockIds.isEmpty() ? Map.of() :
+            stockMapper.selectBatchIds(stockIds).stream().collect(Collectors.toMap(Stock::getId, s -> s));
+        Map<Long, User> handlerMap = handlerIds.isEmpty() ? Map.of() :
+            userMapper.selectBatchIds(handlerIds).stream().collect(Collectors.toMap(User::getId, u -> u));
+
+        // 收集需要查询位置的 locationId
+        List<Long> locationIds = stockMap.values().stream()
+            .map(Stock::getLocationId).filter(Objects::nonNull).distinct().toList();
+        Map<Long, Location> locationMap = locationIds.isEmpty() ? Map.of() :
+            locationMapper.selectBatchIds(locationIds).stream().collect(Collectors.toMap(Location::getId, l -> l));
+
+        for (AlertRecord record : records) {
+            // 填充物质名称
+            if (record.getMaterialId() != null) {
+                ReferenceMaterial material = materialMap.get(record.getMaterialId());
+                if (material != null) {
+                    record.setMaterialName(material.getName());
+                }
+            }
+
+            // 库存不足预警
+            if ("STOCK_LOW".equals(record.getType())) {
+                if (record.getInternalCodes() == null || record.getInternalCodes().isEmpty()) {
+                    List<Stock> stocks = stockMapper.selectList(
+                        new LambdaQueryWrapper<Stock>()
+                            .eq(Stock::getMaterialId, record.getMaterialId())
+                            .gt(Stock::getQuantity, BigDecimal.ZERO)
+                            .eq(Stock::getStatus, 1)
+                    );
+                    String codes = stocks.stream()
+                        .map(Stock::getInternalCode)
+                        .filter(Objects::nonNull)
+                        .filter(code -> !code.isEmpty())
+                        .collect(Collectors.joining(", "));
+                    record.setInternalCodes(codes);
+                }
+                // 查询库存不足预警涉及的所有位置
+                List<Stock> stocks = stockMapper.selectList(
+                    new LambdaQueryWrapper<Stock>()
+                        .eq(Stock::getMaterialId, record.getMaterialId())
+                        .gt(Stock::getQuantity, BigDecimal.ZERO)
+                        .eq(Stock::getStatus, 1)
+                );
+                String locations = stocks.stream()
+                    .map(Stock::getLocationId)
+                    .filter(Objects::nonNull)
+                    .distinct()
+                    .map(locationId -> {
+                        Location location = locationMap.get(locationId);
+                        return location != null ? location.getName() : "";
+                    })
+                    .filter(name -> !name.isEmpty())
+                    .collect(Collectors.joining(", "));
+                record.setLocationName(locations);
+            } else if (record.getStockId() != null) {
+                Stock stock = stockMap.get(record.getStockId());
+                if (stock != null) {
+                    record.setInternalCode(stock.getInternalCode());
+                    if (stock.getLocationId() != null) {
+                        Location location = locationMap.get(stock.getLocationId());
+                        if (location != null) {
+                            record.setLocationName(location.getName());
+                        }
+                    }
+                }
+            }
+
+            // 填充处理人
+            if (record.getHandlerId() != null) {
+                User user = handlerMap.get(record.getHandlerId());
+                if (user != null) {
+                    record.setHandlerName(user.getRealName());
+                }
+            }
+        }
     }
 
     public AlertStats getStats() {
@@ -66,11 +174,17 @@ public class AlertService {
         stats.setTotal(alertRecordMapper.selectCount(
             new LambdaQueryWrapper<AlertRecord>().eq(AlertRecord::getStatus, 0)
         ).intValue());
-        stats.setExpiry(alertRecordMapper.selectCount(
+        stats.setExpiryWarning(alertRecordMapper.selectCount(
             new LambdaQueryWrapper<AlertRecord>()
                 .eq(AlertRecord::getStatus, 0)
-                .likeRight(AlertRecord::getType, "EXPIRY")
-        ).intValue() + alertRecordMapper.selectCount(
+                .eq(AlertRecord::getType, "EXPIRY_WARNING")
+        ).intValue());
+        stats.setExpiryCritical(alertRecordMapper.selectCount(
+            new LambdaQueryWrapper<AlertRecord>()
+                .eq(AlertRecord::getStatus, 0)
+                .eq(AlertRecord::getType, "EXPIRY_CRITICAL")
+        ).intValue());
+        stats.setExpiryOverdue(alertRecordMapper.selectCount(
             new LambdaQueryWrapper<AlertRecord>()
                 .eq(AlertRecord::getStatus, 0)
                 .eq(AlertRecord::getType, "EXPIRY_OVERDUE")
@@ -336,7 +450,9 @@ public class AlertService {
     @lombok.Data
     public static class AlertStats {
         private int total;
-        private int expiry;
+        private int expiryWarning;
+        private int expiryCritical;
+        private int expiryOverdue;
         private int stockLow;
         private int unused;
     }

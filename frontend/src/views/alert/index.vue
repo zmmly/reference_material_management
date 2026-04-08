@@ -1,7 +1,7 @@
 <template>
   <div class="page-container">
-    <el-row :gutter="20">
-      <el-col :span="6" v-for="(stat, key) in stats" :key="key">
+    <el-row :gutter="16">
+      <el-col :span="4" v-for="(stat, key) in stats" :key="key">
         <el-card shadow="hover" class="stat-card">
           <div class="stat-icon" :style="{ background: stat.color }">
             <el-icon><component :is="stat.icon" /></el-icon>
@@ -17,22 +17,23 @@
     <el-card style="margin-top: 20px">
       <el-form :inline="true" :model="queryParams">
         <el-form-item label="状态">
-          <el-select v-model="queryParams.status" placeholder="全部" clearable>
+          <el-select v-model="queryParams.status" placeholder="全部" clearable style="width: 140px">
             <el-option label="未处理" :value="0" />
             <el-option label="已处理" :value="1" />
             <el-option label="已忽略" :value="2" />
           </el-select>
         </el-form-item>
         <el-form-item label="类型">
-          <el-select v-model="queryParams.type" placeholder="全部" clearable>
+          <el-select v-model="queryParams.type" placeholder="全部" clearable style="width: 140px">
             <el-option label="有效期预警" value="EXPIRY_WARNING" />
             <el-option label="有效期紧急" value="EXPIRY_CRITICAL" />
+            <el-option label="已过期" value="EXPIRY_OVERDUE" />
             <el-option label="库存不足" value="STOCK_LOW" />
             <el-option label="长期未使用" value="UNUSED" />
           </el-select>
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="fetchData">查询</el-button>
+          <el-button type="primary" @click="handleSearch">查询</el-button>
           <el-button @click="handleTriggerCheck">手动检查</el-button>
         </el-form-item>
       </el-form>
@@ -84,6 +85,17 @@
           </template>
         </el-table-column>
       </el-table>
+
+      <el-pagination
+        style="margin-top: 16px; justify-content: flex-end"
+        v-model:current-page="queryParams.current"
+        v-model:page-size="queryParams.size"
+        :total="total"
+        :page-sizes="[10, 20, 50, 100]"
+        layout="total, sizes, prev, pager, next, jumper"
+        @size-change="fetchData"
+        @current-change="fetchData"
+      />
     </el-card>
 
     <el-dialog v-model="handleDialogVisible" title="处理预警" width="400">
@@ -107,24 +119,33 @@ import { getAlertList, getAlertStats, handleAlert as handleAlertApi, ignoreAlert
 
 const loading = ref(false)
 const tableData = ref([])
-const statsData = ref({ total: 0, expiry: 0, stockLow: 0, unused: 0 })
-const queryParams = reactive({ status: null, type: '' })
+const total = ref(0)
+const statsData = ref({ total: 0, expiryWarning: 0, expiryCritical: 0, expiryOverdue: 0, stockLow: 0, unused: 0 })
+const queryParams = reactive({ current: 1, size: 10, status: null, type: '' })
 const handleDialogVisible = ref(false)
 const handleRemark = ref('')
 const currentRow = ref(null)
 
 const stats = computed(() => ({
   total: { label: '预警总数', value: statsData.value.total, icon: 'Bell', color: '#409EFF' },
-  expiry: { label: '有效期预警', value: statsData.value.expiry, icon: 'Timer', color: '#E6A23C' },
+  expiryWarning: { label: '有效期预警', value: statsData.value.expiryWarning, icon: 'Timer', color: '#E6A23C' },
+  expiryCritical: { label: '有效期紧急', value: statsData.value.expiryCritical, icon: 'WarningFilled', color: '#F56C6C' },
+  expiryOverdue: { label: '已过期', value: statsData.value.expiryOverdue, icon: 'CircleCloseFilled', color: '#909399' },
   stockLow: { label: '库存不足', value: statsData.value.stockLow, icon: 'Box', color: '#F56C6C' },
   unused: { label: '长期未用', value: statsData.value.unused, icon: 'Clock', color: '#909399' }
 }))
+
+const handleSearch = () => {
+  queryParams.current = 1
+  fetchData()
+}
 
 const fetchData = async () => {
   loading.value = true
   try {
     const res = await getAlertList(queryParams)
-    tableData.value = res.data || []
+    tableData.value = res.data?.records || []
+    total.value = res.data?.total || 0
   } finally {
     loading.value = false
   }
@@ -133,7 +154,7 @@ const fetchData = async () => {
 const fetchStats = async () => {
   try {
     const res = await getAlertStats()
-    statsData.value = res.data || { total: 0, expiry: 0, stockLow: 0, unused: 0 }
+    statsData.value = res.data || { total: 0, expiryWarning: 0, expiryCritical: 0, expiryOverdue: 0, stockLow: 0, unused: 0 }
   } catch (e) {}
 }
 
@@ -165,8 +186,8 @@ const handleTriggerCheck = async () => {
   fetchStats()
 }
 
-const typeTag = (t) => t?.includes('EXPIRY') ? 'warning' : t === 'STOCK_LOW' ? 'danger' : 'info'
-const typeText = (t) => ({ EXPIRY_WARNING: '有效期预警', EXPIRY_CRITICAL: '有效期紧急', STOCK_LOW: '库存不足', UNUSED: '长期未使用' }[t] || t)
+const typeTag = (t) => t === 'EXPIRY_OVERDUE' ? 'danger' : t?.includes('EXPIRY') ? 'warning' : t === 'STOCK_LOW' ? 'danger' : 'info'
+const typeText = (t) => ({ EXPIRY_WARNING: '有效期预警', EXPIRY_CRITICAL: '有效期紧急', EXPIRY_OVERDUE: '已过期', STOCK_LOW: '库存不足', UNUSED: '长期未使用' }[t] || t)
 const levelType = (l) => ({ 1: 'info', 2: 'warning', 3: 'danger' }[l] || 'info')
 const levelText = (l) => ({ 1: '普通', 2: '重要', 3: '紧急' }[l] || '普通')
 const statusType = (s) => ({ 0: 'warning', 1: 'success', 2: 'info' }[s] || 'info')
@@ -186,17 +207,17 @@ onMounted(() => {
   padding: 20px;
 }
 .stat-icon {
-  width: 60px;
-  height: 60px;
+  width: 48px;
+  height: 48px;
   border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #fff;
-  font-size: 28px;
-  margin-right: 15px;
+  font-size: 24px;
+  margin-right: 12px;
 }
 .stat-info { flex: 1; }
-.stat-value { font-size: 28px; font-weight: bold; }
-.stat-label { color: #999; font-size: 14px; margin-top: 5px; }
+.stat-value { font-size: 24px; font-weight: bold; }
+.stat-label { color: #999; font-size: 13px; margin-top: 4px; }
 </style>

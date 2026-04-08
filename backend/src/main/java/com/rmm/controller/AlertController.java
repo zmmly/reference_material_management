@@ -1,5 +1,6 @@
 package com.rmm.controller;
 
+import com.rmm.common.PageResult;
 import com.rmm.common.Result;
 import com.rmm.entity.AlertConfig;
 import com.rmm.entity.AlertRecord;
@@ -20,10 +21,12 @@ public class AlertController {
     private final JwtUtil jwtUtil;
 
     @GetMapping
-    public Result<List<AlertRecord>> list(
+    public Result<PageResult<AlertRecord>> list(
+            @RequestParam(defaultValue = "1") Integer current,
+            @RequestParam(defaultValue = "10") Integer size,
             @RequestParam(required = false) Integer status,
             @RequestParam(required = false) String type) {
-        return Result.success(alertService.getAlerts(status, type));
+        return Result.success(alertService.getAlertsPage(current, size, status, type));
     }
 
     @GetMapping("/stats")
