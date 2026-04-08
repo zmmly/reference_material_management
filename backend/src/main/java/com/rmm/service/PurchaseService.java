@@ -14,6 +14,7 @@ import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -176,5 +177,32 @@ public class PurchaseService {
                 purchase.setApproverName(user.getRealName());
             }
         }
+    }
+
+    /**
+     * 查询导出数据（不分页）
+     */
+    public List<Purchase> listForExport(String purchaseNo, String materialName) {
+        LambdaQueryWrapper<Purchase> wrapper = new LambdaQueryWrapper<>();
+
+        if (purchaseNo != null && !purchaseNo.isBlank()) {
+            wrapper.like(Purchase::getPurchaseNo, purchaseNo);
+        }
+
+        // materialName 关联查询需要先找匹配的标准物质ID
+        if (materialName != null && !materialName.isBlank()) {
+            List<ReferenceMaterial> materials = materialMapper.selectList(
+                    new LambdaQueryWrapper<ReferenceMaterial>().like(ReferenceMaterial::getName, materialName));
+            if (materials.isEmpty()) {
+                return new ArrayList<>();
+            }
+            List<Long> materialIds = materials.stream().map(ReferenceMaterial::getId).toList();
+            wrapper.in(Purchase::getMaterialId, materialIds);
+        }
+
+        wrapper.orderByDesc(Purchase::getApplyTime);
+        List<Purchase> list = purchaseMapper.selectList(wrapper);
+        list.forEach(this::fillRelations);
+        return list;
     }
 }

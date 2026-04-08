@@ -1,5 +1,6 @@
 package com.rmm.controller;
 
+import com.alibaba.excel.EasyExcel;
 import com.rmm.common.PageResult;
 import com.rmm.common.Result;
 import com.rmm.entity.Purchase;
@@ -7,8 +8,14 @@ import com.rmm.service.PurchaseService;
 import com.rmm.service.PurchaseAcceptanceService;
 import com.rmm.util.JwtUtil;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+
+import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/purchase")
@@ -74,5 +81,25 @@ public class PurchaseController {
     public Result<Void> markArrived(@PathVariable Long id) {
         acceptanceService.createAcceptance(id);
         return Result.success();
+    }
+
+    @GetMapping("/export")
+    public void export(
+            @RequestParam(required = false) String purchaseNo,
+            @RequestParam(required = false) String materialName,
+            HttpServletResponse response) throws IOException {
+
+        List<Purchase> list = purchaseService.listForExport(purchaseNo, materialName);
+
+        // 设置响应头
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setCharacterEncoding("utf-8");
+        String fileName = URLEncoder.encode("采购记录", StandardCharsets.UTF_8).replaceAll("\\+", "%20");
+        response.setHeader("Content-disposition", "attachment;filename*=utf-8''" + fileName + ".xlsx");
+
+        // 写入Excel
+        EasyExcel.write(response.getOutputStream(), Purchase.class)
+                .sheet("采购记录")
+                .doWrite(list);
     }
 }
