@@ -306,10 +306,14 @@ const fetchData = async () => {
 const fetchMyApplications = async () => {
   loading.value = true
   try {
-    const res = await getPurchaseList({
-      ...myQueryParams,
-      applicantId: userStore.userInfo?.id
-    })
+    // 管理员/经理查看所有人的申请，普通用户只看自己的
+    const isAdmin = userStore.userInfo?.roleCode === 'ADMIN' || userStore.userInfo?.roleCode === 'MANAGER'
+    const res = isAdmin
+      ? await getAllPurchaseList(myQueryParams)
+      : await getPurchaseList({
+          ...myQueryParams,
+          applicantId: userStore.userInfo?.id
+        })
     myApplications.value = res.data?.records || []
     myTotal.value = res.data?.total || 0
   } finally {
@@ -320,7 +324,7 @@ const fetchMyApplications = async () => {
 const fetchPendingApplications = async () => {
   loading.value = true
   try {
-    const res = await getPurchaseList({
+    const res = await getAllPurchaseList({
       ...pendingQueryParams,
       status: 0
     })
