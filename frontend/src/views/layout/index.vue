@@ -61,6 +61,7 @@
             <span>预警中心</span>
           </template>
           <el-menu-item index="/alert">预警管理</el-menu-item>
+          <el-menu-item index="/alert-config">预警配置</el-menu-item>
         </el-sub-menu>
 
         <el-sub-menu index="system" v-if="canAccess('system')">
