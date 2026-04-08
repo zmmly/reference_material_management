@@ -125,7 +125,7 @@ const activeMenu = computed(() => route.path)
 const rolePermissions = {
   ADMIN: ['basic', 'stock', 'purchase', 'check', 'alert', 'system'],
   MANAGER: ['basic', 'stock', 'purchase', 'check', 'alert'],
-  USER: ['stock', 'check']
+  USER: ['stock', 'purchase', 'check']
 }
 
 // 检查用户是否有权限访问某个模块

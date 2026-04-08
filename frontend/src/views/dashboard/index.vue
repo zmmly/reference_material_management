@@ -178,7 +178,7 @@ const quickEntries = [
 const rolePermissions = {
   ADMIN: ['basic', 'stock', 'purchase', 'check', 'alert', 'system'],
   MANAGER: ['basic', 'stock', 'purchase', 'check', 'alert'],
-  USER: ['stock', 'check']
+  USER: ['stock', 'purchase', 'check']
 }
 
 const canAccess = (module) => {
@@ -248,18 +248,10 @@ const fetchTodoItems = async () => {
 
 const fetchAlerts = async () => {
   try {
-    console.log('开始获取预警数据...')
-    const res = await getAlertList({ status: 0 })
-    console.log('预警数据响应:', res)
-    console.log('响应码:', res?.code)
-    console.log('响应数据:', res?.data)
-
-    const alerts = res.data || []
-    alertList.value = alerts.slice(0, 5)
-    alertTotal.value = alerts.length
-    console.log('预警总数:', alertTotal.value)
-    console.log('预警列表长度:', alertList.value.length)
-    console.log('预警列表:', alertList.value)
+    const res = await getAlertList({ status: 0, current: 1, size: 5 })
+    const records = res.data?.records || []
+    alertList.value = records
+    alertTotal.value = res.data?.total || 0
   } catch (e) {
     console.error('获取预警数据失败:', e)
   }
