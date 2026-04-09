@@ -1,9 +1,26 @@
 <template>
   <div class="page-container">
     <el-card>
-      <el-tabs v-model="activeTab">
+      <!-- 搜索条件 -->
+      <el-form :inline="true" :model="searchForm" class="search-form">
+        <el-form-item label="申请人">
+          <el-input v-model="searchForm.applicantName" placeholder="请输入申请人姓名" clearable style="width: 160px" />
+        </el-form-item>
+        <el-form-item label="物质编号">
+          <el-input v-model="searchForm.materialCode" placeholder="请输入物质编号" clearable style="width: 160px" />
+        </el-form-item>
+        <el-form-item label="物质名称">
+          <el-input v-model="searchForm.materialName" placeholder="请输入物质名称" clearable style="width: 160px" />
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" @click="handleSearch">查询</el-button>
+          <el-button @click="handleReset">重置</el-button>
+        </el-form-item>
+      </el-form>
+
+      <el-tabs v-model="activeTab" @tab-change="handleTabChange">
         <el-tab-pane label="我的申请" name="my">
-          <el-table :data="myApplications" v-loading="loading" border>
+          <el-table :data="myData" v-loading="myLoading" border>
             <el-table-column prop="materialCode" label="编号" min-width="130" show-overflow-tooltip />
             <el-table-column prop="materialName" label="名称" min-width="160" show-overflow-tooltip />
             <el-table-column prop="casNumber" label="CAS号" min-width="110" show-overflow-tooltip />
@@ -30,9 +47,20 @@
               </template>
             </el-table-column>
           </el-table>
+          <el-pagination
+            v-model:current-page="myPage.current"
+            v-model:page-size="myPage.size"
+            :total="myPage.total"
+            :page-sizes="[10, 20, 50]"
+            layout="total, sizes, prev, pager, next, jumper"
+            class="pagination"
+            @size-change="fetchMyData"
+            @current-change="fetchMyData"
+          />
         </el-tab-pane>
+
         <el-tab-pane label="待审批" name="pending" v-if="canApprove">
-          <el-table :data="pendingList" v-loading="loading" border>
+          <el-table :data="pendingData" v-loading="pendingLoading" border>
             <el-table-column prop="applicantName" label="申请人" min-width="100" show-overflow-tooltip />
             <el-table-column prop="materialCode" label="编号" min-width="130" show-overflow-tooltip />
             <el-table-column prop="materialName" label="名称" min-width="160" show-overflow-tooltip />
@@ -54,6 +82,51 @@
               </template>
             </el-table-column>
           </el-table>
+          <el-pagination
+            v-model:current-page="pendingPage.current"
+            v-model:page-size="pendingPage.size"
+            :total="pendingPage.total"
+            :page-sizes="[10, 20, 50]"
+            layout="total, sizes, prev, pager, next, jumper"
+            class="pagination"
+            @size-change="fetchPendingData"
+            @current-change="fetchPendingData"
+          />
+        </el-tab-pane>
+
+        <el-tab-pane label="已审批" name="approved" v-if="canApprove">
+          <el-table :data="approvedData" v-loading="approvedLoading" border>
+            <el-table-column prop="applicantName" label="申请人" min-width="100" show-overflow-tooltip />
+            <el-table-column prop="materialCode" label="编号" min-width="130" show-overflow-tooltip />
+            <el-table-column prop="materialName" label="名称" min-width="160" show-overflow-tooltip />
+            <el-table-column prop="casNumber" label="CAS号" min-width="110" show-overflow-tooltip />
+            <el-table-column prop="supplierName" label="供应商" min-width="130" show-overflow-tooltip />
+            <el-table-column prop="internalCode" label="内部编号" min-width="110" show-overflow-tooltip />
+            <el-table-column prop="quantity" label="申请数量" min-width="90" />
+            <el-table-column prop="reason" label="出库原因" min-width="90">
+              <template #default="{ row }">{{ reasonText(row.reason) }}</template>
+            </el-table-column>
+            <el-table-column prop="purpose" label="用途说明" min-width="150" show-overflow-tooltip />
+            <el-table-column prop="status" label="状态" min-width="90">
+              <template #default="{ row }">
+                <el-tag :type="statusType(row.status)">{{ statusText(row.status) }}</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="approverName" label="审批人" min-width="100" show-overflow-tooltip />
+            <el-table-column prop="applyTime" label="申请时间" min-width="150" />
+            <el-table-column prop="approveTime" label="审批时间" min-width="150" />
+            <el-table-column prop="rejectReason" label="拒绝原因" min-width="150" show-overflow-tooltip />
+          </el-table>
+          <el-pagination
+            v-model:current-page="approvedPage.current"
+            v-model:page-size="approvedPage.size"
+            :total="approvedPage.total"
+            :page-sizes="[10, 20, 50]"
+            layout="total, sizes, prev, pager, next, jumper"
+            class="pagination"
+            @size-change="fetchApprovedData"
+            @current-change="fetchApprovedData"
+          />
         </el-tab-pane>
       </el-tabs>
     </el-card>
@@ -98,41 +171,143 @@ import { getStockOutList, approveStockOut, cancelStockOut, updateStockOut, delet
 import { useUserStore } from '@/store/modules/user'
 
 const userStore = useUserStore()
-const loading = ref(false)
 const activeTab = ref('my')
-const allApplications = ref([])
-const rejectDialogVisible = ref(false)
-const rejectReason = ref('')
-const currentRow = ref(null)
 
-// 编辑相关
-const editDialogVisible = ref(false)
-const editForm = reactive({
-  id: null,
-  reason: '',
-  purpose: ''
+// 搜索条件
+const searchForm = reactive({
+  applicantName: '',
+  materialCode: '',
+  materialName: ''
 })
+
+// 获取搜索参数（排除 applicantName 对"我的申请"tab无效的情况，仍传递给后端）
+const getSearchParams = () => ({
+  applicantName: searchForm.applicantName || undefined,
+  materialCode: searchForm.materialCode || undefined,
+  materialName: searchForm.materialName || undefined
+})
+
+// 我的申请
+const myLoading = ref(false)
+const myData = ref([])
+const myPage = reactive({ current: 1, size: 10, total: 0 })
+
+const fetchMyData = async () => {
+  myLoading.value = true
+  try {
+    const res = await getStockOutList({
+      current: myPage.current,
+      size: myPage.size,
+      applicantId: userStore.userInfo?.id,
+      ...getSearchParams()
+    })
+    myData.value = res.data?.records || []
+    myPage.total = res.data?.total || 0
+  } finally {
+    myLoading.value = false
+  }
+}
+
+// 待审批
+const pendingLoading = ref(false)
+const pendingData = ref([])
+const pendingPage = reactive({ current: 1, size: 10, total: 0 })
+
+const fetchPendingData = async () => {
+  pendingLoading.value = true
+  try {
+    const res = await getStockOutList({
+      current: pendingPage.current,
+      size: pendingPage.size,
+      status: 0,
+      ...getSearchParams()
+    })
+    pendingData.value = res.data?.records || []
+    pendingPage.total = res.data?.total || 0
+  } finally {
+    pendingLoading.value = false
+  }
+}
+
+// 已审批（状态为已通过1或已拒绝2）
+const approvedLoading = ref(false)
+const approvedData = ref([])
+const approvedPage = reactive({ current: 1, size: 10, total: 0 })
+
+const fetchApprovedData = async () => {
+  approvedLoading.value = true
+  try {
+    // 先查已通过
+    const res1 = await getStockOutList({
+      current: 1,
+      size: 999,
+      status: 1,
+      ...getSearchParams()
+    })
+    const passed = res1.data?.records || []
+    // 再查已拒绝
+    const res2 = await getStockOutList({
+      current: 1,
+      size: 999,
+      status: 2,
+      ...getSearchParams()
+    })
+    const rejected = res2.data?.records || []
+    // 合并并按审批时间排序
+    const all = [...passed, ...rejected].sort((a, b) => {
+      const ta = a.approveTime ? new Date(a.approveTime).getTime() : 0
+      const tb = b.approveTime ? new Date(b.approveTime).getTime() : 0
+      return tb - ta
+    })
+    approvedPage.total = all.length
+    const start = (approvedPage.current - 1) * approvedPage.size
+    approvedData.value = all.slice(start, start + approvedPage.size)
+  } finally {
+    approvedLoading.value = false
+  }
+}
 
 const canApprove = computed(() => {
   const roleCode = userStore.userInfo?.roleCode
   return roleCode === 'ADMIN' || roleCode === 'MANAGER'
 })
 
-const myApplications = computed(() => {
-  return allApplications.value.filter(item => item.applicantId === userStore.userInfo?.id)
-})
+// 搜索
+const handleSearch = () => {
+  refreshCurrentTab()
+}
 
-const pendingList = computed(() => {
-  return allApplications.value.filter(item => item.status === 0)
-})
+const handleReset = () => {
+  searchForm.applicantName = ''
+  searchForm.materialCode = ''
+  searchForm.materialName = ''
+  refreshCurrentTab()
+}
 
-const fetchData = async () => {
-  loading.value = true
-  try {
-    const res = await getStockOutList({ current: 1, size: 100 })
-    allApplications.value = res.data?.records || []
-  } finally {
-    loading.value = false
+// 切换tab时刷新对应数据
+const handleTabChange = (tab) => {
+  refreshCurrentTab()
+}
+
+const refreshCurrentTab = () => {
+  if (activeTab.value === 'my') {
+    myPage.current = 1
+    fetchMyData()
+  } else if (activeTab.value === 'pending') {
+    pendingPage.current = 1
+    fetchPendingData()
+  } else if (activeTab.value === 'approved') {
+    approvedPage.current = 1
+    fetchApprovedData()
+  }
+}
+
+// 审批后刷新当前tab
+const refreshAfterAction = () => {
+  if (activeTab.value === 'pending') {
+    fetchPendingData()
+  } else if (activeTab.value === 'my') {
+    fetchMyData()
   }
 }
 
@@ -140,7 +315,7 @@ const handleCancel = async (row) => {
   await ElMessageBox.confirm('确定撤回该申请？')
   await cancelStockOut(row.id)
   ElMessage.success('已撤回')
-  fetchData()
+  refreshAfterAction()
 }
 
 const handleApprove = async (row, approved) => {
@@ -148,13 +323,17 @@ const handleApprove = async (row, approved) => {
     await ElMessageBox.confirm('确定通过该申请？')
     await approveStockOut(row.id, true, '')
     ElMessage.success('已通过')
-    fetchData()
+    refreshAfterAction()
   } else {
     currentRow.value = row
     rejectReason.value = ''
     rejectDialogVisible.value = true
   }
 }
+
+const rejectDialogVisible = ref(false)
+const rejectReason = ref('')
+const currentRow = ref(null)
 
 const confirmReject = async () => {
   if (!rejectReason.value.trim()) {
@@ -164,10 +343,17 @@ const confirmReject = async () => {
   await approveStockOut(currentRow.value.id, false, rejectReason.value)
   ElMessage.success('已拒绝')
   rejectDialogVisible.value = false
-  fetchData()
+  refreshAfterAction()
 }
 
 // 编辑出库申请
+const editDialogVisible = ref(false)
+const editForm = reactive({
+  id: null,
+  reason: '',
+  purpose: ''
+})
+
 const handleEdit = (row) => {
   editForm.id = row.id
   editForm.reason = row.reason
@@ -186,7 +372,7 @@ const handleEditSubmit = async () => {
   })
   ElMessage.success('修改成功')
   editDialogVisible.value = false
-  fetchData()
+  refreshAfterAction()
 }
 
 // 删除出库申请
@@ -194,7 +380,7 @@ const handleDelete = async (row) => {
   await ElMessageBox.confirm('确定删除该出库申请？', '删除确认', { type: 'warning' })
   await deleteStockOut(row.id)
   ElMessage.success('删除成功')
-  fetchData()
+  refreshAfterAction()
 }
 
 const statusType = (s) => ({ 0: 'warning', 1: 'success', 2: 'danger', 3: 'info' }[s] || 'info')
@@ -203,7 +389,7 @@ const reasonText = (r) => ({
   EXPERIMENT: '实验使用', EXPIRED: '过期销毁', SCRAP: '报废', TRANSFER_OUT: '调拨出', DONATE: '赠送', OTHER: '其他'
 }[r] || r)
 
-onMounted(() => fetchData())
+onMounted(() => fetchMyData())
 </script>
 
 <style scoped>
@@ -212,5 +398,12 @@ onMounted(() => fetchData())
   display: inline-flex;
   gap: 8px;
   align-items: center;
+}
+.search-form {
+  margin-bottom: 16px;
+}
+.pagination {
+  margin-top: 16px;
+  justify-content: flex-end;
 }
 </style>

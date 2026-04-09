@@ -27,8 +27,11 @@ public class StockOutController {
             @RequestParam(defaultValue = "1") Integer current,
             @RequestParam(defaultValue = "10") Integer size,
             @RequestParam(required = false) Integer status,
-            @RequestParam(required = false) Long applicantId) {
-        return Result.success(stockOutService.list(current, size, status, applicantId));
+            @RequestParam(required = false) Long applicantId,
+            @RequestParam(required = false) String applicantName,
+            @RequestParam(required = false) String materialCode,
+            @RequestParam(required = false) String materialName) {
+        return Result.success(stockOutService.list(current, size, status, applicantId, applicantName, materialCode, materialName));
     }
 
     @GetMapping("/my")
@@ -36,10 +39,13 @@ public class StockOutController {
             @RequestParam(defaultValue = "1") Integer current,
             @RequestParam(defaultValue = "10") Integer size,
             @RequestParam(required = false) Integer status,
+            @RequestParam(required = false) String applicantName,
+            @RequestParam(required = false) String materialCode,
+            @RequestParam(required = false) String materialName,
             HttpServletRequest request) {
         String token = request.getHeader("Authorization").substring(7);
         Long userId = jwtUtil.getUserId(token);
-        return Result.success(stockOutService.list(current, size, status, userId));
+        return Result.success(stockOutService.list(current, size, status, userId, applicantName, materialCode, materialName));
     }
 
     @PostMapping

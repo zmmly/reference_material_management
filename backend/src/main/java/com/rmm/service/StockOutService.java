@@ -13,7 +13,9 @@ import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -25,12 +27,52 @@ public class StockOutService {
     private final UserMapper userMapper;
     private final SupplierMapper supplierMapper;
 
-    public PageResult<StockOut> list(Integer current, Integer size, Integer status, Long applicantId) {
+    public PageResult<StockOut> list(Integer current, Integer size, Integer status, Long applicantId,
+                                      String applicantName, String materialCode, String materialName) {
         Page<StockOut> page = new Page<>(current, size);
+
+        // 按申请人姓名模糊查询，获取匹配的用户ID列表
+        List<Long> applicantIds = null;
+        if (StringUtils.hasText(applicantName)) {
+            List<User> users = userMapper.selectList(
+                new LambdaQueryWrapper<User>().like(User::getRealName, applicantName));
+            applicantIds = users.stream().map(User::getId).collect(Collectors.toList());
+            if (applicantIds.isEmpty()) {
+                // 没有匹配的用户，直接返回空结果
+                PageResult<StockOut> pageResult = new PageResult<>();
+                pageResult.setRecords(Collections.emptyList());
+                pageResult.setTotal(0L);
+                pageResult.setSize((long) size);
+                pageResult.setCurrent((long) current);
+                pageResult.setPages(0L);
+                return pageResult;
+            }
+        }
+
+        // 按物质编号/名称模糊查询，获取匹配的物质ID列表
+        List<Long> materialIds = null;
+        if (StringUtils.hasText(materialCode) || StringUtils.hasText(materialName)) {
+            LambdaQueryWrapper<ReferenceMaterial> matWrapper = new LambdaQueryWrapper<>();
+            matWrapper.like(StringUtils.hasText(materialCode), ReferenceMaterial::getCode, materialCode)
+                      .like(StringUtils.hasText(materialName), ReferenceMaterial::getName, materialName);
+            List<ReferenceMaterial> materials = materialMapper.selectList(matWrapper);
+            materialIds = materials.stream().map(ReferenceMaterial::getId).collect(Collectors.toList());
+            if (materialIds.isEmpty()) {
+                PageResult<StockOut> pageResult = new PageResult<>();
+                pageResult.setRecords(Collections.emptyList());
+                pageResult.setTotal(0L);
+                pageResult.setSize((long) size);
+                pageResult.setCurrent((long) current);
+                pageResult.setPages(0L);
+                return pageResult;
+            }
+        }
 
         LambdaQueryWrapper<StockOut> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(status != null, StockOut::getStatus, status)
                .eq(applicantId != null, StockOut::getApplicantId, applicantId)
+               .in(applicantIds != null, StockOut::getApplicantId, applicantIds)
+               .in(materialIds != null, StockOut::getMaterialId, materialIds)
                .orderByDesc(StockOut::getApplyTime);
 
         Page<StockOut> result = stockOutMapper.selectPage(page, wrapper);
