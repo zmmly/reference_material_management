@@ -182,11 +182,15 @@ public class PurchaseService {
     /**
      * 查询导出数据（不分页）
      */
-    public List<Purchase> listForExport(String purchaseNo, String materialName) {
+    public List<Purchase> listForExport(String purchaseNo, String materialName, Integer status) {
         LambdaQueryWrapper<Purchase> wrapper = new LambdaQueryWrapper<>();
 
         if (purchaseNo != null && !purchaseNo.isBlank()) {
             wrapper.like(Purchase::getPurchaseNo, purchaseNo);
+        }
+
+        if (status != null) {
+            wrapper.eq(Purchase::getStatus, status);
         }
 
         // materialName 关联查询需要先找匹配的标准物质ID

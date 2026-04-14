@@ -25,6 +25,7 @@
               <el-button type="primary" @click="handleMySearch">查询</el-button>
               <el-button @click="handleMyReset">重置</el-button>
               <el-button type="success" @click="handleAdd">新建采购申请</el-button>
+              <el-button type="warning" @click="handleMyExport" :loading="exporting">导出Excel</el-button>
             </el-form-item>
           </el-form>
           <el-table :data="myApplications" v-loading="loading" border>
@@ -372,12 +373,35 @@ const handleExport = async () => {
   try {
     const blob = await exportPurchase({
       purchaseNo: pendingQueryParams.purchaseNo,
-      materialName: pendingQueryParams.materialName
+      materialName: pendingQueryParams.materialName,
+      status: 0
     })
     const url = window.URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
     link.download = `采购申请待审批_${new Date().toISOString().slice(0, 10)}.xlsx`
+    link.click()
+    window.URL.revokeObjectURL(url)
+    ElMessage.success('导出成功')
+  } catch (e) {
+    ElMessage.error('导出失败')
+  } finally {
+    exporting.value = false
+  }
+}
+
+const handleMyExport = async () => {
+  exporting.value = true
+  try {
+    const blob = await exportPurchase({
+      purchaseNo: myQueryParams.purchaseNo,
+      materialName: myQueryParams.materialName,
+      status: myQueryParams.status
+    })
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `采购申请记录_${new Date().toISOString().slice(0, 10)}.xlsx`
     link.click()
     window.URL.revokeObjectURL(url)
     ElMessage.success('导出成功')
