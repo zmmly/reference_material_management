@@ -135,10 +135,10 @@ public class StockInService {
 
     /**
      * 生成内部编号
-     * 格式: 批号-NNN (3位序列号)
+     * 格式: 批号-NN (2位序列号)
      */
     private String generateInternalCode(String batchNo, int sequence) {
-        return String.format("%s-%03d", batchNo.toUpperCase(), sequence);
+        return String.format("%s-%02d", batchNo.toUpperCase(), sequence);
     }
 
     @Transactional
@@ -622,7 +622,7 @@ public class StockInService {
                 int endSeq = Integer.parseInt(endCode.substring(lastDashEnd + 1));
 
                 for (int i = startSeq; i <= endSeq; i++) {
-                    codes.add(prefix + String.format("%03d", i));
+                    codes.add(prefix + String.format("%02d", i));
                 }
             } catch (NumberFormatException e) {
                 log.error("无法解析内部编号序列号: {}", internalCode);

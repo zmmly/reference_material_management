@@ -309,10 +309,10 @@ public class PurchaseAcceptanceService {
 
     /**
      * 生成内部编号
-     * 格式: 批号-NNN (3位序列号)
+     * 格式: 批号-NN (2位序列号)
      */
     private String generateInternalCode(String batchNo, int sequence) {
-        return String.format("%s-%03d", batchNo.toUpperCase(), sequence);
+        return String.format("%s-%02d", batchNo.toUpperCase(), sequence);
     }
 
     private void fillMaterialInfo(PurchaseAcceptance acceptance) {
