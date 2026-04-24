@@ -22,8 +22,11 @@ public class PurchaseAcceptanceController {
     public Result<PageResult<PurchaseAcceptance>> list(
             @RequestParam(defaultValue = "1") Integer current,
             @RequestParam(defaultValue = "10") Integer size,
-            @RequestParam(required = false) Integer status) {
-        return Result.success(acceptanceService.list(current, size, status));
+            @RequestParam(required = false) Integer status,
+            @RequestParam(required = false) Integer result,
+            @RequestParam(required = false) String purchaseNo,
+            @RequestParam(required = false) String materialName) {
+        return Result.success(acceptanceService.list(current, size, status, result, purchaseNo, materialName));
     }
 
     @GetMapping("/{id}")

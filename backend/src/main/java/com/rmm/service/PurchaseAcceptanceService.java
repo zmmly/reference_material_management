@@ -27,11 +27,15 @@ public class PurchaseAcceptanceService {
     private final StockMapper stockMapper;
     private final LocationMapper locationMapper;
 
-    public PageResult<PurchaseAcceptance> list(Integer current, Integer size, Integer status) {
+    public PageResult<PurchaseAcceptance> list(Integer current, Integer size, Integer status,
+                                                Integer result, String purchaseNo, String materialName) {
         Page<PurchaseAcceptance> page = new Page<>(current, size);
 
         LambdaQueryWrapper<PurchaseAcceptance> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(status != null, PurchaseAcceptance::getAcceptanceResult, status)
+               .eq(result != null, PurchaseAcceptance::getAcceptanceResult, result)
+               .like(org.springframework.util.StringUtils.hasText(purchaseNo), PurchaseAcceptance::getPurchaseNo, purchaseNo)
+               .like(org.springframework.util.StringUtils.hasText(materialName), PurchaseAcceptance::getMaterialName, materialName)
                .orderByDesc(PurchaseAcceptance::getCreateTime);
 
         Page<PurchaseAcceptance> result = acceptanceMapper.selectPage(page, wrapper);
