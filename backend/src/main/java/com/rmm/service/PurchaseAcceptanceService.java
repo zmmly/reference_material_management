@@ -38,20 +38,20 @@ public class PurchaseAcceptanceService {
                .like(org.springframework.util.StringUtils.hasText(materialName), PurchaseAcceptance::getMaterialName, materialName)
                .orderByDesc(PurchaseAcceptance::getCreateTime);
 
-        Page<PurchaseAcceptance> result = acceptanceMapper.selectPage(page, wrapper);
+        Page<PurchaseAcceptance> acceptancePage = acceptanceMapper.selectPage(page, wrapper);
 
         // 填充状态文本和位置名称
-        result.getRecords().forEach(acceptance -> {
+        acceptancePage.getRecords().forEach(acceptance -> {
             fillStatusText(acceptance);
             fillLocationInfo(acceptance);
         });
 
         PageResult<PurchaseAcceptance> pageResult = new PageResult<>();
-        pageResult.setRecords(result.getRecords());
-        pageResult.setTotal(result.getTotal());
-        pageResult.setSize(result.getSize());
-        pageResult.setCurrent(result.getCurrent());
-        pageResult.setPages(result.getPages());
+        pageResult.setRecords(acceptancePage.getRecords());
+        pageResult.setTotal(acceptancePage.getTotal());
+        pageResult.setSize(acceptancePage.getSize());
+        pageResult.setCurrent(acceptancePage.getCurrent());
+        pageResult.setPages(acceptancePage.getPages());
         return pageResult;
     }
 
