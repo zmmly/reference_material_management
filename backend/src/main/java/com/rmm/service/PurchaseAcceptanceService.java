@@ -232,8 +232,8 @@ public class PurchaseAcceptanceService {
         stockIn.setMaterialId(purchase.getMaterialId());
         stockIn.setBatchNo(purchase.getBatchNumber());
 
-        // 使用实际到货数量，如果没有填写则使用采购数量
-        java.math.BigDecimal quantity = acceptance.getActualQuantity() != null
+        // 使用实际到货数量，如果没有填写或为0则使用采购数量
+        java.math.BigDecimal quantity = (acceptance.getActualQuantity() != null && acceptance.getActualQuantity().compareTo(java.math.BigDecimal.ZERO) > 0)
             ? acceptance.getActualQuantity()
             : purchase.getQuantity();
         stockIn.setQuantity(quantity);

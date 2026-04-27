@@ -32,7 +32,9 @@
             <el-table-column label="操作" min-width="100" fixed="right">
               <template #default="{ row }">
                 <div class="action-buttons">
-                  <el-button type="primary" size="small" @click="handleStart(row)">开始验收</el-button>
+                  <el-button v-if="row.acceptanceResult === 0" type="primary" size="small" @click="handleStart(row)">开始验收</el-button>
+                  <el-tag v-else-if="row.acceptanceResult === 1" type="success" size="small">已通过</el-tag>
+                  <el-tag v-else-if="row.acceptanceResult === 2" type="danger" size="small">已拒绝</el-tag>
                 </div>
               </template>
             </el-table-column>
