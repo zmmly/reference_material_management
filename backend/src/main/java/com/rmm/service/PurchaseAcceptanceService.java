@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -360,5 +361,23 @@ public class PurchaseAcceptanceService {
         } else {
             acceptance.setAcceptanceResultText("未知");
         }
+    }
+
+    /**
+     * 查询导出数据（不分页）
+     */
+    public List<PurchaseAcceptance> listForExport(String purchaseNo, String materialName, Integer result) {
+        LambdaQueryWrapper<PurchaseAcceptance> wrapper = new LambdaQueryWrapper<>();
+        wrapper.like(org.springframework.util.StringUtils.hasText(purchaseNo), PurchaseAcceptance::getPurchaseNo, purchaseNo)
+               .like(org.springframework.util.StringUtils.hasText(materialName), PurchaseAcceptance::getMaterialName, materialName)
+               .eq(result != null, PurchaseAcceptance::getAcceptanceResult, result)
+               .orderByDesc(PurchaseAcceptance::getCreateTime);
+
+        List<PurchaseAcceptance> list = acceptanceMapper.selectList(wrapper);
+        list.forEach(a -> {
+            fillStatusText(a);
+            fillLocationInfo(a);
+        });
+        return list;
     }
 }
