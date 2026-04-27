@@ -26,13 +26,32 @@ public class PurchaseService {
     private final SupplierMapper supplierMapper;
     private final UserMapper userMapper;
 
-    public PageResult<Purchase> list(Integer current, Integer size, Integer status, Long applicantId) {
+    public PageResult<Purchase> list(Integer current, Integer size, Integer status,
+                                      String purchaseNo, String materialName, Long applicantId) {
         Page<Purchase> page = new Page<>(current, size);
 
         LambdaQueryWrapper<Purchase> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(status != null, Purchase::getStatus, status)
                .eq(applicantId != null, Purchase::getApplicantId, applicantId)
+               .like(StringUtils.hasText(purchaseNo), Purchase::getPurchaseNo, purchaseNo)
                .orderByDesc(Purchase::getApplyTime);
+
+        // materialName 关联查询：先找匹配的标准物质ID
+        if (StringUtils.hasText(materialName)) {
+            List<ReferenceMaterial> materials = materialMapper.selectList(
+                    new LambdaQueryWrapper<ReferenceMaterial>().like(ReferenceMaterial::getName, materialName));
+            if (materials.isEmpty()) {
+                PageResult<Purchase> pageResult = new PageResult<>();
+                pageResult.setRecords(new ArrayList<>());
+                pageResult.setTotal(0L);
+                pageResult.setSize((long) size);
+                pageResult.setCurrent((long) current);
+                pageResult.setPages(0L);
+                return pageResult;
+            }
+            List<Long> materialIds = materials.stream().map(ReferenceMaterial::getId).toList();
+            wrapper.in(Purchase::getMaterialId, materialIds);
+        }
 
         Page<Purchase> result = purchaseMapper.selectPage(page, wrapper);
         result.getRecords().forEach(this::fillRelations);

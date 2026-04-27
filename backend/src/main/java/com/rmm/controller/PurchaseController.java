@@ -35,18 +35,22 @@ public class PurchaseController {
             @RequestParam(defaultValue = "1") Integer current,
             @RequestParam(defaultValue = "10") Integer size,
             @RequestParam(required = false) Integer status,
+            @RequestParam(required = false) String purchaseNo,
+            @RequestParam(required = false) String materialName,
             HttpServletRequest request) {
         String token = request.getHeader("Authorization").substring(7);
         Long userId = jwtUtil.getUserId(token);
-        return Result.success(purchaseService.list(current, size, status, userId));
+        return Result.success(purchaseService.list(current, size, status, purchaseNo, materialName, userId));
     }
 
     @GetMapping("/all")
     public Result<PageResult<Purchase>> listAll(
             @RequestParam(defaultValue = "1") Integer current,
             @RequestParam(defaultValue = "10") Integer size,
-            @RequestParam(required = false) Integer status) {
-        return Result.success(purchaseService.list(current, size, status, null));
+            @RequestParam(required = false) Integer status,
+            @RequestParam(required = false) String purchaseNo,
+            @RequestParam(required = false) String materialName) {
+        return Result.success(purchaseService.list(current, size, status, purchaseNo, materialName, null));
     }
 
     @GetMapping("/{id}")
