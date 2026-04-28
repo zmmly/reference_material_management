@@ -159,22 +159,6 @@
         <el-form-item label="备注">
           <el-input v-model="form.remarks" type="textarea" :rows="2" />
         </el-form-item>
-        <el-form-item label="产品证书">
-          <el-upload
-            v-model:file-list="fileList"
-            :action="uploadUrl"
-            :headers="uploadHeaders"
-            :on-success="handleUploadSuccess"
-            :on-error="handleUploadError"
-            :limit="1"
-            accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-          >
-            <el-button type="primary">上传文件</el-button>
-            <template #tip>
-              <div class="el-upload__tip">支持 PDF、图片、Word 文档，大小不超过 10MB</div>
-            </template>
-          </el-upload>
-        </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
@@ -192,22 +176,6 @@
           <el-select v-model="editForm.locationId" placeholder="请选择" style="width: 100%">
             <el-option v-for="item in locationList" :key="item.id" :label="item.name" :value="item.id" />
           </el-select>
-        </el-form-item>
-        <el-form-item label="产品证书">
-          <el-upload
-            v-model:file-list="editFileList"
-            :action="uploadUrl"
-            :headers="uploadHeaders"
-            :on-success="handleEditUploadSuccess"
-            :on-error="handleUploadError"
-            :limit="1"
-            accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-          >
-            <el-button type="primary">上传文件</el-button>
-            <template #tip>
-              <div class="el-upload__tip">支持 PDF、图片、Word 文档，大小不超过 10MB</div>
-            </template>
-          </el-upload>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -390,7 +358,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed, watch } from 'vue'
+import { ref, reactive, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { UploadFilled } from '@element-plus/icons-vue'
 import { getStockInList, createStockIn, updateStockIn, exportStockIn, downloadStockInTemplate, previewStockInImport, confirmStockInImport, checkStockInDelete, deleteStockIn } from '@/api/stock'
@@ -398,7 +366,6 @@ import { getAllMaterials } from '@/api/material'
 import { getAllLocations } from '@/api/location'
 import { getAllSuppliers } from '@/api/supplier'
 import { getAllUsers } from '@/api/user'
-import { getToken } from '@/utils/auth'
 
 const loading = ref(false)
 const exporting = ref(false)
@@ -410,7 +377,6 @@ const locationList = ref([])
 const supplierList = ref([])
 const userList = ref([])
 const formRef = ref()
-const fileList = ref([])
 const dateRange = ref([])
 
 // 批量导入相关
@@ -421,9 +387,6 @@ const importLoading = ref(false)
 const importPreview = ref({ items: [], totalCount: 0, validCount: 0, invalidCount: 0 })
 const importResult = ref({ successCount: 0 })
 const importUploadRef = ref()
-
-const uploadUrl = '/api/upload?type=certificate'
-const uploadHeaders = computed(() => ({ Authorization: `Bearer ${getToken()}` }))
 
 const queryParams = reactive({
   current: 1, size: 10, reason: '', materialName: '', batchNo: '', operatorId: null, startDate: '', endDate: ''
@@ -442,7 +405,7 @@ watch(dateRange, (val) => {
 
 const form = reactive({
   materialId: null, batchNo: '', purityConcentration: '', quantity: 1, supplierId: null,
-  expiryDate: null, locationId: null, reason: 'PURCHASE', remarks: '', productCertificate: ''
+  expiryDate: null, locationId: null, reason: 'PURCHASE', remarks: ''
 })
 
 // 监听标准物质选择，自动填充供应商
@@ -515,23 +478,9 @@ const handleReset = () => {
 const handleAdd = () => {
   Object.assign(form, {
     materialId: null, batchNo: '', purityConcentration: '', quantity: 1, supplierId: null,
-    expiryDate: null, locationId: null, reason: 'PURCHASE', remarks: '', productCertificate: ''
+    expiryDate: null, locationId: null, reason: 'PURCHASE', remarks: ''
   })
-  fileList.value = []
   dialogVisible.value = true
-}
-
-const handleUploadSuccess = (response) => {
-  if (response.code === 200) {
-    form.productCertificate = response.data
-    ElMessage.success('文件上传成功')
-  } else {
-    ElMessage.error(response.message || '上传失败')
-  }
-}
-
-const handleUploadError = () => {
-  ElMessage.error('文件上传失败')
 }
 
 const handleSubmit = async () => {
@@ -548,10 +497,8 @@ const editFormRef = ref()
 const editForm = reactive({
   id: null,
   expiryDate: null,
-  locationId: null,
-  productCertificate: ''
+  locationId: null
 })
-const editFileList = ref([])
 const editRules = {
   locationId: [{ required: true, message: '请选择存放位置', trigger: 'change' }]
 }
@@ -560,18 +507,7 @@ const handleEdit = (row) => {
   editForm.id = row.id
   editForm.expiryDate = row.expiryDate
   editForm.locationId = row.locationId
-  editForm.productCertificate = row.productCertificate || ''
-  editFileList.value = row.productCertificate ? [{ name: '证书文件', url: row.productCertificate }] : []
   editDialogVisible.value = true
-}
-
-const handleEditUploadSuccess = (response) => {
-  if (response.code === 200) {
-    editForm.productCertificate = response.data
-    ElMessage.success('文件上传成功')
-  } else {
-    ElMessage.error(response.message || '上传失败')
-  }
 }
 
 const handleEditSubmit = async () => {

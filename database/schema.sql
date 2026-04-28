@@ -485,6 +485,26 @@ CREATE TABLE `stock_in` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `certificate`
+--
+
+DROP TABLE IF EXISTS `certificate`;
+/*!40101 SET @saved_cs_client       = @@character_set_client */;
+ CREATE TABLE `certificate` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `material_id` bigint NOT NULL COMMENT '标准物质ID',
+  `batch_no` varchar(100) NOT NULL COMMENT '批号',
+  `file_path` varchar(255) NOT NULL COMMENT '证书文件路径',
+  `file_name` varchar(255) DEFAULT NULL COMMENT '原始文件名',
+  `uploader_id` bigint DEFAULT NULL COMMENT '上传人ID',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
+  `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_material_batch` (`material_id`,`batch_no`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='证书管理表';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `stock_out`
 --
 

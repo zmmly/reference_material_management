@@ -39,6 +39,7 @@ public class StockInService {
     private final LocationMapper locationMapper;
     private final UserMapper userMapper;
     private final SupplierMapper supplierMapper;
+    private final CertificateMapper certificateMapper;
 
     /** 入库原因文字到编码的映射 */
     private static final Map<String, String> REASON_TEXT_TO_CODE = Map.of(
@@ -208,7 +209,6 @@ public class StockInService {
         // 只更新允许编辑的字段
         existing.setExpiryDate(stockIn.getExpiryDate());
         existing.setLocationId(stockIn.getLocationId());
-        existing.setProductCertificate(stockIn.getProductCertificate());
 
         stockInMapper.updateById(existing);
 
@@ -246,6 +246,16 @@ public class StockInService {
             Supplier supplier = supplierMapper.selectById(stockIn.getSupplierId());
             if (supplier != null) {
                 stockIn.setSupplierName(supplier.getName());
+            }
+        }
+        // 从独立的证书表查询证书路径
+        if (stockIn.getMaterialId() != null && StringUtils.hasText(stockIn.getBatchNo())) {
+            LambdaQueryWrapper<Certificate> certWrapper = new LambdaQueryWrapper<>();
+            certWrapper.eq(Certificate::getMaterialId, stockIn.getMaterialId())
+                       .eq(Certificate::getBatchNo, stockIn.getBatchNo());
+            Certificate cert = certificateMapper.selectOne(certWrapper);
+            if (cert != null) {
+                stockIn.setProductCertificate(cert.getFilePath());
             }
         }
     }
