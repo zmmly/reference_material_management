@@ -26,6 +26,7 @@ public class StockOutService {
     private final ReferenceMaterialMapper materialMapper;
     private final UserMapper userMapper;
     private final SupplierMapper supplierMapper;
+    private final StockInMapper stockInMapper;
 
     public PageResult<StockOut> list(Integer current, Integer size, Integer status, Long applicantId,
                                       String applicantName, String materialCode, String materialName) {
@@ -94,9 +95,9 @@ public class StockOutService {
         if (stock == null) {
             throw new BusinessException("库存不存在");
         }
-        // 允许正常(1)、即将过期(2)、已过期(3)的库存出库，禁止已出库(0)
-        if (stock.getStatus() == 0) {
-            throw new BusinessException("该库存已出库");
+        // 允许正常(1)、即将过期(2)、已过期(3)的库存出库，禁止已出库(0)和借出(4)
+        if (stock.getStatus() == 0 || stock.getStatus() == 4) {
+            throw new BusinessException(stock.getStatus() == 4 ? "该库存已借出，请先归还" : "该库存已出库");
         }
 
         // 检查是否已有待审批的出库申请
@@ -117,6 +118,9 @@ public class StockOutService {
         stockOut.setApplicantId(applicantId);
         stockOut.setStatus(0);
         stockOut.setApplyTime(LocalDateTime.now());
+        if (stockOut.getNeedReturn() == null) {
+            stockOut.setNeedReturn(false);
+        }
         stockOutMapper.insert(stockOut);
     }
 
@@ -124,7 +128,7 @@ public class StockOutService {
      * 批量出库申请
      */
     @Transactional
-    public void batchApply(List<Long> stockIds, String reason, String purpose, Long applicantId) {
+    public void batchApply(List<Long> stockIds, String reason, String purpose, Boolean needReturn, Long applicantId) {
         if (stockIds == null || stockIds.isEmpty()) {
             throw new BusinessException("请选择要出库的库存");
         }
@@ -134,9 +138,9 @@ public class StockOutService {
             if (stock == null) {
                 throw new BusinessException("库存不存在: " + stockId);
             }
-            // 允许正常(1)、即将过期(2)、已过期(3)的库存出库，禁止已出库(0)
-            if (stock.getStatus() == 0) {
-                throw new BusinessException("库存已出库: " + stock.getInternalCode());
+            // 允许正常(1)、即将过期(2)、已过期(3)的库存出库，禁止已出库(0)和借出(4)
+            if (stock.getStatus() == 0 || stock.getStatus() == 4) {
+                throw new BusinessException("库存已出库或借出: " + stock.getInternalCode());
             }
 
             // 检查是否已有待审批的出库申请
@@ -160,6 +164,7 @@ public class StockOutService {
             stockOut.setApplicantId(applicantId);
             stockOut.setStatus(0);
             stockOut.setApplyTime(LocalDateTime.now());
+            stockOut.setNeedReturn(needReturn != null && needReturn);
             stockOutMapper.insert(stockOut);
         }
     }
@@ -179,13 +184,17 @@ public class StockOutService {
             if (stock == null) {
                 throw new BusinessException("库存不存在");
             }
-            // 允许正常(1)、即将过期(2)、已过期(3)的库存出库，禁止已出库(0)
-            if (stock.getStatus() == 0) {
-                throw new BusinessException("该库存已出库");
+            // 允许正常(1)、即将过期(2)、已过期(3)的库存出库，禁止已出库(0)和借出(4)
+            if (stock.getStatus() == 0 || stock.getStatus() == 4) {
+                throw new BusinessException("该库存已出库或借出");
             }
 
-            // 标记库存为已出库
-            stock.setStatus(0);
+            // 标记库存为已出库或借出
+            if (Boolean.TRUE.equals(stockOut.getNeedReturn())) {
+                stock.setStatus(4);  // 借出/待归还
+            } else {
+                stock.setStatus(0);  // 已出库
+            }
             stock.setLastOutTime(LocalDateTime.now());
             stockMapper.updateById(stock);
 
@@ -289,5 +298,81 @@ public class StockOutService {
                 stockOut.setApproverName(user.getRealName());
             }
         }
+        // 设置归还状态文本
+        if (Boolean.TRUE.equals(stockOut.getNeedReturn())) {
+            stockOut.setReturnStatusText(Boolean.TRUE.equals(stockOut.getReturned()) ? "已归还" : "待归还");
+        } else {
+            stockOut.setReturnStatusText("无需归还");
+        }
+    }
+
+    /**
+     * 获取待归还列表
+     */
+    public PageResult<StockOut> pendingReturns(Integer current, Integer size) {
+        Page<StockOut> page = new Page<>(current, size);
+        LambdaQueryWrapper<StockOut> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(StockOut::getStatus, 1)
+               .eq(StockOut::getNeedReturn, true)
+               .eq(StockOut::getReturned, false)
+               .orderByDesc(StockOut::getApproveTime);
+
+        Page<StockOut> result = stockOutMapper.selectPage(page, wrapper);
+        result.getRecords().forEach(this::fillRelations);
+
+        PageResult<StockOut> pageResult = new PageResult<>();
+        pageResult.setRecords(result.getRecords());
+        pageResult.setTotal(result.getTotal());
+        pageResult.setSize(result.getSize());
+        pageResult.setCurrent(result.getCurrent());
+        pageResult.setPages(result.getPages());
+        return pageResult;
+    }
+
+    /**
+     * 归还出库物品
+     */
+    @Transactional
+    public void returnStock(Long stockOutId, Long operatorId) {
+        StockOut stockOut = stockOutMapper.selectById(stockOutId);
+        if (stockOut == null) {
+            throw new BusinessException("出库记录不存在");
+        }
+        if (stockOut.getStatus() != 1) {
+            throw new BusinessException("该出库申请未审批通过");
+        }
+        if (!Boolean.TRUE.equals(stockOut.getNeedReturn())) {
+            throw new BusinessException("该出库申请不需要归还");
+        }
+        if (Boolean.TRUE.equals(stockOut.getReturned())) {
+            throw new BusinessException("该物品已归还");
+        }
+
+        // 恢复库存记录
+        Stock stock = stockMapper.selectById(stockOut.getStockId());
+        if (stock == null) {
+            throw new BusinessException("库存记录不存在");
+        }
+        stock.setStatus(1);
+        stockMapper.updateById(stock);
+
+        // 标记出库记录为已归还
+        stockOut.setReturned(true);
+        stockOutMapper.updateById(stockOut);
+
+        // 创建入库记录（审计追踪）
+        StockIn stockIn = new StockIn();
+        stockIn.setStockOutId(stockOutId);
+        stockIn.setStockId(stock.getId());
+        stockIn.setMaterialId(stock.getMaterialId());
+        stockIn.setBatchNo(stock.getBatchNo());
+        stockIn.setInternalCode(stock.getInternalCode());
+        stockIn.setPurityConcentration(stock.getPurityConcentration());
+        stockIn.setExpiryDate(stock.getExpiryDate());
+        stockIn.setQuantity(BigDecimal.ONE);
+        stockIn.setLocationId(stock.getLocationId());
+        stockIn.setReason("RETURN");
+        stockIn.setOperatorId(operatorId);
+        stockInMapper.insert(stockIn);
     }
 }

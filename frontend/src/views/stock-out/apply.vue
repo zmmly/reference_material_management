@@ -55,6 +55,16 @@
           :closable="false"
           style="margin-bottom: 16px"
         />
+        <el-form-item label="是否归还">
+          <el-switch
+            v-model="form.needReturn"
+            active-text="需要归还"
+            inactive-text="不归还"
+          />
+          <div class="form-tip" v-if="form.needReturn">
+            物品将在审批通过后标记为"借出"，归还后恢复为"在库"
+          </div>
+        </el-form-item>
         <el-form-item label="出库原因" prop="reason">
           <el-select v-model="form.reason" placeholder="请选择出库原因" style="width: 100%">
             <el-option label="实验使用" value="EXPERIMENT" />
@@ -101,7 +111,8 @@ const stockInfo = ref({
 const form = reactive({
   stockId: null,
   reason: '',
-  purpose: ''
+  purpose: '',
+  needReturn: false
 })
 
 const rules = {
@@ -154,4 +165,5 @@ onMounted(() => fetchStockInfo())
 <style scoped>
 .page-container { padding: 20px; }
 .card-header { display: flex; justify-content: space-between; align-items: center; }
+.form-tip { color: #909399; font-size: 12px; margin-top: 4px; }
 </style>

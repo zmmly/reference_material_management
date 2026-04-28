@@ -31,18 +31,27 @@
               <template #default="{ row }">{{ reasonText(row.reason) }}</template>
             </el-table-column>
             <el-table-column prop="purpose" label="用途说明" min-width="150" show-overflow-tooltip />
+            <el-table-column prop="needReturn" label="归还" min-width="90">
+              <template #default="{ row }">
+                <el-tag v-if="row.needReturn" :type="row.returned ? 'success' : 'warning'" size="small">
+                  {{ row.returned ? '已归还' : '待归还' }}
+                </el-tag>
+                <span v-else style="color: #909399;">-</span>
+              </template>
+            </el-table-column>
             <el-table-column prop="status" label="状态" min-width="90">
               <template #default="{ row }">
                 <el-tag :type="statusType(row.status)">{{ statusText(row.status) }}</el-tag>
               </template>
             </el-table-column>
             <el-table-column prop="applyTime" label="申请时间" min-width="150" />
-            <el-table-column label="操作" min-width="140" fixed="right">
+            <el-table-column label="操作" min-width="180" fixed="right">
               <template #default="{ row }">
                 <div class="action-buttons">
                   <el-button v-if="row.status === 0" link type="primary" size="small" @click="handleEdit(row)">编辑</el-button>
                   <el-button v-if="row.status === 0" link type="danger" size="small" @click="handleDelete(row)">删除</el-button>
                   <el-button v-if="row.status === 0" link type="warning" size="small" @click="handleCancel(row)">撤回</el-button>
+                  <el-button v-if="row.status === 1 && row.needReturn && !row.returned" link type="success" size="small" @click="handleReturn(row)">归还</el-button>
                 </div>
               </template>
             </el-table-column>
@@ -128,6 +137,35 @@
             @current-change="fetchApprovedData"
           />
         </el-tab-pane>
+
+        <el-tab-pane label="待归还" name="returns">
+          <el-table :data="returnsData" v-loading="returnsLoading" border>
+            <el-table-column prop="applicantName" label="借出人" min-width="100" show-overflow-tooltip />
+            <el-table-column prop="materialCode" label="编号" min-width="130" show-overflow-tooltip />
+            <el-table-column prop="materialName" label="名称" min-width="160" show-overflow-tooltip />
+            <el-table-column prop="internalCode" label="内部编号" min-width="110" show-overflow-tooltip />
+            <el-table-column prop="reason" label="出库原因" min-width="90">
+              <template #default="{ row }">{{ reasonText(row.reason) }}</template>
+            </el-table-column>
+            <el-table-column prop="purpose" label="用途说明" min-width="150" show-overflow-tooltip />
+            <el-table-column prop="approveTime" label="借出时间" min-width="150" />
+            <el-table-column label="操作" min-width="100" fixed="right">
+              <template #default="{ row }">
+                <el-button link type="success" size="small" @click="handleReturn(row)">确认归还</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+          <el-pagination
+            v-model:current-page="returnsPage.current"
+            v-model:page-size="returnsPage.size"
+            :total="returnsPage.total"
+            :page-sizes="[10, 20, 50]"
+            layout="total, sizes, prev, pager, next, jumper"
+            class="pagination"
+            @size-change="fetchReturnsData"
+            @current-change="fetchReturnsData"
+          />
+        </el-tab-pane>
       </el-tabs>
     </el-card>
 
@@ -167,7 +205,7 @@
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getStockOutList, approveStockOut, cancelStockOut, updateStockOut, deleteStockOut } from '@/api/stock'
+import { getStockOutList, approveStockOut, cancelStockOut, updateStockOut, deleteStockOut, getPendingReturns, returnStockOut } from '@/api/stock'
 import { useUserStore } from '@/store/modules/user'
 
 const userStore = useUserStore()
@@ -267,6 +305,25 @@ const fetchApprovedData = async () => {
   }
 }
 
+// 待归还
+const returnsLoading = ref(false)
+const returnsData = ref([])
+const returnsPage = reactive({ current: 1, size: 10, total: 0 })
+
+const fetchReturnsData = async () => {
+  returnsLoading.value = true
+  try {
+    const res = await getPendingReturns({
+      current: returnsPage.current,
+      size: returnsPage.size
+    })
+    returnsData.value = res.data?.records || []
+    returnsPage.total = res.data?.total || 0
+  } finally {
+    returnsLoading.value = false
+  }
+}
+
 const canApprove = computed(() => {
   const roleCode = userStore.userInfo?.roleCode
   return roleCode === 'ADMIN' || roleCode === 'MANAGER'
@@ -299,6 +356,9 @@ const refreshCurrentTab = () => {
   } else if (activeTab.value === 'approved') {
     approvedPage.current = 1
     fetchApprovedData()
+  } else if (activeTab.value === 'returns') {
+    returnsPage.current = 1
+    fetchReturnsData()
   }
 }
 
@@ -373,6 +433,14 @@ const handleEditSubmit = async () => {
   ElMessage.success('修改成功')
   editDialogVisible.value = false
   refreshAfterAction()
+}
+
+// 归还出库物品
+const handleReturn = async (row) => {
+  await ElMessageBox.confirm(`确认归还「${row.internalCode}」？归还后该物品将恢复为"在库"状态。`, '归还确认', { type: 'info' })
+  await returnStockOut(row.id)
+  ElMessage.success('归还成功')
+  refreshCurrentTab()
 }
 
 // 删除出库申请

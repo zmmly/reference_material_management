@@ -67,6 +67,16 @@ export function deleteStockOut(id) {
   return request.delete(`/stock-out/${id}`)
 }
 
+// 获取待归还列表
+export function getPendingReturns(params) {
+  return request.get('/stock-out/pending-returns', { params })
+}
+
+// 归还出库物品
+export function returnStockOut(id) {
+  return request.post(`/stock-out/${id}/return`)
+}
+
 // 下载入库导入模板
 export function downloadStockInTemplate() {
   return request.get('/stock-in/template', {

@@ -12,6 +12,7 @@ public class StockIn {
     @TableId(type = IdType.AUTO)
     private Long id;
     private Long stockId;
+    private Long stockOutId;
     private Long materialId;
     private String batchNo;
     private String internalCode;

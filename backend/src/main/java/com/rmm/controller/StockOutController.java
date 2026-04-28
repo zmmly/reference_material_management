@@ -79,7 +79,8 @@ public class StockOutController {
                 .toList();
         String reason = (String) params.get("reason");
         String purpose = (String) params.get("purpose");
-        stockOutService.batchApply(stockIds, reason, purpose, userId);
+        Boolean needReturn = params.get("needReturn") != null && Boolean.parseBoolean(params.get("needReturn").toString());
+        stockOutService.batchApply(stockIds, reason, purpose, needReturn, userId);
 
         // 记录操作日志
         operationLogUtil.log(request, userId, username, "stock", "出库",
@@ -145,6 +146,27 @@ public class StockOutController {
         // 记录操作日志
         operationLogUtil.log(request, userId, username, "stock", "删除",
             "出库申请", "删除出库申请ID: " + id);
+
+        return Result.success();
+    }
+
+    @GetMapping("/pending-returns")
+    public Result<PageResult<StockOut>> pendingReturns(
+            @RequestParam(defaultValue = "1") Integer current,
+            @RequestParam(defaultValue = "10") Integer size) {
+        return Result.success(stockOutService.pendingReturns(current, size));
+    }
+
+    @PostMapping("/{id}/return")
+    public Result<Void> returnStock(@PathVariable Long id, HttpServletRequest request) {
+        String token = request.getHeader("Authorization").substring(7);
+        Long userId = jwtUtil.getUserId(token);
+        String username = jwtUtil.getUsername(token);
+        stockOutService.returnStock(id, userId);
+
+        // 记录操作日志
+        operationLogUtil.log(request, userId, username, "stock", "归还",
+            "出库归还", "归还出库记录ID: " + id);
 
         return Result.success();
     }

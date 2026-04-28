@@ -53,7 +53,7 @@ public class StockService {
                 fillRelations(stock);
                 updateStatusByExpiryDate(stock);
                 stock.setHasPendingOut(pendingStockIds.contains(stock.getId()));
-                stock.setHasApprovedOut(stock.getStatus() != null && stock.getStatus() == 0);
+                stock.setHasApprovedOut(stock.getStatus() != null && (stock.getStatus() == 0 || stock.getStatus() == 4));
             });
 
             // 内存中筛选
@@ -117,7 +117,7 @@ public class StockService {
                 fillRelations(stock);
                 updateStatusByExpiryDate(stock);
                 stock.setHasPendingOut(pendingStockIds.contains(stock.getId()));
-                stock.setHasApprovedOut(stock.getStatus() != null && stock.getStatus() == 0);
+                stock.setHasApprovedOut(stock.getStatus() != null && (stock.getStatus() == 0 || stock.getStatus() == 4));
             });
 
             PageResult<Stock> pageResult = new PageResult<>();
@@ -136,8 +136,8 @@ public class StockService {
      * 注意：已出库状态(status=0)保持不变
      */
     private void updateStatusByExpiryDate(Stock stock) {
-        // 已出库状态保持不变
-        if (stock.getStatus() != null && stock.getStatus() == 0) {
+        // 已出库或借出状态保持不变
+        if (stock.getStatus() != null && (stock.getStatus() == 0 || stock.getStatus() == 4)) {
             return;
         }
 

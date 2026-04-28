@@ -15,6 +15,7 @@
             <el-option label="正常" :value="1" />
             <el-option label="即将过期" :value="2" />
             <el-option label="已过期" :value="3" />
+            <el-option label="借出" :value="4" />
           </el-select>
         </el-form-item>
         <el-form-item>
@@ -100,6 +101,13 @@
         <el-form-item label="用途说明">
           <el-input v-model="batchOutForm.purpose" type="textarea" :rows="3" placeholder="请输入用途说明" />
         </el-form-item>
+        <el-form-item label="是否归还">
+          <el-switch
+            v-model="batchOutForm.needReturn"
+            active-text="需要归还"
+            inactive-text="不归还"
+          />
+        </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="batchOutDialogVisible = false">取消</el-button>
@@ -152,7 +160,7 @@ const locationList = ref([])
 const selectedRows = ref([])
 const batchOutDialogVisible = ref(false)
 const batchOutLoading = ref(false)
-const batchOutForm = reactive({ reason: '', purpose: '' })
+const batchOutForm = reactive({ reason: '', purpose: '', needReturn: false })
 const expiryDialogVisible = ref(false)
 const expiryLoading = ref(false)
 const expiryForm = reactive({ materialId: null, materialName: '', batchNo: '', expiryDate: '', count: 0 })
@@ -220,6 +228,7 @@ const handleBatchOut = () => {
   }
   batchOutForm.reason = ''
   batchOutForm.purpose = ''
+  batchOutForm.needReturn = false
   batchOutDialogVisible.value = true
 }
 
@@ -233,7 +242,8 @@ const confirmBatchOut = async () => {
     await batchApplyStockOut({
       stockIds: selectedRows.value.map(r => r.id),
       reason: batchOutForm.reason,
-      purpose: batchOutForm.purpose
+      purpose: batchOutForm.purpose,
+      needReturn: batchOutForm.needReturn
     })
     ElMessage.success('批量出库申请成功')
     batchOutDialogVisible.value = false
@@ -253,8 +263,8 @@ const isWarning = (date) => {
 
 const isExpired = (date) => date && new Date(date) < new Date()
 
-const statusType = (s) => ({ 1: 'success', 2: 'warning', 3: 'danger' }[s] || 'info')
-const statusText = (s) => ({ 1: '正常', 2: '即将过期', 3: '已过期' }[s] || '未知')
+const statusType = (s) => ({ 1: 'success', 2: 'warning', 3: 'danger', 4: '' }[s] || 'info')
+const statusText = (s) => ({ 1: '正常', 2: '即将过期', 3: '已过期', 4: '借出' }[s] || '未知')
 
 onMounted(() => {
   fetchData()

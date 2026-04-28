@@ -24,8 +24,8 @@ public class StockOut {
     private Integer status;
     private String rejectReason;
     private String remarks;
-
-    @TableField(exist = false)
+    private Boolean needReturn;
+    private Boolean returned;
     private String materialCode;
     @TableField(exist = false)
     private String materialName;
@@ -37,4 +37,6 @@ public class StockOut {
     private String applicantName;
     @TableField(exist = false)
     private String approverName;
+    @TableField(exist = false)
+    private String returnStatusText;
 }
