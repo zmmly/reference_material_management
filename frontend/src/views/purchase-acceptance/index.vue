@@ -111,7 +111,9 @@
           <el-descriptions-item label="采购单号">{{ currentAcceptance?.purchaseNo }}</el-descriptions-item>
           <el-descriptions-item label="标准物质">{{ currentAcceptance?.materialName }} ({{ currentAcceptance?.materialCode }})</el-descriptions-item>
           <el-descriptions-item label="规格">{{ currentAcceptance?.specification }}</el-descriptions-item>
-          <el-descriptions-item label="批号">{{ currentAcceptance?.batchNumber }}</el-descriptions-item>
+          <el-descriptions-item label="批号">
+            <el-input v-if="acceptDialogVisible" v-model="acceptForm.batchNumber" :placeholder="currentAcceptance?.batchNumber" style="width: 180px" />
+          </el-descriptions-item>
           <el-descriptions-item label="采购数量">{{ currentAcceptance?.quantity }} {{ currentAcceptance?.unit }}</el-descriptions-item>
           <el-descriptions-item label="实际到货数量">
             <el-input-number v-if="acceptDialogVisible" v-model="acceptForm.actualQuantity" :min="0" :precision="2" :placeholder="currentAcceptance?.quantity" style="width: 120px" />
@@ -274,6 +276,7 @@ const todayDate = computed(() => {
 
 
 const acceptForm = reactive({
+  batchNumber: '',
   packageIntact: null,
   labelComplete: null,
   hasDamage: null,
@@ -402,6 +405,7 @@ const handleStart = async (row) => {
     // 获取验收详情并显示弹窗
     const res = await getAcceptance(row.id)
     currentAcceptance.value = res.data
+    acceptForm.batchNumber = res.data?.batchNumber || ''
     acceptDialogVisible.value = true
   } catch (error) {
     if (error !== 'cancel') {
@@ -422,6 +426,7 @@ const handleSubmitAcceptance = async () => {
 
   acceptDialogVisible.value = false
   Object.assign(acceptForm, {
+    batchNumber: '',
     packageIntact: null,
     labelComplete: null,
     hasDamage: null,

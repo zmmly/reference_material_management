@@ -175,10 +175,10 @@ public class PurchaseAcceptanceService {
      * 提交验收
      */
     @Transactional
-    public void submitAcceptance(Long acceptanceId, Long userId, Integer packageIntact,
-                                Integer labelComplete, Integer hasDamage, java.math.BigDecimal actualQuantity,
-                                java.time.LocalDate expiryDate, Long locationId,
-                                Integer result, String remark) {
+    public void submitAcceptance(Long acceptanceId, Long userId, String batchNumber,
+                                Integer packageIntact, Integer labelComplete, Integer hasDamage,
+                                java.math.BigDecimal actualQuantity, java.time.LocalDate expiryDate,
+                                Long locationId, Integer result, String remark) {
         PurchaseAcceptance acceptance = acceptanceMapper.selectById(acceptanceId);
         if (acceptance == null) {
             throw new BusinessException("验收单不存在");
@@ -188,6 +188,9 @@ public class PurchaseAcceptanceService {
         }
 
         // 更新验收信息
+        if (batchNumber != null && !batchNumber.isBlank()) {
+            acceptance.setBatchNumber(batchNumber);
+        }
         acceptance.setPackageIntact(packageIntact);
         acceptance.setLabelComplete(labelComplete);
         acceptance.setHasDamage(hasDamage);
@@ -231,7 +234,11 @@ public class PurchaseAcceptanceService {
     private StockIn createStockIn(PurchaseAcceptance acceptance, Purchase purchase) {
         StockIn stockIn = new StockIn();
         stockIn.setMaterialId(purchase.getMaterialId());
-        stockIn.setBatchNo(purchase.getBatchNumber());
+        // 使用验收时填写的批号
+        String batchNo = (acceptance.getBatchNumber() != null && !acceptance.getBatchNumber().isBlank())
+            ? acceptance.getBatchNumber()
+            : purchase.getBatchNumber();
+        stockIn.setBatchNo(batchNo);
 
         // 使用实际到货数量，如果没有填写或为0则使用采购数量
         java.math.BigDecimal quantity = (acceptance.getActualQuantity() != null && acceptance.getActualQuantity().compareTo(java.math.BigDecimal.ZERO) > 0)
@@ -247,9 +254,6 @@ public class PurchaseAcceptanceService {
         stockIn.setOperatorId(acceptance.getAcceptanceUserId());
         stockIn.setOperatorName(acceptance.getAcceptanceUserName());
         stockIn.setSupplierId(purchase.getSupplierId());
-
-        // 生成内部编号
-        String batchNo = purchase.getBatchNumber();
         int maxSequence = getMaxSequenceForBatch(batchNo);
         int qty = quantity.intValue();
 

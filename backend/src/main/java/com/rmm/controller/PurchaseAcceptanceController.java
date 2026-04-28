@@ -96,6 +96,7 @@ public class PurchaseAcceptanceController {
         String token = request.getHeader("Authorization").substring(7);
         Long userId = jwtUtil.getUserId(token);
         acceptanceService.submitAcceptance(id, userId,
+            dto.getBatchNumber(),
             dto.getPackageIntact(),
             dto.getLabelComplete(),
             dto.getHasDamage(),

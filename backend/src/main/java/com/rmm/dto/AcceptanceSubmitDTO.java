@@ -4,6 +4,7 @@ import lombok.Data;
 
 @Data
 public class AcceptanceSubmitDTO {
+    private String batchNumber;                  // 批号（可编辑）
     private Integer packageIntact;     // 外包装是否完好
     private Integer labelComplete;      // 标签是否完整
     private Integer hasDamage;          // 有无破损
