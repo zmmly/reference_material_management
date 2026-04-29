@@ -27,12 +27,14 @@ public class PurchaseService {
     private final UserMapper userMapper;
 
     public PageResult<Purchase> list(Integer current, Integer size, Integer status,
-                                      String purchaseNo, String materialName, Long applicantId) {
+                                      String purchaseNo, String materialName, Long applicantId,
+                                      Long designatedApproverId) {
         Page<Purchase> page = new Page<>(current, size);
 
         LambdaQueryWrapper<Purchase> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(status != null, Purchase::getStatus, status)
                .eq(applicantId != null, Purchase::getApplicantId, applicantId)
+               .eq(designatedApproverId != null, Purchase::getDesignatedApproverId, designatedApproverId)
                .like(StringUtils.hasText(purchaseNo), Purchase::getPurchaseNo, purchaseNo)
                .orderByDesc(Purchase::getApplyTime);
 
@@ -194,6 +196,12 @@ public class PurchaseService {
             User user = userMapper.selectById(purchase.getApproverId());
             if (user != null) {
                 purchase.setApproverName(user.getRealName());
+            }
+        }
+        if (purchase.getDesignatedApproverId() != null) {
+            User user = userMapper.selectById(purchase.getDesignatedApproverId());
+            if (user != null) {
+                purchase.setDesignatedApproverName(user.getRealName());
             }
         }
     }

@@ -40,7 +40,7 @@ public class PurchaseController {
             HttpServletRequest request) {
         String token = request.getHeader("Authorization").substring(7);
         Long userId = jwtUtil.getUserId(token);
-        return Result.success(purchaseService.list(current, size, status, purchaseNo, materialName, userId));
+        return Result.success(purchaseService.list(current, size, status, purchaseNo, materialName, userId, null));
     }
 
     @GetMapping("/all")
@@ -49,8 +49,9 @@ public class PurchaseController {
             @RequestParam(defaultValue = "10") Integer size,
             @RequestParam(required = false) Integer status,
             @RequestParam(required = false) String purchaseNo,
-            @RequestParam(required = false) String materialName) {
-        return Result.success(purchaseService.list(current, size, status, purchaseNo, materialName, null));
+            @RequestParam(required = false) String materialName,
+            @RequestParam(required = false) Long designatedApproverId) {
+        return Result.success(purchaseService.list(current, size, status, purchaseNo, materialName, null, designatedApproverId));
     }
 
     @GetMapping("/{id}")

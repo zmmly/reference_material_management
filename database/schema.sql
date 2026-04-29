@@ -195,6 +195,7 @@ CREATE TABLE `purchase` (
   `status` tinyint DEFAULT '0' COMMENT '状态: 0待审批 1已通过 2已拒绝 3已撤回 4已到货',
   `reject_reason` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '拒绝原因',
   `remarks` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '备注',
+  `designated_approver_id` bigint DEFAULT NULL COMMENT '指定审批人ID',
   PRIMARY KEY (`id`) USING BTREE,
   KEY `idx_material` (`material_id`) USING BTREE,
   KEY `idx_applicant` (`applicant_id`) USING BTREE,

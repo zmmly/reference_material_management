@@ -29,6 +29,7 @@ public class Purchase {
     private Integer status;
     private String rejectReason;
     private String remarks;
+    private Long designatedApproverId;
 
     @TableField(exist = false)
     private String materialName;
@@ -40,4 +41,6 @@ public class Purchase {
     private String applicantName;
     @TableField(exist = false)
     private String approverName;
+    @TableField(exist = false)
+    private String designatedApproverName;
 }

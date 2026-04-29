@@ -130,6 +130,7 @@ public class UserService {
             if (role != null) {
                 user.setRole(role);
                 user.setRoleName(role.getName());
+                user.setRoleCode(role.getCode());
             }
         }
     }

@@ -50,6 +50,7 @@
                 <el-tag :type="statusType(row.status)">{{ statusText(row.status) }}</el-tag>
               </template>
             </el-table-column>
+            <el-table-column prop="designatedApproverName" label="审批人" min-width="100" show-overflow-tooltip />
             <el-table-column prop="applyTime" label="申请时间" min-width="150" />
             <el-table-column label="操作" min-width="130" fixed="right">
               <template #default="{ row }">
@@ -192,6 +193,15 @@
           </el-col>
         </el-row>
         <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="审批人" prop="designatedApproverId">
+              <el-select v-model="form.designatedApproverId" placeholder="请选择审批人" filterable style="width: 100%">
+                <el-option v-for="item in approverList" :key="item.id" :label="item.realName" :value="item.id" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="20">
           <el-col :span="24">
             <el-form-item label="采购原因" prop="reason">
               <el-input v-model="form.reason" type="textarea" :rows="3" />
@@ -221,6 +231,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { getPurchaseList, getAllPurchaseList, applyPurchase, approvePurchase, cancelPurchase, receivePurchase, exportPurchase } from '@/api/purchase'
 import { getAllMaterials } from '@/api/material'
 import { getAllSuppliers } from '@/api/supplier'
+import { getAllUsers } from '@/api/user'
 import { useUserStore } from '@/store/modules/user'
 
 const userStore = useUserStore()
@@ -237,6 +248,7 @@ const rejectReason = ref('')
 const currentRow = ref(null)
 const materialList = ref([])
 const supplierList = ref([])
+const approverList = ref([])
 const formRef = ref()
 
 // 我的申请查询参数
@@ -257,7 +269,8 @@ const canApprove = computed(() => {
 const form = reactive({
   materialId: null, specification: '', batchNumber: '', unit: '支',
   quantity: 1, estimatedPrice: null,
-  supplierId: null, estimatedArrivalDate: null, reason: ''
+  supplierId: null, estimatedArrivalDate: null, reason: '',
+  designatedApproverId: null
 })
 const rules = {
   materialId: [{ required: true, message: '请选择标准物质', trigger: 'change' }],
@@ -267,7 +280,8 @@ const rules = {
   quantity: [{ required: true, message: '请输入采购数量', trigger: 'blur' }],
   estimatedPrice: [],
   supplierId: [{ required: true, message: '请选择供应商', trigger: 'change' }],
-  reason: [{ required: true, message: '请输入采购原因', trigger: 'blur' }]
+  reason: [{ required: true, message: '请输入采购原因', trigger: 'blur' }],
+  designatedApproverId: [{ required: true, message: '请选择审批人', trigger: 'change' }]
 }
 
 const totalAmountDisplay = computed(() => {
@@ -327,7 +341,8 @@ const fetchPendingApplications = async () => {
   try {
     const res = await getAllPurchaseList({
       ...pendingQueryParams,
-      status: 0
+      status: 0,
+      designatedApproverId: userStore.userInfo?.id
     })
     pendingList.value = res.data?.records || []
     pendingTotal.value = res.data?.total || 0
@@ -426,11 +441,21 @@ const fetchSuppliers = async () => {
   } catch (e) {}
 }
 
+const fetchApprovers = async () => {
+  try {
+    const res = await getAllUsers()
+    const users = res.data || []
+    // 只筛选 ADMIN 和 MANAGER 角色的用户作为审批人
+    approverList.value = users.filter(u => u.roleCode === 'ADMIN' || u.roleCode === 'MANAGER')
+  } catch (e) {}
+}
+
 const handleAdd = () => {
   Object.assign(form, {
     materialId: null, specification: '', batchNumber: '', unit: '支',
     quantity: 1, estimatedPrice: null,
-    supplierId: null, estimatedArrivalDate: null, reason: ''
+    supplierId: null, estimatedArrivalDate: null, reason: '',
+    designatedApproverId: null
   })
   dialogVisible.value = true
 }
@@ -493,6 +518,7 @@ onMounted(() => {
   fetchData()
   fetchMaterials()
   fetchSuppliers()
+  fetchApprovers()
 })
 </script>
 

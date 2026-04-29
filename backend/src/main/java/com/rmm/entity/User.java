@@ -29,4 +29,7 @@ public class User {
 
     @TableField(exist = false)
     private String roleName;
+
+    @TableField(exist = false)
+    private String roleCode;
 }
